@@ -7,7 +7,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        # TODO: Add Vercel production domain after first deploy
+        "https://seira-e1iv.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
