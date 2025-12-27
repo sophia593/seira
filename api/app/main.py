@@ -5,7 +5,10 @@ app = FastAPI(title="Seira API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update with your Vercel domain in production
+    allow_origins=[
+        "http://localhost:3000",
+        # TODO: Add Vercel production domain after first deploy
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
