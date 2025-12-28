@@ -5,3 +5,4 @@ supabase
 PyJWT
 upstash-redis
 anyio
+anthropic

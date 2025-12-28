@@ -30,10 +30,15 @@ class Settings(BaseSettings):
     UPSTASH_REDIS_REST_URL: str | None = None
     UPSTASH_REDIS_REST_TOKEN: str | None = None
 
-    # LLM keys (optional for now)
+    # LLM keys
     ANTHROPIC_API_KEY: str | None = None
     OPENAI_API_KEY: str | None = None
     GEMINI_API_KEY: str | None = None
+
+    # Claude settings
+    CLAUDE_MODEL: str = "claude-haiku-4-5-20251001"
+    CLAUDE_MAX_TOKENS: int = 4096
+    CLAUDE_TIMEOUT: int = 60  # seconds
 
     model_config = SettingsConfigDict(
         env_file=".env",          # local only (Railway uses real env vars)

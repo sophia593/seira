@@ -3,12 +3,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional, List, Dict
 
-import anyio
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.auth import User, get_current_user
-from app.core.database import get_supabase
+from app.services import user as user_service
 
 router = APIRouter(tags=["users"])
 
@@ -100,88 +99,16 @@ class UpdatePreferencesRequest(BaseModel):
 
 
 # -----------------------------------------------------------------------------
-# Supabase helpers (sync client wrapped for async endpoints)
+# Helpers
 # -----------------------------------------------------------------------------
 
-def _sb_exec(query):
-    """Execute a supabase-py query and normalize errors."""
-    res = query.execute()
-    # supabase-py typically returns { data, error } or raises; handle both patterns.
-    err = getattr(res, "error", None)
-    if err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {err}",
-        )
-    return getattr(res, "data", None)
 
-
-async def sb_exec(query):
-    return await anyio.to_thread.run_sync(_sb_exec, query)
-
-
-async def get_user_row(user_id: str) -> Optional[Dict[str, Any]]:
-    sb = get_supabase()
-    data = await sb_exec(sb.table("users").select("*").eq("id", user_id).limit(1))
-    if not data:
-        return None
-    return data[0]
-
-
-async def create_user_row(user_id: str, email: str, name: Optional[str]) -> Dict[str, Any]:
-    sb = get_supabase()
-    payload = {"id": user_id, "email": email, "name": name}
-    data = await sb_exec(sb.table("users").insert(payload).select("*"))
-    if not data:
-        raise HTTPException(status_code=500, detail="Failed to create user row")
-    return data[0]
-
-
-async def update_user_row(user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
-    sb = get_supabase()
-    data = await sb_exec(sb.table("users").update(updates).eq("id", user_id).select("*"))
-    if not data:
-        raise HTTPException(status_code=404, detail="User not found")
-    return data[0]
-
-
-async def get_preferences_row(user_id: str) -> Optional[Dict[str, Any]]:
-    sb = get_supabase()
-    data = await sb_exec(
-        sb.table("user_preferences").select("*").eq("user_id", user_id).limit(1)
-    )
-    if not data:
-        return None
-    return data[0]
-
-
-async def upsert_preferences_row(user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Upsert preferences for user_id.
-    Works whether row exists or not.
-    """
-    sb = get_supabase()
-    payload = {"user_id": user_id, **updates}
-    data = await sb_exec(
-        sb.table("user_preferences")
-        .upsert(payload, on_conflict="user_id")
-        .select("*")
-    )
-    if not data:
-        raise HTTPException(status_code=500, detail="Failed to upsert preferences")
-    return data[0]
-
-
-async def ensure_user_exists(user: User) -> Dict[str, Any]:
+async def _ensure_user_exists(user: User) -> Dict[str, Any]:
     """
     Ensure a row exists in public.users for this JWT user.
-    If not, create it.
+    If not, create it with name from user_metadata if available.
     """
-    existing = await get_user_row(user.id)
-    if existing:
-        return existing
-
-    # Name fallback: try user_metadata if your User carries it; otherwise None
+    # Try to get name from user metadata
     name = None
     try:
         if hasattr(user, "user_metadata") and isinstance(user.user_metadata, dict):
@@ -189,15 +116,7 @@ async def ensure_user_exists(user: User) -> Dict[str, Any]:
     except Exception:
         name = None
 
-    return await create_user_row(user.id, user.email, name)
-
-
-async def ensure_preferences_exists(user_id: str) -> Dict[str, Any]:
-    prefs = await get_preferences_row(user_id)
-    if prefs:
-        return prefs
-    # create empty row via upsert
-    return await upsert_preferences_row(user_id, {})
+    return await user_service.ensure_user_exists(user.id, user.email, name)
 
 
 # -----------------------------------------------------------------------------
@@ -210,8 +129,8 @@ async def get_me(current: User = Depends(get_current_user)):
     Return current user profile + preferences.
     Creates missing public.users and/or user_preferences rows if needed.
     """
-    user_row = await ensure_user_exists(current)
-    prefs_row = await ensure_preferences_exists(current.id)
+    user_row = await _ensure_user_exists(current)
+    prefs_row = await user_service.ensure_preferences_exists(current.id)
 
     return {
         "user": user_row,
@@ -228,7 +147,7 @@ async def patch_me(
     Update current user's profile (currently only name).
     Creates the user row if missing.
     """
-    await ensure_user_exists(current)
+    await _ensure_user_exists(current)
 
     updates: Dict[str, Any] = {}
     if body.name is not None:
@@ -236,12 +155,12 @@ async def patch_me(
 
     if not updates:
         # No changes requested — return current row
-        row = await get_user_row(current.id)
+        row = await user_service.get_user_row(current.id)
         if not row:
-            row = await ensure_user_exists(current)
+            row = await _ensure_user_exists(current)
         return row
 
-    updated = await update_user_row(current.id, updates)
+    updated = await user_service.update_user_row(current.id, updates)
     return updated
 
 
@@ -251,8 +170,8 @@ async def get_my_preferences(current: User = Depends(get_current_user)):
     Return only preferences.
     Creates preferences row if missing.
     """
-    await ensure_user_exists(current)
-    prefs = await ensure_preferences_exists(current.id)
+    await _ensure_user_exists(current)
+    prefs = await user_service.ensure_preferences_exists(current.id)
     return prefs
 
 
@@ -264,7 +183,7 @@ async def put_my_preferences(
     """
     Upsert preferences for current user.
     """
-    await ensure_user_exists(current)
+    await _ensure_user_exists(current)
 
     updates = body.model_dump(exclude_unset=True)
 
@@ -275,5 +194,5 @@ async def put_my_preferences(
     if "cabin_class" in updates and updates["cabin_class"] is not None:
         updates["cabin_class"] = updates["cabin_class"].strip()
 
-    prefs = await upsert_preferences_row(current.id, updates)
+    prefs = await user_service.upsert_preferences_row(current.id, updates)
     return prefs
