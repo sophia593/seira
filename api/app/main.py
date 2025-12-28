@@ -1,25 +1,65 @@
-from fastapi import FastAPI
+"""Seira API - FastAPI backend for AI travel planning."""
+
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Seira API", version="0.1.0")
+from app.core.config import get_settings
+from app.core.auth import User, get_current_user
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events."""
+    settings = get_settings()
+    print(f"Starting Seira API (env: {settings.ENV})")
+    yield
+    print("Shutting down Seira API")
+
+
+settings = get_settings()
+
+app = FastAPI(
+    title="Seira API",
+    version="0.1.0",
+    description="AI-powered travel planning assistant",
+    lifespan=lifespan,
+    docs_url="/docs" if settings.ENV != "production" else None,
+    redoc_url=None,
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://seira-e1iv.vercel.app",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-@app.get("/health")
+# -----------------------------------------------------------------------------
+# Health & Debug
+# -----------------------------------------------------------------------------
+
+
+@app.get("/health", tags=["health"])
 async def health_check():
-    return {"status": "ok", "service": "seira-api"}
+    """Health check for load balancers and uptime monitors."""
+    return {"status": "ok"}
 
 
-@app.get("/")
-async def root():
-    return {"message": "Seira API", "docs": "/docs"}
+@app.get("/me", tags=["auth"])
+async def me(user: User = Depends(get_current_user)):
+    """Return the current authenticated user. Useful for testing auth."""
+    return {"id": user.id, "email": user.email, "role": user.role}
+
+
+# -----------------------------------------------------------------------------
+# Routers
+# -----------------------------------------------------------------------------
+
+# from app.api.v1 import conversations, messages, trips
+# app.include_router(conversations.router, prefix="/v1", tags=["conversations"])
+# app.include_router(messages.router, prefix="/v1", tags=["messages"])
+# app.include_router(trips.router, prefix="/v1", tags=["trips"])
