@@ -97,7 +97,7 @@ async def create_conversation(
     if context:
         payload["context"] = context
 
-    data = await _exec(sb.table("conversations").insert(payload).select("*"))
+    data = await _exec(sb.table("conversations").insert(payload))
     if not data:
         raise HTTPException(status_code=500, detail="Failed to create conversation")
     return data[0]
@@ -125,7 +125,7 @@ async def update_conversation(
 
     sb = get_supabase()
     data = await _exec(
-        sb.table("conversations").update(updates).eq("id", conversation_id).select("*")
+        sb.table("conversations").update(updates).eq("id", conversation_id)
     )
     if not data:
         raise HTTPException(status_code=404, detail="Conversation not found")

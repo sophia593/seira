@@ -120,7 +120,7 @@ async def create_message(
     if model_version is not None:
         payload["model_version"] = model_version
 
-    data = await _exec(sb.table("messages").insert(payload).select("*"))
+    data = await _exec(sb.table("messages").insert(payload))
     if not data:
         raise HTTPException(status_code=500, detail="Failed to create message")
 
