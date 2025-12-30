@@ -240,7 +240,7 @@ async def stream_message(
 # -----------------------------------------------------------------------------
 
 
-async def create_stream(
+def create_stream(
     messages: list[dict[str, Any]],
     system: str | None = None,
     tools: list[dict[str, Any]] | None = None,
