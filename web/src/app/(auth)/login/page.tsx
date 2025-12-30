@@ -49,7 +49,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/");
+    router.push("/chat");
     router.refresh();
   };
 
