@@ -189,7 +189,10 @@ function ToolResultDisplay({
   if (name === 'save_trip' && result.success) {
     return (
       <div className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-3">
-        trip saved successfully! view it in your trips.
+        trip saved successfully!{' '}
+        <a href="/trips" className="underline hover:no-underline">
+          view it in your trips
+        </a>
       </div>
     )
   }
