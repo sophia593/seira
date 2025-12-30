@@ -1,34 +1,29 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from "next"
+import { Space_Grotesk } from "next/font/google"
+import "./globals.css"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  display: "swap",
+  variable: "--font-space-grotesk",
+  weight: ["300", "400", "500", "600", "700"],
+})
 
 export const metadata: Metadata = {
-  title: "Seira - AI Travel Planning",
-  description: "Plan trips around the events you love. Find concerts, games, and shows, then get flights to match.",
-};
+  title: "seira",
+  description: "plan trips around the events you love",
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className={spaceGrotesk.variable}>
+      <body className={`${spaceGrotesk.className} antialiased`}>
         {children}
       </body>
     </html>
-  );
+  )
 }

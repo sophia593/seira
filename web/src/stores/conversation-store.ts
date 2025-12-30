@@ -19,6 +19,36 @@ export interface StreamingMessage {
   toolCalls: ToolCall[]
 }
 
+// Event and flight types for selection
+export interface SelectedEvent {
+  id: string
+  name: string
+  date: string
+  venue: string
+  city: string
+  imageUrl?: string
+  priceRange?: string
+  url?: string
+}
+
+export interface SelectedFlight {
+  id: string
+  airline: string
+  flightNumber: string
+  departure: {
+    airport: string
+    time: string
+    date: string
+  }
+  arrival: {
+    airport: string
+    time: string
+    date: string
+  }
+  price: number
+  duration: string
+}
+
 interface ConversationState {
   // Current conversation
   conversationId: string | null
@@ -29,6 +59,11 @@ interface ConversationState {
   isStreaming: boolean
   streamingMessage: StreamingMessage | null
   error: string | null
+
+  // Trip creation selection state
+  selectedEvent: SelectedEvent | null
+  selectedFlight: SelectedFlight | null
+  returnFlight: SelectedFlight | null
 
   // Actions
   setConversation: (conversation: Conversation | null) => void
@@ -45,6 +80,12 @@ interface ConversationState {
   finalizeStream: (assistantMessage?: Message) => void
   setError: (error: string | null) => void
   abortStream: () => void
+
+  // Selection actions
+  selectEvent: (event: SelectedEvent | null) => void
+  selectFlight: (flight: SelectedFlight | null) => void
+  selectReturnFlight: (flight: SelectedFlight | null) => void
+  clearSelections: () => void
 
   // Reset
   reset: () => void
@@ -66,6 +107,9 @@ const initialState = {
   isStreaming: false,
   streamingMessage: null,
   error: null,
+  selectedEvent: null,
+  selectedFlight: null,
+  returnFlight: null,
 }
 
 // -----------------------------------------------------------------------------
@@ -182,6 +226,20 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       streamingMessage: null,
     }),
 
+  // Selection actions
+  selectEvent: (event) => set({ selectedEvent: event }),
+
+  selectFlight: (flight) => set({ selectedFlight: flight }),
+
+  selectReturnFlight: (flight) => set({ returnFlight: flight }),
+
+  clearSelections: () =>
+    set({
+      selectedEvent: null,
+      selectedFlight: null,
+      returnFlight: null,
+    }),
+
   reset: () => set(initialState),
 }))
 
@@ -234,3 +292,16 @@ export const selectDisplayMessages = (state: ConversationState) => {
 
   return [...messages, streamingDisplay]
 }
+
+// Selection selectors
+export const selectSelectedEvent = (state: ConversationState) =>
+  state.selectedEvent
+
+export const selectSelectedFlight = (state: ConversationState) =>
+  state.selectedFlight
+
+export const selectReturnFlight = (state: ConversationState) =>
+  state.returnFlight
+
+export const selectHasSelections = (state: ConversationState) =>
+  state.selectedEvent !== null || state.selectedFlight !== null

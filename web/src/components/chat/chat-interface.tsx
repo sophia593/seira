@@ -5,8 +5,12 @@ import { useStreaming } from "@/hooks/use-streaming"
 import { getApi } from "@/lib/api"
 import {
   useConversationStore,
-  selectDisplayMessages,
+  selectMessages,
   selectIsStreaming,
+  selectStreamingContent,
+  selectStreamingToolCalls,
+  selectSelectedEvent,
+  selectSelectedFlight,
   selectError,
 } from "@/stores/conversation-store"
 import { MessageList } from "./message-list"
@@ -19,10 +23,15 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [scrollTrigger, setScrollTrigger] = useState(0)
 
   // Store state
-  const messages = useConversationStore(selectDisplayMessages)
+  const messages = useConversationStore(selectMessages)
   const isStreaming = useConversationStore(selectIsStreaming)
+  const streamingContent = useConversationStore(selectStreamingContent)
+  const pendingToolCalls = useConversationStore(selectStreamingToolCalls)
+  const selectedEvent = useConversationStore(selectSelectedEvent)
+  const selectedFlight = useConversationStore(selectSelectedFlight)
   const storeError = useConversationStore(selectError)
 
   // Store actions
@@ -37,13 +46,14 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     updateToolInput,
     updateToolResult,
     finalizeStream,
+    selectEvent,
+    selectFlight,
     setError,
     reset,
   } = useConversationStore()
 
   // Load conversation history when conversationId changes
   useEffect(() => {
-    // Reset store when conversation changes
     reset()
     setConversationId(conversationId ?? null)
 
@@ -84,10 +94,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   // Streaming hook with callbacks
   const { sendMessage, abort } = useStreaming({
     onStart: ({ conversation_id }) => {
-      // Update conversation ID if this created a new conversation
       if (!conversationId && conversation_id) {
         setConversationId(conversation_id)
-        // Update URL without navigation (optional)
         window.history.replaceState(null, "", `/chat/${conversation_id}`)
       }
     },
@@ -104,8 +112,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       updateToolResult(id, result, is_error)
     },
     onDone: () => {
-      // Finalize without adding message (it's already in the stream)
-      // The backend saves the message, we could refetch or just use streaming content
       finalizeStream()
     },
     onError: ({ message }) => {
@@ -129,6 +135,9 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       }
       addMessage(userMessage)
 
+      // Force scroll to bottom
+      setScrollTrigger((prev) => prev + 1)
+
       // Start streaming
       startStream()
 
@@ -138,6 +147,34 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       })
     },
     [conversationId, isStreaming, addMessage, startStream, sendMessage]
+  )
+
+  // Handle suggestion click
+  const handleSuggestionClick = useCallback(
+    (suggestion: string) => {
+      handleSendMessage(suggestion)
+    },
+    [handleSendMessage]
+  )
+
+  // Handle event selection
+  const handleSelectEvent = useCallback(
+    (event: typeof selectedEvent) => {
+      if (event) {
+        selectEvent(event)
+      }
+    },
+    [selectEvent]
+  )
+
+  // Handle flight selection
+  const handleSelectFlight = useCallback(
+    (flight: typeof selectedFlight) => {
+      if (flight) {
+        selectFlight(flight)
+      }
+    },
+    [selectFlight]
   )
 
   // Handle stopping the stream
@@ -159,22 +196,30 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
-      <div className="flex-1 overflow-hidden">
-        {messages.length === 0 && !conversationId ? (
-          <EmptyState />
-        ) : (
-          <MessageList
-            messages={messages}
-            isStreaming={isStreaming}
-            className="h-full"
-          />
-        )}
-      </div>
+      <MessageList
+        messages={messages}
+        isStreaming={isStreaming}
+        streamingContent={streamingContent}
+        pendingToolCalls={pendingToolCalls}
+        selectedEvent={selectedEvent}
+        selectedFlight={selectedFlight}
+        onSelectEvent={handleSelectEvent}
+        onSelectFlight={handleSelectFlight}
+        onSuggestionClick={handleSuggestionClick}
+        scrollTrigger={scrollTrigger}
+        className="flex-1"
+      />
 
       {/* Error display */}
       {storeError && (
         <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm text-center">
           {storeError}
+          <button
+            onClick={() => setError(null)}
+            className="ml-2 underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -185,74 +230,10 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
             onSend={handleSendMessage}
             onStop={handleStop}
             isStreaming={isStreaming}
-            disabled={isStreaming}
+            autoFocus
           />
         </div>
       </div>
     </div>
-  )
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-      <div className="text-4xl mb-4">&#9992;</div>
-      <h2 className="text-xl font-semibold mb-2">Plan your next adventure</h2>
-      <p className="text-muted-foreground max-w-md">
-        Tell me about an event you want to attend, and I&apos;ll help you plan
-        the perfect trip with flights and everything coordinated.
-      </p>
-      <div className="mt-6 flex flex-wrap gap-2 justify-center">
-        <SuggestionChip text="Find Lakers games in February" />
-        <SuggestionChip text="Taylor Swift concerts near me" />
-        <SuggestionChip text="Comedy shows in NYC this weekend" />
-      </div>
-    </div>
-  )
-}
-
-function SuggestionChip({ text }: { text: string }) {
-  const { addMessage, startStream, setConversationId } = useConversationStore()
-  const { sendMessage } = useStreaming({
-    onStart: ({ conversation_id }) => {
-      if (conversation_id) {
-        setConversationId(conversation_id)
-        window.history.replaceState(null, "", `/chat/${conversation_id}`)
-      }
-    },
-    onText: ({ text }) => useConversationStore.getState().appendDelta(text),
-    onToolStart: ({ id, name }) =>
-      useConversationStore.getState().addToolCall(id, name),
-    onToolInput: ({ id, input }) =>
-      useConversationStore.getState().updateToolInput(id, input),
-    onToolResult: ({ id, result, is_error }) =>
-      useConversationStore.getState().updateToolResult(id, result, is_error),
-    onDone: () => useConversationStore.getState().finalizeStream(),
-    onError: ({ message }) => {
-      useConversationStore.getState().setError(message)
-      useConversationStore.getState().finalizeStream()
-    },
-  })
-
-  const handleClick = async () => {
-    const userMessage = {
-      id: `temp-${Date.now()}`,
-      conversation_id: "",
-      role: "user" as const,
-      content: text,
-      created_at: new Date().toISOString(),
-    }
-    addMessage(userMessage)
-    startStream()
-    await sendMessage(text)
-  }
-
-  return (
-    <button
-      onClick={handleClick}
-      className="px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 rounded-full transition-colors"
-    >
-      {text}
-    </button>
   )
 }

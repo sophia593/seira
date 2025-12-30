@@ -1,273 +1,231 @@
-"use client"
+'use client'
 
-import { memo } from "react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import { cn } from "@/lib/utils"
-import { AvatarAssistant } from "@/components/ui/avatar"
-import { Loader2, Check, X } from "lucide-react"
-import type { ToolCall } from "@/stores/conversation-store"
+import { memo } from 'react'
+import { Bot, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { type ToolCall } from '@/stores/conversation-store'
+import { ToolIndicator } from './tool-indicator'
+import { EventResultsGrid } from './tool-results/event-results-grid'
+import { FlightResultsGrid } from './tool-results/flight-results-grid'
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // Types
-// -----------------------------------------------------------------------------
+// =============================================================================
 
 interface StreamingMessageProps {
+  /** Text content streamed so far */
   content: string
-  toolCalls?: ToolCall[]
+  /** Tool calls currently in progress or completed */
+  pendingToolCalls: ToolCall[]
+  /** Additional className */
   className?: string
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Constants
+// =============================================================================
+
+// Map tool names to user-friendly display text (lowercase per typography system)
+const TOOL_DISPLAY_TEXT: Record<string, string> = {
+  search_events: 'searching for events...',
+  search_flights: 'searching for flights...',
+  save_trip: 'saving your trip...',
+}
+
+// =============================================================================
 // Main Component
-// -----------------------------------------------------------------------------
+// =============================================================================
 
 export const StreamingMessage = memo(function StreamingMessage({
   content,
-  toolCalls = [],
+  pendingToolCalls,
   className,
 }: StreamingMessageProps) {
   const hasContent = content.length > 0
-  const hasToolCalls = toolCalls.length > 0
+  const hasPendingTools = pendingToolCalls.some(
+    (t) => t.status === 'pending' || t.status === 'running'
+  )
+  const hasCompletedTools = pendingToolCalls.some((t) => t.status === 'complete')
+  const isJustStarted = !hasContent && !hasPendingTools && !hasCompletedTools
 
   return (
-    <div className={cn("flex gap-3 px-4", className)}>
+    <div className={cn('flex gap-3', className)}>
       {/* Avatar */}
-      <AvatarAssistant size="default" />
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+        <Bot className="w-5 h-5 text-muted-foreground" />
+      </div>
 
-      {/* Message content */}
-      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-muted">
-        {/* Typing indicator before first token */}
-        {!hasContent && !hasToolCalls && <TypingIndicator />}
+      {/* Content area */}
+      <div className="flex-1 min-w-0 space-y-3">
+        {/* Initial loading skeleton (no content, no tools yet) */}
+        {isJustStarted && <LoadingSkeleton />}
 
-        {/* Streaming text content */}
+        {/* Streaming text with cursor */}
         {hasContent && (
-          <div className="prose prose-sm max-w-none break-words prose-neutral dark:prose-invert">
-            <Markdown content={content} />
-            <StreamingCursor />
+          <div className="rounded-2xl px-4 py-3 bg-muted">
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <p className="whitespace-pre-wrap mb-0">
+                {content}
+                <BlinkingCursor />
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Tool calls */}
-        {hasToolCalls && (
-          <div className={cn("space-y-2", hasContent && "mt-3")}>
-            {toolCalls.map((tool) => (
-              <ToolCallCard key={tool.id} tool={tool} />
-            ))}
-          </div>
-        )}
+        {/* Tool calls - both pending and completed */}
+        {pendingToolCalls.map((tool) => (
+          <ToolCallDisplay key={tool.id} tool={tool} />
+        ))}
       </div>
     </div>
   )
 })
 
-// -----------------------------------------------------------------------------
-// Typing Indicator (before first token)
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Tool Call Display
+// =============================================================================
 
-function TypingIndicator() {
+interface ToolCallDisplayProps {
+  tool: ToolCall
+}
+
+function ToolCallDisplay({ tool }: ToolCallDisplayProps) {
+  const isPending = tool.status === 'pending' || tool.status === 'running'
+  const isComplete = tool.status === 'complete'
+  const isError = tool.status === 'error'
+
+  // Pending: show loading card
+  if (isPending) {
+    return <ToolLoadingCard toolName={tool.name} />
+  }
+
+  // Complete or Error: show indicator + results
   return (
-    <div className="flex items-center gap-1 py-1">
-      <span className="sr-only">Thinking</span>
-      <span
-        className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce"
-        style={{ animationDelay: "0ms", animationDuration: "600ms" }}
-      />
-      <span
-        className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce"
-        style={{ animationDelay: "150ms", animationDuration: "600ms" }}
-      />
-      <span
-        className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce"
-        style={{ animationDelay: "300ms", animationDuration: "600ms" }}
-      />
+    <div className="space-y-2">
+      <ToolIndicator toolCall={tool} />
+
+      {/* Show results for completed tools */}
+      {isComplete && tool.result && (
+        <ToolResultDisplay name={tool.name} result={tool.result} />
+      )}
+
+      {/* Show error message */}
+      {isError && tool.result && (
+        <div className="text-sm text-destructive bg-destructive/5 rounded-lg p-3">
+          {String((tool.result as Record<string, unknown>).error || 'an error occurred')}
+        </div>
+      )}
     </div>
   )
 }
 
-// -----------------------------------------------------------------------------
-// Streaming Cursor
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Tool Result Display
+// =============================================================================
 
-function StreamingCursor() {
+interface ToolResultDisplayProps {
+  name: string
+  result: Record<string, unknown>
+}
+
+function ToolResultDisplay({ name, result }: ToolResultDisplayProps) {
+  // Event results
+  if (name === 'search_events' && Array.isArray(result.events)) {
+    return <EventResultsGrid events={result.events} />
+  }
+
+  // Flight results
+  if (name === 'search_flights') {
+    const outbound = Array.isArray(result.outbound_flights)
+      ? result.outbound_flights
+      : []
+    const returns = Array.isArray(result.return_flights)
+      ? result.return_flights
+      : undefined
+
+    if (outbound.length > 0) {
+      return <FlightResultsGrid outboundFlights={outbound} returnFlights={returns} />
+    }
+  }
+
+  // Trip saved confirmation
+  if (name === 'save_trip' && result.success) {
+    return (
+      <div className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-3">
+        trip saved successfully! view it in your trips.
+      </div>
+    )
+  }
+
+  return null
+}
+
+// =============================================================================
+// Blinking Cursor
+// =============================================================================
+
+/**
+ * Blinking cursor shown at end of streaming text
+ * Uses step-end for sharp on/off (like a real cursor)
+ */
+function BlinkingCursor() {
   return (
     <span
-      className="inline-block w-1.5 h-4 bg-current animate-pulse ml-0.5 align-middle"
+      className="inline-block w-2 h-4 ml-0.5 bg-foreground animate-blink align-middle"
       aria-hidden="true"
     />
   )
 }
 
-// -----------------------------------------------------------------------------
-// Markdown Renderer
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Loading Skeleton
+// =============================================================================
 
-interface MarkdownProps {
-  content: string
-}
-
-function Markdown({ content }: MarkdownProps) {
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-        ul: ({ children }) => (
-          <ul className="mb-2 list-disc pl-4">{children}</ul>
-        ),
-        ol: ({ children }) => (
-          <ol className="mb-2 list-decimal pl-4">{children}</ol>
-        ),
-        li: ({ children }) => <li className="mb-1">{children}</li>,
-        strong: ({ children }) => (
-          <strong className="font-semibold">{children}</strong>
-        ),
-        a: ({ href, children }) => (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary underline underline-offset-2 hover:no-underline"
-          >
-            {children}
-          </a>
-        ),
-        code: ({ className, children }) => {
-          const isInline = !className
-          if (isInline) {
-            return (
-              <code className="bg-muted-foreground/20 px-1 py-0.5 rounded text-sm font-mono">
-                {children}
-              </code>
-            )
-          }
-          return (
-            <code
-              className={cn(
-                "block bg-muted-foreground/10 p-3 rounded-lg text-sm font-mono overflow-x-auto",
-                className
-              )}
-            >
-              {children}
-            </code>
-          )
-        },
-        pre: ({ children }) => <pre className="mb-2">{children}</pre>,
-        blockquote: ({ children }) => (
-          <blockquote className="border-l-2 border-muted-foreground/30 pl-3 italic">
-            {children}
-          </blockquote>
-        ),
-        h1: ({ children }) => (
-          <h1 className="text-lg font-bold mb-2">{children}</h1>
-        ),
-        h2: ({ children }) => (
-          <h2 className="text-base font-bold mb-2">{children}</h2>
-        ),
-        h3: ({ children }) => (
-          <h3 className="text-sm font-bold mb-1">{children}</h3>
-        ),
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-  )
-}
-
-// -----------------------------------------------------------------------------
-// Tool Call Card
-// -----------------------------------------------------------------------------
-
-interface ToolCallCardProps {
-  tool: ToolCall
-}
-
-const toolDisplayNames: Record<string, string> = {
-  search_events: "Searching events",
-  search_flights: "Searching flights",
-  save_trip: "Saving trip",
-}
-
-function ToolCallCard({ tool }: ToolCallCardProps) {
-  const isComplete = tool.status === "complete"
-  const isError = tool.status === "error"
-  const isRunning = tool.status === "running"
-
-  const displayName = toolDisplayNames[tool.name] || tool.name
-
+/**
+ * Skeleton loading state when Claude just started thinking
+ * Uses the pulse animation pattern with varied widths
+ */
+function LoadingSkeleton() {
   return (
     <div
-      className={cn(
-        "text-xs rounded-lg px-3 py-2 border",
-        isError
-          ? "bg-destructive/10 border-destructive/20"
-          : isComplete
-          ? "bg-emerald-500/10 border-emerald-500/20"
-          : "bg-background border-border"
-      )}
+      className="animate-pulse space-y-3 rounded-2xl px-4 py-3 bg-muted"
+      aria-label="loading response"
     >
-      <div className="flex items-center gap-2">
-        {isRunning && (
-          <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-        )}
-        {isComplete && (
-          <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-        )}
-        {isError && <X className="w-3 h-3 text-destructive" />}
-        <span
-          className={cn(
-            "font-medium",
-            isError
-              ? "text-destructive"
-              : isComplete
-              ? "text-emerald-700 dark:text-emerald-400"
-              : "text-foreground"
-          )}
-        >
-          {displayName}
-        </span>
-      </div>
+      {/* First line - full width */}
+      <div className="h-3 w-3/4 rounded bg-muted-foreground/20" />
 
-      {/* Result preview */}
-      {isComplete && tool.result && !isError && (
-        <ToolResultSummary name={tool.name} result={tool.result} />
-      )}
+      {/* Second line - varied widths */}
+      <div className="space-y-2">
+        <div className="grid grid-cols-4 gap-3">
+          <div className="col-span-3 h-3 rounded bg-muted-foreground/20" />
+          <div className="col-span-1 h-3 rounded bg-muted-foreground/20" />
+        </div>
+        <div className="h-3 w-1/2 rounded bg-muted-foreground/20" />
+      </div>
     </div>
   )
 }
 
-// -----------------------------------------------------------------------------
-// Tool Result Summary
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Tool Loading Card
+// =============================================================================
 
-interface ToolResultSummaryProps {
-  name: string
-  result: Record<string, unknown>
+/**
+ * Loading indicator for a specific tool call
+ * Only shows if tool is actually pending (truth-based)
+ */
+interface ToolLoadingCardProps {
+  toolName: string
 }
 
-function ToolResultSummary({ name, result }: ToolResultSummaryProps) {
-  if (name === "search_events" && typeof result.count === "number") {
-    return (
-      <p className="mt-1 text-muted-foreground">
-        Found {result.count} event{result.count !== 1 ? "s" : ""}
-      </p>
-    )
-  }
+function ToolLoadingCard({ toolName }: ToolLoadingCardProps) {
+  // Get display text, fallback to generic if unknown tool
+  const displayText = TOOL_DISPLAY_TEXT[toolName] || 'working...'
 
-  if (name === "search_flights" && Array.isArray(result.outbound_flights)) {
-    const count = result.outbound_flights.length
-    return (
-      <p className="mt-1 text-muted-foreground">
-        Found {count} flight{count !== 1 ? "s" : ""}
-      </p>
-    )
-  }
-
-  if (name === "save_trip" && result.success) {
-    return (
-      <p className="mt-1 text-muted-foreground">Trip saved successfully</p>
-    )
-  }
-
-  return null
+  return (
+    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border/50">
+      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+      <span className="text-sm text-muted-foreground">{displayText}</span>
+    </div>
+  )
 }
