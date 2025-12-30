@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = None
     GEMINI_API_KEY: str | None = None
 
+    # External APIs
+    TICKETMASTER_API_KEY: str | None = None
+    TICKETMASTER_API_SECRET: str | None = None
+    AMADEUS_API_KEY: str | None = None
+    AMADEUS_API_SECRET: str | None = None
+
     # Claude settings
     CLAUDE_MODEL: str = "claude-haiku-4-5-20251001"
     CLAUDE_MAX_TOKENS: int = 4096

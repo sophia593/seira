@@ -2,7 +2,6 @@
 Tool Handlers
 
 Implementation of tool functions called by Claude.
-For MVP, these return mock data. Real API integrations will be added later.
 """
 
 from __future__ import annotations
@@ -12,8 +11,21 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from app.ai.tools.registry import register_tool
+from app.integrations.ticketmaster import TicketmasterClient, Event
 
 logger = logging.getLogger(__name__)
+
+
+# -----------------------------------------------------------------------------
+# Category to Segment mapping
+# -----------------------------------------------------------------------------
+
+CATEGORY_TO_SEGMENT = {
+    "sports": "Sports",
+    "music": "Music",
+    "theater": "Arts & Theatre",
+    "comedy": "Arts & Theatre",  # Comedy is under Arts & Theatre in Ticketmaster
+}
 
 
 # -----------------------------------------------------------------------------
@@ -27,9 +39,7 @@ async def search_events(
     user_id: str | None = None,
 ) -> dict[str, Any]:
     """
-    Search for live events.
-
-    TODO: Integrate with real event APIs (SeatGeek, Ticketmaster, etc.)
+    Search for live events using Ticketmaster API.
     """
     query = input.get("query", "")
     city = input.get("city")
@@ -42,144 +52,88 @@ async def search_events(
         f"dates={date_from} to {date_to}, category={category}"
     )
 
-    # Mock response for MVP
-    # In production, this would call SeatGeek/Ticketmaster APIs
+    # Map category to Ticketmaster segment
+    segment = CATEGORY_TO_SEGMENT.get(category) if category else None
 
-    mock_events = _generate_mock_events(query, city, date_from, date_to)
+    try:
+        async with TicketmasterClient() as client:
+            result = await client.search_events(
+                keyword=query if query else None,
+                city=city,
+                start_date=date_from,
+                end_date=date_to,
+                segment=segment,
+                size=20,
+            )
+
+        # Convert Event models to dicts for tool response
+        events = [_format_event(e) for e in result.events]
+
+        return {
+            "success": True,
+            "query": query,
+            "filters": {
+                "city": city,
+                "date_from": date_from,
+                "date_to": date_to,
+                "category": category,
+            },
+            "count": result.total_count,
+            "events": events,
+        }
+
+    except Exception as e:
+        logger.exception(f"Ticketmaster search failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "query": query,
+            "filters": {
+                "city": city,
+                "date_from": date_from,
+                "date_to": date_to,
+                "category": category,
+            },
+            "count": 0,
+            "events": [],
+        }
+
+
+def _format_event(event: Event) -> dict[str, Any]:
+    """Format Event model to tool response dict."""
+    venue_name = event.venue.name if event.venue else None
+    venue_city = event.venue.city if event.venue else None
+    venue_state = event.venue.state if event.venue else None
+
+    # Build location string
+    location = venue_city
+    if venue_state:
+        location = f"{venue_city}, {venue_state}" if venue_city else venue_state
+
+    # Format time for display
+    time_display = None
+    if event.time:
+        try:
+            t = datetime.strptime(event.time, "%H:%M:%S")
+            time_display = t.strftime("%-I:%M %p")
+        except ValueError:
+            time_display = event.time
 
     return {
-        "success": True,
-        "query": query,
-        "filters": {
-            "city": city,
-            "date_from": date_from,
-            "date_to": date_to,
-            "category": category,
-        },
-        "count": len(mock_events),
-        "events": mock_events,
+        "id": event.id,
+        "name": event.name,
+        "date": event.date,
+        "time": time_display,
+        "venue": venue_name,
+        "city": location,
+        "category": event.segment.lower() if event.segment else "entertainment",
+        "subcategory": event.genre,
+        "price_min": event.price_range.min if event.price_range else None,
+        "price_max": event.price_range.max if event.price_range else None,
+        "ticket_url": event.purchase_url,
+        "image_url": event.image_url,
+        "status": event.status,
     }
-
-
-def _generate_mock_events(
-    query: str,
-    city: str | None,
-    date_from: str | None,
-    date_to: str | None,
-) -> list[dict[str, Any]]:
-    """Generate mock event data based on query."""
-
-    # Determine event type from query
-    query_lower = query.lower()
-
-    if any(team in query_lower for team in ["lakers", "celtics", "warriors", "knicks", "bulls"]):
-        return _mock_nba_events(query, city)
-    elif any(artist in query_lower for artist in ["taylor swift", "beyonce", "drake", "coldplay"]):
-        return _mock_concert_events(query, city)
-    else:
-        # Generic events
-        return _mock_generic_events(query, city)
-
-
-def _mock_nba_events(query: str, city: str | None) -> list[dict[str, Any]]:
-    """Generate mock NBA game events."""
-    base_date = datetime.now() + timedelta(days=14)
-
-    team_name = query.title()
-    opponents = ["Celtics", "Warriors", "Heat", "Nuggets"]
-    venues = {
-        "Lakers": ("Crypto.com Arena", "Los Angeles"),
-        "Celtics": ("TD Garden", "Boston"),
-        "Warriors": ("Chase Center", "San Francisco"),
-        "Knicks": ("Madison Square Garden", "New York"),
-        "Bulls": ("United Center", "Chicago"),
-    }
-
-    # Get venue for the team
-    venue, venue_city = venues.get(team_name.split()[0], ("Arena", city or "Unknown"))
-
-    events = []
-    for i, opponent in enumerate(opponents):
-        if opponent.lower() in query.lower():
-            continue
-
-        event_date = base_date + timedelta(days=i * 4)
-        events.append({
-            "id": f"evt_{team_name.lower()}_{i}",
-            "name": f"{team_name} vs {opponent}",
-            "date": event_date.strftime("%Y-%m-%d"),
-            "time": "7:30 PM",
-            "venue": venue,
-            "city": venue_city,
-            "category": "sports",
-            "subcategory": "NBA",
-            "price_min": 85 + (i * 20),
-            "price_max": 450 + (i * 50),
-            "ticket_url": f"https://www.ticketmaster.com/event/{team_name.lower()}-{i}",
-            "image_url": None,
-        })
-
-    return events[:4]
-
-
-def _mock_concert_events(query: str, city: str | None) -> list[dict[str, Any]]:
-    """Generate mock concert events."""
-    base_date = datetime.now() + timedelta(days=30)
-
-    artist = query.title()
-    venues = [
-        ("SoFi Stadium", "Los Angeles"),
-        ("Madison Square Garden", "New York"),
-        ("United Center", "Chicago"),
-        ("Chase Center", "San Francisco"),
-    ]
-
-    events = []
-    for i, (venue, venue_city) in enumerate(venues):
-        if city and city.lower() not in venue_city.lower():
-            continue
-
-        event_date = base_date + timedelta(days=i * 7)
-        events.append({
-            "id": f"evt_{artist.lower().replace(' ', '_')}_{i}",
-            "name": f"{artist} - The Eras Tour",
-            "date": event_date.strftime("%Y-%m-%d"),
-            "time": "7:00 PM",
-            "venue": venue,
-            "city": venue_city,
-            "category": "music",
-            "subcategory": "Concert",
-            "price_min": 150 + (i * 25),
-            "price_max": 850 + (i * 100),
-            "ticket_url": f"https://www.ticketmaster.com/event/{artist.lower().replace(' ', '-')}-{i}",
-            "image_url": None,
-        })
-
-    return events[:4] if events else _mock_generic_events(query, city)
-
-
-def _mock_generic_events(query: str, city: str | None) -> list[dict[str, Any]]:
-    """Generate generic mock events."""
-    base_date = datetime.now() + timedelta(days=7)
-
-    events = []
-    for i in range(3):
-        event_date = base_date + timedelta(days=i * 5)
-        events.append({
-            "id": f"evt_generic_{i}",
-            "name": f"{query.title()} Event {i + 1}",
-            "date": event_date.strftime("%Y-%m-%d"),
-            "time": "8:00 PM",
-            "venue": "Local Venue",
-            "city": city or "Various",
-            "category": "entertainment",
-            "price_min": 50,
-            "price_max": 200,
-            "ticket_url": "https://www.ticketmaster.com",
-            "image_url": None,
-        })
-
-    return events
 
 
 # -----------------------------------------------------------------------------
