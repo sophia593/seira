@@ -247,10 +247,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 // Selectors
 // -----------------------------------------------------------------------------
 
+// Cached empty arrays to avoid infinite loop in SSR hydration
+const EMPTY_TOOL_CALLS: ToolCall[] = []
+const EMPTY_MESSAGES: Message[] = []
+
 export const selectConversationId = (state: ConversationState) =>
   state.conversationId
 
-export const selectMessages = (state: ConversationState) => state.messages
+export const selectMessages = (state: ConversationState) =>
+  state.messages.length > 0 ? state.messages : EMPTY_MESSAGES
 
 export const selectIsStreaming = (state: ConversationState) => state.isStreaming
 
@@ -261,7 +266,7 @@ export const selectStreamingContent = (state: ConversationState) =>
   state.streamingMessage?.content ?? ""
 
 export const selectStreamingToolCalls = (state: ConversationState) =>
-  state.streamingMessage?.toolCalls ?? []
+  state.streamingMessage?.toolCalls ?? EMPTY_TOOL_CALLS
 
 export const selectError = (state: ConversationState) => state.error
 
