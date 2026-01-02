@@ -36,9 +36,9 @@ export async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Logged-in user visiting public pages -> redirect to /chat
+  // Logged-in user visiting auth pages -> redirect to /chat
   if (user) {
-    if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
+    if (pathname === "/login" || pathname === "/signup") {
       return NextResponse.redirect(new URL("/chat", request.url))
     }
   }
