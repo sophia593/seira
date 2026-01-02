@@ -56,7 +56,10 @@ async def create_user_row(
     """Create a new user row."""
     sb = get_supabase()
     payload = {"id": user_id, "email": email, "name": name}
-    data = await _exec(sb.table("users").insert(payload).select("*"))
+    # Insert then fetch (supabase-py sync doesn't support .insert().select() chain)
+    await _exec(sb.table("users").insert(payload))
+    # Fetch the created row
+    data = await _exec(sb.table("users").select("*").eq("id", user_id).limit(1))
     if not data:
         raise HTTPException(status_code=500, detail="Failed to create user row")
     return data[0]
@@ -65,7 +68,9 @@ async def create_user_row(
 async def update_user_row(user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
     """Update a user row."""
     sb = get_supabase()
-    data = await _exec(sb.table("users").update(updates).eq("id", user_id).select("*"))
+    # Update then fetch (supabase-py sync doesn't support .update().select() chain)
+    await _exec(sb.table("users").update(updates).eq("id", user_id))
+    data = await _exec(sb.table("users").select("*").eq("id", user_id).limit(1))
     if not data:
         raise HTTPException(status_code=404, detail="User not found")
     return data[0]
@@ -105,8 +110,10 @@ async def upsert_preferences_row(user_id: str, updates: Dict[str, Any]) -> Dict[
     """
     sb = get_supabase()
     payload = {"user_id": user_id, **updates}
+    # Upsert then fetch (supabase-py sync doesn't support .upsert().select() chain)
+    await _exec(sb.table("user_preferences").upsert(payload, on_conflict="user_id"))
     data = await _exec(
-        sb.table("user_preferences").upsert(payload, on_conflict="user_id").select("*")
+        sb.table("user_preferences").select("*").eq("user_id", user_id).limit(1)
     )
     if not data:
         raise HTTPException(status_code=500, detail="Failed to upsert preferences")
