@@ -1,5 +1,4 @@
 export { ChatInterface } from "./chat-interface"
 export { ChatInput } from "./chat-input"
 export { MessageList } from "./message-list"
-export { MessageItem } from "./message-item"
 export { StreamingMessage } from "./streaming-message"
