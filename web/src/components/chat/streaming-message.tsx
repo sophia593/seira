@@ -1,6 +1,7 @@
 'use client'
 
 import { memo } from 'react'
+import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AvatarAssistant } from '@/components/ui/avatar'
@@ -152,9 +153,9 @@ function ToolResultDisplay({ name, result }: ToolResultDisplayProps) {
     return (
       <div className="text-sm text-green-600 dark:text-green-400 bg-green-500/10 rounded-xl p-3">
         trip saved successfully!{' '}
-        <a href="/trips" className="underline hover:no-underline">
+        <Link href="/trips" className="underline hover:no-underline">
           view it in your trips
-        </a>
+        </Link>
       </div>
     )
   }

@@ -144,8 +144,6 @@ export function FlightDetailCard({
         {/* Route visualization */}
         <div className="mb-4">
           <RouteVisualization
-            originCode={origin_code}
-            destinationCode={destination_code}
             stops={stops}
             stopDetails={stop_details}
           />
@@ -274,13 +272,9 @@ function AirlineBadge({
  * Route visualization (same as FlightCard)
  */
 function RouteVisualization({
-  originCode,
-  destinationCode,
   stops,
   stopDetails,
 }: {
-  originCode: string
-  destinationCode: string
   stops: number
   stopDetails?: FlightStop[]
 }) {

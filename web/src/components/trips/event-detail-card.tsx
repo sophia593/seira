@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, MapPin, Clock, ExternalLink, Ticket, ArrowRight } from 'lucide-react'
+import { Calendar, MapPin, Ticket, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { type TripEventData, isRichEvent } from '@/types/trip'

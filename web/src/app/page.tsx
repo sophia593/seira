@@ -40,7 +40,7 @@ export default function Home() {
 
           <p className="text-base sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-2">
             Tell seira about a concert, game, or festival you want to attend.
-            We'll find flights, hotels, and tickets — all in one conversation.
+            We&apos;ll find flights, hotels, and tickets — all in one conversation.
           </p>
 
           <Link

@@ -116,7 +116,7 @@ const initialState = {
 // Store
 // -----------------------------------------------------------------------------
 
-export const useConversationStore = create<ConversationState>((set, get) => ({
+export const useConversationStore = create<ConversationState>((set) => ({
   ...initialState,
 
   // Conversation management

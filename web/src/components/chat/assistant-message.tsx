@@ -1,6 +1,7 @@
 'use client'
 
 import { memo } from 'react'
+import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
@@ -159,7 +160,6 @@ function ToolResultDisplay({
   name,
   result,
   onSelectEvent,
-  onSelectFlight,
 }: ToolResultDisplayProps) {
   // Event results
   if (name === "search_events" && Array.isArray(result.events)) {
@@ -190,9 +190,9 @@ function ToolResultDisplay({
     return (
       <div className="text-sm text-green-600 dark:text-green-400 bg-green-500/10 rounded-xl p-3">
         trip saved successfully!{' '}
-        <a href="/trips" className="underline hover:no-underline">
+        <Link href="/trips" className="underline hover:no-underline">
           view it in your trips
-        </a>
+        </Link>
       </div>
     )
   }

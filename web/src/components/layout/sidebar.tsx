@@ -63,7 +63,7 @@ export function Sidebar() {
       const conversation = await api.createConversation()
       setConversations((prev) => [conversation, ...prev])
       router.push(`/chat/${conversation.id}`)
-    } catch (error) {
+    } catch {
       toast.error("Failed to create conversation")
     } finally {
       setIsCreating(false)
@@ -85,7 +85,7 @@ export function Sidebar() {
       if (currentConversationId === id) {
         router.push("/chat")
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete conversation")
     }
   }

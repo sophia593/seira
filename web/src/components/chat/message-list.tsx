@@ -83,7 +83,7 @@ export const MessageList = memo(function MessageList({
     return distanceFromBottom < SCROLL_THRESHOLD
   }, [])
 
-  // Scroll to the bottom of the list
+  // Scroll to the bottom of the list (DOM operation only)
   const scrollToBottom = useCallback((instant = false) => {
     const viewport = viewportRef.current
     if (!viewport) return
@@ -95,7 +95,7 @@ export const MessageList = memo(function MessageList({
 
     // Resume auto-scrolling
     shouldAutoScrollRef.current = true
-    setShowScrollButton(false)
+    // Button visibility will be updated by scroll event handler
   }, [])
 
   // Handle scroll events

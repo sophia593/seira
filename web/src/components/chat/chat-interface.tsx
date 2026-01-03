@@ -46,7 +46,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     updateToolInput,
     updateToolResult,
     finalizeStream,
-    selectEvent,
     selectFlight,
     setError,
     reset,
