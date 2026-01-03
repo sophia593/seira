@@ -163,7 +163,7 @@ function ToolResultDisplay({
 }: ToolResultDisplayProps) {
   // Event results
   if (name === "search_events" && Array.isArray(result.events)) {
-    return <EventResultsGrid events={result.events} />
+    return <EventResultsGrid events={result.events} onSelect={onSelectEvent} />
   }
 
   // Flight results

@@ -157,14 +157,16 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     [handleSendMessage]
   )
 
-  // Handle event selection
+  // Handle event selection - auto-send follow-up message
   const handleSelectEvent = useCallback(
     (event: typeof selectedEvent) => {
       if (event) {
-        selectEvent(event)
+        // Store already updated by EventResultsGrid, but we send the auto-message
+        const message = `I'd like to go to ${event.name} on ${event.date}${event.venue ? ` at ${event.venue}` : ''}${event.city ? ` in ${event.city}` : ''}`
+        handleSendMessage(message)
       }
     },
-    [selectEvent]
+    [handleSendMessage]
   )
 
   // Handle flight selection

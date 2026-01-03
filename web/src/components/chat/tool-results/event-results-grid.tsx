@@ -37,6 +37,7 @@ interface EventFromApi {
 
 interface EventResultsGridProps {
   events: EventFromApi[]
+  onSelect?: (event: SelectedEvent) => void
   className?: string
 }
 
@@ -46,6 +47,7 @@ interface EventResultsGridProps {
 
 export const EventResultsGrid = memo(function EventResultsGrid({
   events,
+  onSelect,
   className,
 }: EventResultsGridProps) {
   const selectedEvent = useConversationStore(selectSelectedEvent)
@@ -64,7 +66,7 @@ export const EventResultsGrid = memo(function EventResultsGrid({
     if (selectedEvent?.id === event.id) {
       selectEvent(null)
     } else {
-      selectEvent({
+      const selected: SelectedEvent = {
         id: event.id,
         name: event.name,
         date: event.date,
@@ -73,7 +75,10 @@ export const EventResultsGrid = memo(function EventResultsGrid({
         imageUrl: event.image_url ?? undefined,
         priceRange: event.price_min ? `from $${event.price_min}` : undefined,
         url: event.purchase_url,
-      })
+      }
+      selectEvent(selected)
+      // Call parent callback for auto-message
+      onSelect?.(selected)
     }
   }
 

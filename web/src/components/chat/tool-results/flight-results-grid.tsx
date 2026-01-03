@@ -3,6 +3,7 @@
 import { memo } from "react"
 import { Plane, Clock, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { type Flight } from "@/types/flight"
 import {
   useConversationStore,
   selectSelectedFlight,
@@ -14,24 +15,9 @@ import {
 // Types
 // -----------------------------------------------------------------------------
 
-interface FlightFromApi {
-  id: string
-  airline: string
-  flight_number: string
-  departure_airport: string
-  departure_time: string
-  departure_date: string
-  arrival_airport: string
-  arrival_time: string
-  arrival_date: string
-  price: number
-  duration: string
-  stops?: number
-}
-
 interface FlightResultsGridProps {
-  outboundFlights: FlightFromApi[]
-  returnFlights?: FlightFromApi[]
+  outboundFlights: Flight[]
+  returnFlights?: Flight[]
   className?: string
 }
 
@@ -57,7 +43,7 @@ export const FlightResultsGrid = memo(function FlightResultsGrid({
     )
   }
 
-  const handleSelectOutbound = (flight: FlightFromApi) => {
+  const handleSelectOutbound = (flight: Flight) => {
     if (selectedFlight?.id === flight.id) {
       setSelectedFlight(null)
     } else {
@@ -65,7 +51,7 @@ export const FlightResultsGrid = memo(function FlightResultsGrid({
     }
   }
 
-  const handleSelectReturn = (flight: FlightFromApi) => {
+  const handleSelectReturn = (flight: Flight) => {
     if (selectedReturn?.id === flight.id) {
       setReturnFlight(null)
     } else {
@@ -137,7 +123,7 @@ export const FlightResultsGrid = memo(function FlightResultsGrid({
 // -----------------------------------------------------------------------------
 
 interface FlightCardProps {
-  flight: FlightFromApi
+  flight: Flight
   isSelected: boolean
   onSelect: () => void
 }
@@ -253,7 +239,7 @@ function SelectionSummary({ outbound, returnFlight }: SelectionSummaryProps) {
 // Helpers
 // -----------------------------------------------------------------------------
 
-function mapFlightToSelected(flight: FlightFromApi): SelectedFlight {
+function mapFlightToSelected(flight: Flight): SelectedFlight {
   return {
     id: flight.id,
     airline: flight.airline,

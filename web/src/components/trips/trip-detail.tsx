@@ -60,13 +60,11 @@ export function TripDetailComponent({ trip, className }: TripDetailProps) {
       {/* Event Section - Prominent */}
       {hasEvent && <EventSection trip={trip} />}
 
-      {/* Travel Details Grid */}
-      {(hasFlight || hasHotel) && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {hasFlight && <FlightSection trip={trip} />}
-          {hasHotel && <HotelSection trip={trip} />}
-        </div>
-      )}
+      {/* Travel Details Grid - Always show with placeholders */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {hasFlight ? <FlightSection trip={trip} /> : <FlightPlaceholder />}
+        {hasHotel ? <HotelSection trip={trip} /> : <HotelPlaceholder />}
+      </div>
 
       {/* Notes */}
       {trip.notes && <NotesSection notes={trip.notes} />}
@@ -302,6 +300,50 @@ function FlightSection({ trip }: { trip: TripDetail }) {
           </Button>
         )}
       </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Flight Placeholder
+// =============================================================================
+
+function FlightPlaceholder() {
+  return (
+    <div className="rounded-xl border border-dashed bg-card/50 p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+          <Plane className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <div>
+          <h3 className="font-medium lowercase">flights</h3>
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground text-center py-4">
+        flights coming soon
+      </p>
+    </div>
+  )
+}
+
+// =============================================================================
+// Hotel Placeholder
+// =============================================================================
+
+function HotelPlaceholder() {
+  return (
+    <div className="rounded-xl border border-dashed bg-card/50 p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+          <Building2 className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <div>
+          <h3 className="font-medium lowercase">hotel</h3>
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground text-center py-4">
+        hotel coming soon
+      </p>
     </div>
   )
 }
