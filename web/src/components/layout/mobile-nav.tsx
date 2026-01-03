@@ -12,7 +12,7 @@ export function MobileNav() {
     <header className="flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden">
       <Button
         variant="ghost"
-        size="icon"
+        size="icon-lg"
         onClick={() => setMobileOpen(!isMobileOpen)}
       >
         {isMobileOpen ? (

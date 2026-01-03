@@ -74,8 +74,8 @@ export function TripCard({ trip, className }: TripCardProps) {
     <Link
       href={`/trips/${id}`}
       className={cn(
-        'block rounded-xl border bg-card p-4',
-        'hover:border-primary/50 hover:shadow-sm transition-all',
+        'block rounded-xl border border-border/50 bg-card p-4 shadow-sm',
+        'hover:border-border hover:shadow-md transition-all duration-200',
         className
       )}
     >

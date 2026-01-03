@@ -2,7 +2,7 @@ import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
 
 function TripCardSkeleton() {
   return (
-    <div className="rounded-xl border bg-card p-4 space-y-3">
+    <div className="rounded-xl border border-border/50 bg-card p-4 shadow-sm space-y-3">
       <div className="flex items-start justify-between gap-3">
         <SkeletonText className="w-2/3 h-5" />
         <Skeleton className="h-5 w-16 rounded-full flex-shrink-0" />

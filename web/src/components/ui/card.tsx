@@ -6,7 +6,7 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border border-border/50 py-6 shadow-sm transition-all duration-200",
         className
       )}
       {...props}
@@ -23,8 +23,8 @@ function CardInteractive({
     <button
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex w-full flex-col gap-4 rounded-xl border p-4 text-left shadow-sm",
-        "transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "bg-card text-card-foreground flex w-full flex-col gap-4 rounded-xl border border-border/50 p-4 text-left shadow-sm",
+        "transition-all duration-200 hover:shadow-md hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         "disabled:pointer-events-none disabled:opacity-50",
         className
       )}
@@ -39,8 +39,8 @@ function CardLink({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm",
-        "transition-colors hover:bg-accent/50",
+        "bg-card text-card-foreground flex flex-col gap-4 rounded-xl border border-border/50 p-4 shadow-sm",
+        "transition-all duration-200 hover:shadow-md hover:border-border",
         "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
         className
       )}

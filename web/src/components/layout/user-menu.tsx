@@ -48,7 +48,7 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
           variant="ghost"
           className={
             isCollapsed
-              ? "h-10 w-10 p-0"
+              ? "h-11 w-11 p-0"
               : "h-auto w-full justify-start gap-3 px-2 py-2"
           }
         >

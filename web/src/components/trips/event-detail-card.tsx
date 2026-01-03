@@ -1,17 +1,16 @@
 'use client'
 
-import { Calendar, MapPin, Clock, ExternalLink } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Calendar, MapPin, Clock, ExternalLink, Ticket, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { type TripEvent } from '@/types/event'
+import { type TripEventData, isRichEvent } from '@/types/trip'
 
 // =============================================================================
 // Types
 // =============================================================================
 
 interface EventDetailCardProps {
-  event: TripEvent
+  event: TripEventData
   className?: string
 }
 
@@ -19,120 +18,179 @@ interface EventDetailCardProps {
 // Main Component
 // =============================================================================
 
+/**
+ * Event detail card that works with both:
+ * - Flat TripDetail event fields (current API)
+ * - Rich TripEvent objects (future API)
+ */
 export function EventDetailCard({ event, className }: EventDetailCardProps) {
-  const {
-    name,
-    date,
-    time,
-    venue_name,
-    venue_city,
-    venue_state,
-    image_url,
-    ticket_url,
-    section,
-    row,
-    seats,
-    price_per_ticket,
-    quantity,
-  } = event
+  // Normalize to common shape
+  const normalized = normalizeEvent(event)
 
-  // Format date: "saturday, march 15, 2025"
-  const formattedDate = formatFullDate(date)
+  if (!normalized.name) {
+    return null
+  }
 
-  // Format time: "8:00 pm"
-  const formattedTime = time ? formatTime(time) : null
-
-  // Format location
-  const location = venue_state ? `${venue_city}, ${venue_state}` : venue_city
-
-  // Build ticket details string
-  const ticketDetails = buildTicketDetails(section, row, seats)
-
-  // Calculate total
-  const totalPrice = price_per_ticket ? price_per_ticket * quantity : null
+  const { name, date, time, venue, location, imageUrl, purchaseUrl, ticketDetails, totalPrice } = normalized
 
   return (
-    <Card className={cn('overflow-hidden', className)}>
-      <div className="flex flex-col md:flex-row">
-        {/* Image */}
-        <div className="md:w-48 lg:w-64 flex-shrink-0">
-          <div className="aspect-[4/3] md:aspect-auto md:h-full bg-muted relative">
-            {image_url ? (
-              <img
-                src={image_url}
-                alt={name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-muted to-muted-foreground/20 flex items-center justify-center">
-                <Calendar className="w-8 h-8 text-muted-foreground/50" />
-              </div>
-            )}
+    <div className={cn('rounded-2xl border bg-gradient-to-br from-card to-muted/30 overflow-hidden', className)}>
+      {/* Optional image header */}
+      {imageUrl && (
+        <div className="aspect-[3/1] relative overflow-hidden">
+          <img
+            src={imageUrl}
+            alt={name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        </div>
+      )}
+
+      {/* Event content */}
+      <div className="p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          {/* Event Icon */}
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Ticket className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
+          </div>
+
+          {/* Event Details */}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">Event</p>
+            <h2 className="text-xl sm:text-2xl font-semibold lowercase truncate">
+              {name}
+            </h2>
           </div>
         </div>
 
-        {/* Content */}
-        <CardContent className="flex-1 p-5">
-          {/* Event name */}
-          <h3 className="text-lg font-semibold lowercase mb-3">{name}</h3>
-
-          {/* Details */}
-          <div className="space-y-2 mb-4">
-            {/* Date */}
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              <span>{formattedDate}</span>
-            </div>
-
-            {/* Time */}
-            {formattedTime && (
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span>{formattedTime}</span>
+        {/* Event Info Grid */}
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {/* Date & Time */}
+          {date && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-background/60">
+              <Calendar className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium">{date}</p>
+                {time && (
+                  <p className="text-xs text-muted-foreground">{time}</p>
+                )}
               </div>
-            )}
-
-            {/* Venue */}
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-muted-foreground" />
-              <span className="lowercase">
-                {venue_name} · {location}
-              </span>
-            </div>
-          </div>
-
-          {/* Ticket info (if saved) */}
-          {(ticketDetails || price_per_ticket) && (
-            <div className="bg-muted/50 rounded-lg p-3 mb-4">
-              {ticketDetails && <p className="text-sm mb-1">{ticketDetails}</p>}
-              {price_per_ticket && (
-                <p className="text-sm font-medium">
-                  ${price_per_ticket} × {quantity} = ${totalPrice}
-                </p>
-              )}
             </div>
           )}
 
-          {/* Action */}
-          <Button asChild className="lowercase">
-            <a href={ticket_url} target="_blank" rel="noopener noreferrer">
-              view tickets
-              <ExternalLink className="w-4 h-4 ml-2" />
+          {/* Venue */}
+          {venue && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-background/60">
+              <MapPin className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium lowercase truncate">{venue}</p>
+                {location && (
+                  <p className="text-xs text-muted-foreground truncate lowercase">
+                    {location}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Ticket details (if available) */}
+        {ticketDetails && (
+          <div className="mt-4 p-3 rounded-lg bg-muted/50">
+            <p className="text-sm">{ticketDetails}</p>
+            {totalPrice && (
+              <p className="text-sm font-semibold mt-1">${totalPrice}</p>
+            )}
+          </div>
+        )}
+
+        {/* Price estimate (for flat data) */}
+        {!ticketDetails && normalized.priceEstimate && (
+          <div className="mt-4 flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">tickets from</span>
+            <span className="font-semibold text-lg">${normalized.priceEstimate}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Buy Tickets CTA */}
+      {purchaseUrl && (
+        <div className="px-5 sm:px-6 py-4 bg-primary/5 border-t">
+          <Button
+            asChild
+            size="lg"
+            className="w-full lowercase font-medium group"
+          >
+            <a href={purchaseUrl} target="_blank" rel="noopener noreferrer">
+              <Ticket className="w-5 h-5 mr-2" />
+              buy tickets
+              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
             </a>
           </Button>
-        </CardContent>
-      </div>
-    </Card>
+        </div>
+      )}
+    </div>
   )
+}
+
+// =============================================================================
+// Normalization
+// =============================================================================
+
+interface NormalizedEvent {
+  name: string
+  date: string | null
+  time: string | null
+  venue: string | null
+  location: string | null
+  imageUrl: string | null
+  purchaseUrl: string | null
+  ticketDetails: string | null
+  totalPrice: number | null
+  priceEstimate: number | null
+}
+
+function normalizeEvent(event: TripEventData): NormalizedEvent {
+  if (isRichEvent(event)) {
+    // Rich format - use all the details
+    const ticketDetails = buildTicketDetails(event.section, event.row, event.seats)
+    const totalPrice = event.price_per_ticket ? event.price_per_ticket * event.quantity : null
+    const location = event.venue_state ? `${event.venue_city}, ${event.venue_state}` : event.venue_city
+
+    return {
+      name: event.name,
+      date: formatFullDate(event.date),
+      time: event.time ? formatTime(event.time) : null,
+      venue: event.venue_name,
+      location,
+      imageUrl: event.image_url || null,
+      purchaseUrl: event.ticket_url,
+      ticketDetails,
+      totalPrice,
+      priceEstimate: null,
+    }
+  }
+
+  // Flat format - use what we have
+  return {
+    name: event.name,
+    date: event.date ? formatFullDate(event.date) : null,
+    time: event.time ? formatTime(event.time) : null,
+    venue: event.venue || null,
+    location: event.venue_address || null,
+    imageUrl: null,
+    purchaseUrl: event.purchase_url || null,
+    ticketDetails: null,
+    totalPrice: null,
+    priceEstimate: event.price_estimate || null,
+  }
 }
 
 // =============================================================================
 // Helper Functions
 // =============================================================================
 
-/**
- * Format date: "2025-03-15" → "saturday, march 15, 2025"
- */
 function formatFullDate(dateString: string): string {
   const date = new Date(dateString + 'T00:00:00')
   return date.toLocaleDateString('en-US', {
@@ -140,12 +198,9 @@ function formatFullDate(dateString: string): string {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
-  })
+  }).toLowerCase()
 }
 
-/**
- * Format time: "20:00" → "8:00 pm"
- */
 function formatTime(timeString: string): string {
   const [hours, minutes] = timeString.split(':').map(Number)
   const date = new Date()
@@ -159,9 +214,6 @@ function formatTime(timeString: string): string {
     .toLowerCase()
 }
 
-/**
- * Build ticket details string: "Section 102 · Row G · Seats 5-6"
- */
 function buildTicketDetails(
   section?: string | null,
   row?: string | null,

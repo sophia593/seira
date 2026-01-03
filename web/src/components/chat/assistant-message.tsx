@@ -57,7 +57,7 @@ export const AssistantMessage = memo(function AssistantMessage({
       <div className="flex-1 space-y-3 max-w-[90%] sm:max-w-[85%] pt-0.5">
         {/* Text content */}
         {hasContent && (
-          <div className="rounded-2xl px-4 py-3 bg-muted">
+          <div className="rounded-2xl rounded-bl-md px-4 py-3 bg-muted">
             <div className="prose prose-sm max-w-none break-words prose-neutral dark:prose-invert">
               <Markdown content={content} />
             </div>

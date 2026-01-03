@@ -1,66 +1,54 @@
 'use client'
 
 import { useState } from 'react'
-import { Plane, RefreshCw, AlertTriangle } from 'lucide-react'
+import {
+  Plane,
+  RefreshCw,
+  AlertTriangle,
+  ExternalLink,
+  ArrowRight,
+  PlaneTakeoff,
+  PlaneLanding,
+} from 'lucide-react'
 import { FlightDetailCard } from './flight-detail-card'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { type TripFlightData, isRichFlight } from '@/types/trip'
 
-interface TripFlight {
-  id: string
-  direction: 'outbound' | 'return'
-  airline_name: string
-  airline_code: string
-  airline_logo_url?: string | null
-  flight_number: string
-  origin_code: string
-  origin_city: string
-  origin_timezone?: string
-  destination_code: string
-  destination_city: string
-  destination_timezone?: string
-  departure_time: string
-  arrival_time: string
-  duration_minutes: number
-  stops: number
-  stop_details?: Array<{
-    airport_code: string
-    airport_city: string
-    layover_minutes: number
-  }>
-  cabin_class?: string
-  price_per_person: number
-  currency?: string
-  booking_url: string
-}
-
-interface BookingClick {
-  id: string
-  click_type: 'outbound_flight' | 'return_flight'
-  purchase_confirmed: boolean
-  confirmed_at?: string | null
-}
+// =============================================================================
+// Types
+// =============================================================================
 
 interface FlightsSectionProps {
-  outboundFlight?: TripFlight | null
-  returnFlight?: TripFlight | null
-  travelers: number
+  outboundFlight?: TripFlightData | null
+  returnFlight?: TripFlightData | null
+  travelers?: number
   pricesFetchedAt?: string | null
-  bookingClicks?: BookingClick[]
   onRefreshQuotes?: () => Promise<void>
-  onBookClick?: (clickType: 'outbound_flight' | 'return_flight') => void
+  onBookClick?: (direction: 'outbound' | 'return') => void
+  className?: string
 }
 
 // Staleness threshold: 1 hour
 const STALENESS_THRESHOLD_MS = 60 * 60 * 1000
 
+// =============================================================================
+// Main Component
+// =============================================================================
+
+/**
+ * Flights section that works with both:
+ * - Flat TripDetail flight fields (current API)
+ * - Rich TripFlight objects (future API)
+ */
 export function FlightsSection({
   outboundFlight,
   returnFlight,
-  travelers,
+  travelers = 1,
   pricesFetchedAt,
-  bookingClicks = [],
   onRefreshQuotes,
   onBookClick,
+  className,
 }: FlightsSectionProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
@@ -75,14 +63,6 @@ export function FlightsSection({
     ? formatRelativeTime(pricesFetchedAt)
     : null
 
-  // Check purchase status
-  const outboundPurchased = bookingClicks.find(
-    c => c.click_type === 'outbound_flight' && c.purchase_confirmed
-  )
-  const returnPurchased = bookingClicks.find(
-    c => c.click_type === 'return_flight' && c.purchase_confirmed
-  )
-
   const handleRefresh = async () => {
     if (!onRefreshQuotes) return
 
@@ -92,26 +72,22 @@ export function FlightsSection({
     try {
       await onRefreshQuotes()
     } catch {
-      setRefreshError('couldn\'t refresh prices. try again.')
+      setRefreshError("couldn't refresh prices. try again.")
     } finally {
       setIsRefreshing(false)
     }
-  }
-
-  const handleOutboundBook = () => {
-    onBookClick?.('outbound_flight')
-  }
-
-  const handleReturnBook = () => {
-    onBookClick?.('return_flight')
   }
 
   if (!outboundFlight && !returnFlight) {
     return null
   }
 
+  // Determine if we have rich or flat data
+  const hasRichData = (outboundFlight && isRichFlight(outboundFlight)) ||
+    (returnFlight && isRichFlight(returnFlight))
+
   return (
-    <div className="space-y-4">
+    <div className={cn('space-y-4', className)}>
       {/* Section header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -161,35 +137,129 @@ export function FlightsSection({
         </div>
       )}
 
-      {/* Flight cards */}
+      {/* Flight cards - use rich or simple based on data */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {outboundFlight && (
-          <FlightDetailCard
-            flight={outboundFlight}
-            travelers={travelers}
-            isPurchased={!!outboundPurchased}
-            purchasedAt={outboundPurchased?.confirmed_at}
-            onBookClick={handleOutboundBook}
-          />
+          hasRichData && isRichFlight(outboundFlight) ? (
+            <FlightDetailCard
+              flight={outboundFlight}
+              travelers={travelers}
+              onBookClick={() => onBookClick?.('outbound')}
+            />
+          ) : (
+            <FlightCardSimple
+              flight={outboundFlight}
+              onBookClick={() => onBookClick?.('outbound')}
+            />
+          )
         )}
 
         {returnFlight && (
-          <FlightDetailCard
-            flight={returnFlight}
-            travelers={travelers}
-            isPurchased={!!returnPurchased}
-            purchasedAt={returnPurchased?.confirmed_at}
-            onBookClick={handleReturnBook}
-          />
+          hasRichData && isRichFlight(returnFlight) ? (
+            <FlightDetailCard
+              flight={returnFlight}
+              travelers={travelers}
+              onBookClick={() => onBookClick?.('return')}
+            />
+          ) : (
+            <FlightCardSimple
+              flight={returnFlight}
+              onBookClick={() => onBookClick?.('return')}
+            />
+          )
         )}
       </div>
     </div>
   )
 }
 
-/**
- * Format relative time: "2025-03-15T08:30:00" → "2 hours ago"
- */
+// =============================================================================
+// Simple Flight Card (for flat data)
+// =============================================================================
+
+interface FlightCardSimpleProps {
+  flight: TripFlightData
+  onBookClick?: () => void
+}
+
+function FlightCardSimple({ flight, onBookClick }: FlightCardSimpleProps) {
+  // This handles flat data format
+  if (isRichFlight(flight)) {
+    return null // Should use FlightDetailCard instead
+  }
+
+  const { direction, origin, destination, date, time, carrier, price, purchase_url } = flight
+
+  if (!origin || !destination) {
+    return null
+  }
+
+  const formattedDate = date ? formatShortDate(date) : null
+  const Icon = direction === 'outbound' ? PlaneTakeoff : PlaneLanding
+
+  return (
+    <div className="rounded-xl border bg-card p-5">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Icon className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <span className="text-sm font-medium lowercase px-2 py-0.5 rounded-full bg-muted">
+            {direction}
+          </span>
+          {carrier && (
+            <p className="text-xs text-muted-foreground mt-1">{carrier}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Route */}
+      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-4">
+        <Plane className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{origin}</span>
+            <ArrowRight className="w-3 h-3 text-muted-foreground" />
+            <span className="font-medium">{destination}</span>
+          </div>
+          {formattedDate && (
+            <p className="text-xs text-muted-foreground">
+              {formattedDate}
+              {time && ` · ${time}`}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Price & Book */}
+      <div className="flex items-center justify-between">
+        {price && (
+          <p className="font-semibold">${price}</p>
+        )}
+        {purchase_url && (
+          <Button
+            asChild
+            size="sm"
+            variant={price ? 'outline' : 'default'}
+            className="lowercase"
+            onClick={onBookClick}
+          >
+            <a href={purchase_url} target="_blank" rel="noopener noreferrer">
+              book flight
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </a>
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
 function formatRelativeTime(isoString: string): string {
   const date = new Date(isoString)
   const now = new Date()
@@ -206,4 +276,15 @@ function formatRelativeTime(isoString: string): string {
     return `${hours} hour${hours === 1 ? '' : 's'} ago`
   }
   return `${days} day${days === 1 ? '' : 's'} ago`
+}
+
+function formatShortDate(dateString: string): string {
+  const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00')
+  return date
+    .toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    })
+    .toLowerCase()
 }

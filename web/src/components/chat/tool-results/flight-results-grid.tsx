@@ -145,7 +145,7 @@ function FlightCard({ flight, isSelected, onSelect }: FlightCardProps) {
         "hover:border-primary/50 hover:bg-accent/50",
         isSelected
           ? "border-primary bg-primary/5 ring-1 ring-primary"
-          : "border-border bg-background"
+          : "border-border/50 bg-background"
       )}
     >
       {/* Mobile: stacked layout, Desktop: horizontal */}

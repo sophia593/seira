@@ -3,20 +3,16 @@
 import Link from 'next/link'
 import {
   Calendar,
-  Clock,
   MapPin,
-  Plane,
   Building2,
-  ExternalLink,
   MessageSquare,
-  Ticket,
-  ArrowRight,
-  PlaneTakeoff,
-  PlaneLanding,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { type TripDetail } from '@/lib/api'
+import { EventDetailCard } from './event-detail-card'
+import { FlightsSection } from './flights-section'
+import { type TripEventFlat, type TripFlightFlat } from '@/types/trip'
 
 // =============================================================================
 // Types
@@ -52,19 +48,57 @@ export function TripDetailComponent({ trip, className }: TripDetailProps) {
   const hasFlight = !!trip.flight_origin
   const hasHotel = !!trip.hotel_name
 
+  // Convert flat trip data to component props
+  const eventData: TripEventFlat | null = hasEvent ? {
+    name: trip.event_name!,
+    date: trip.event_date,
+    time: trip.event_time,
+    venue: trip.event_venue,
+    venue_address: trip.event_venue_address,
+    price_estimate: trip.event_price_estimate,
+    purchase_url: trip.event_purchase_url,
+  } : null
+
+  const outboundFlight: TripFlightFlat | null = hasFlight ? {
+    direction: 'outbound',
+    origin: trip.flight_origin,
+    destination: trip.flight_destination,
+    date: trip.flight_outbound_date,
+    time: trip.flight_outbound_time,
+    carrier: trip.flight_carrier,
+    price: trip.flight_price,
+    purchase_url: trip.flight_purchase_url,
+  } : null
+
+  const returnFlight: TripFlightFlat | null = trip.flight_return_date ? {
+    direction: 'return',
+    origin: trip.flight_destination,
+    destination: trip.flight_origin,
+    date: trip.flight_return_date,
+    time: trip.flight_return_time,
+    carrier: trip.flight_carrier,
+    price: null, // Return flight price usually included in round-trip
+    purchase_url: trip.flight_purchase_url,
+  } : null
+
   return (
     <div className={cn('space-y-6', className)}>
       {/* Header */}
       <TripHeader trip={trip} destination={destination} />
 
-      {/* Event Section - Prominent */}
-      {hasEvent && <EventSection trip={trip} />}
+      {/* Event Section - Using standalone component */}
+      {eventData && <EventDetailCard event={eventData} />}
 
-      {/* Travel Details Grid - Always show with placeholders */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {hasFlight ? <FlightSection trip={trip} /> : <FlightPlaceholder />}
-        {hasHotel ? <HotelSection trip={trip} /> : <HotelPlaceholder />}
-      </div>
+      {/* Flights Section - Using standalone component */}
+      {hasFlight && (
+        <FlightsSection
+          outboundFlight={outboundFlight}
+          returnFlight={returnFlight}
+        />
+      )}
+
+      {/* Hotel Section */}
+      {hasHotel ? <HotelSection trip={trip} /> : hasFlight && <HotelPlaceholder />}
 
       {/* Notes */}
       {trip.notes && <NotesSection notes={trip.notes} />}
@@ -131,197 +165,6 @@ function TripHeader({ trip, destination }: { trip: TripDetail; destination: stri
           )}
         </div>
       )}
-    </div>
-  )
-}
-
-// =============================================================================
-// Event Section - Hero Style
-// =============================================================================
-
-function EventSection({ trip }: { trip: TripDetail }) {
-  const formattedDate = trip.event_date ? formatFullDate(trip.event_date) : null
-  const formattedTime = trip.event_time ? formatTime(trip.event_time) : null
-
-  return (
-    <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/30 overflow-hidden">
-      {/* Event Header */}
-      <div className="p-5 sm:p-6">
-        <div className="flex items-start gap-4">
-          {/* Event Icon */}
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Ticket className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
-          </div>
-
-          {/* Event Details */}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">Event</p>
-            <h2 className="text-xl sm:text-2xl font-semibold lowercase truncate">
-              {trip.event_name}
-            </h2>
-          </div>
-        </div>
-
-        {/* Event Info Grid */}
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {/* Date & Time */}
-          {formattedDate && (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-background/60">
-              <Calendar className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium">{formattedDate}</p>
-                {formattedTime && (
-                  <p className="text-xs text-muted-foreground">{formattedTime}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Venue */}
-          {trip.event_venue && (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-background/60">
-              <MapPin className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium lowercase truncate">{trip.event_venue}</p>
-                {trip.event_venue_address && (
-                  <p className="text-xs text-muted-foreground truncate lowercase">
-                    {trip.event_venue_address}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Ticket Price */}
-        {trip.event_price_estimate && (
-          <div className="mt-4 flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">tickets from</span>
-            <span className="font-semibold text-lg">${trip.event_price_estimate}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Buy Tickets CTA */}
-      {trip.event_purchase_url && (
-        <div className="px-5 sm:px-6 py-4 bg-primary/5 border-t">
-          <Button
-            asChild
-            size="lg"
-            className="w-full lowercase font-medium group"
-          >
-            <a href={trip.event_purchase_url} target="_blank" rel="noopener noreferrer">
-              <Ticket className="w-5 h-5 mr-2" />
-              buy tickets
-              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-            </a>
-          </Button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// =============================================================================
-// Flight Section
-// =============================================================================
-
-function FlightSection({ trip }: { trip: TripDetail }) {
-  const outboundDate = trip.flight_outbound_date ? formatShortDate(trip.flight_outbound_date) : null
-  const returnDate = trip.flight_return_date ? formatShortDate(trip.flight_return_date) : null
-
-  return (
-    <div className="rounded-xl border bg-card p-5">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Plane className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h3 className="font-medium lowercase">flights</h3>
-          {trip.flight_carrier && (
-            <p className="text-xs text-muted-foreground">{trip.flight_carrier}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Flight Details */}
-      <div className="space-y-3">
-        {/* Outbound */}
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-          <PlaneTakeoff className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{trip.flight_origin}</span>
-              <ArrowRight className="w-3 h-3 text-muted-foreground" />
-              <span className="font-medium">{trip.flight_destination}</span>
-            </div>
-            {outboundDate && (
-              <p className="text-xs text-muted-foreground">
-                {outboundDate}
-                {trip.flight_outbound_time && ` · ${trip.flight_outbound_time}`}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Return */}
-        {trip.flight_return_date && (
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <PlaneLanding className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{trip.flight_destination}</span>
-                <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                <span className="font-medium">{trip.flight_origin}</span>
-              </div>
-              {returnDate && (
-                <p className="text-xs text-muted-foreground">
-                  {returnDate}
-                  {trip.flight_return_time && ` · ${trip.flight_return_time}`}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Price & Book */}
-      <div className="mt-4 flex items-center justify-between">
-        {trip.flight_price && (
-          <p className="font-semibold">${trip.flight_price}</p>
-        )}
-        {trip.flight_purchase_url && (
-          <Button asChild size="sm" variant="outline" className="lowercase">
-            <a href={trip.flight_purchase_url} target="_blank" rel="noopener noreferrer">
-              book flight
-              <ExternalLink className="w-3 h-3 ml-2" />
-            </a>
-          </Button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// =============================================================================
-// Flight Placeholder
-// =============================================================================
-
-function FlightPlaceholder() {
-  return (
-    <div className="rounded-xl border border-dashed bg-card/50 p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-          <Plane className="w-5 h-5 text-muted-foreground" />
-        </div>
-        <div>
-          <h3 className="font-medium lowercase">flights</h3>
-        </div>
-      </div>
-      <p className="text-sm text-muted-foreground text-center py-4">
-        flights coming soon
-      </p>
     </div>
   )
 }
@@ -416,7 +259,6 @@ function HotelSection({ trip }: { trip: TripDetail }) {
           <Button asChild size="sm" variant="outline" className="lowercase">
             <a href={trip.hotel_purchase_url} target="_blank" rel="noopener noreferrer">
               book hotel
-              <ExternalLink className="w-3 h-3 ml-2" />
             </a>
           </Button>
         )}
@@ -442,18 +284,6 @@ function NotesSection({ notes }: { notes: string }) {
 // Helper Functions
 // =============================================================================
 
-function formatFullDate(dateString: string): string {
-  const date = new Date(dateString + 'T00:00:00')
-  return date
-    .toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    })
-    .toLowerCase()
-}
-
 function formatShortDate(dateString: string): string {
   const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00')
   return date
@@ -461,19 +291,6 @@ function formatShortDate(dateString: string): string {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
-    })
-    .toLowerCase()
-}
-
-function formatTime(timeString: string): string {
-  const [hours, minutes] = timeString.split(':').map(Number)
-  const date = new Date()
-  date.setHours(hours, minutes)
-  return date
-    .toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
     })
     .toLowerCase()
 }

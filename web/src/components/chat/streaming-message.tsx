@@ -61,7 +61,7 @@ export const StreamingMessage = memo(function StreamingMessage({
 
         {/* Streaming text with cursor */}
         {hasContent && (
-          <div className="rounded-2xl px-4 py-3 bg-muted">
+          <div className="rounded-2xl rounded-bl-md px-4 py-3 bg-muted">
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <p className="whitespace-pre-wrap mb-0">
                 {content}
@@ -190,7 +190,7 @@ function BlinkingCursor() {
 function LoadingSkeleton() {
   return (
     <div
-      className="animate-pulse space-y-3 rounded-2xl px-4 py-3 bg-muted"
+      className="animate-pulse space-y-3 rounded-2xl rounded-bl-md px-4 py-3 bg-muted"
       aria-label="loading response"
     >
       {/* First line - full width */}
