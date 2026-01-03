@@ -49,12 +49,12 @@ export const AssistantMessage = memo(function AssistantMessage({
   const hasToolCalls = toolCalls && toolCalls.length > 0
 
   return (
-    <div className={cn("flex gap-3", className)}>
+    <div className={cn("flex items-start gap-3", className)}>
       {/* Avatar */}
-      <AvatarAssistant size="default" />
+      <AvatarAssistant size="default" className="flex-shrink-0" />
 
       {/* Message content */}
-      <div className="flex-1 space-y-3 max-w-[85%]">
+      <div className="flex-1 space-y-3 max-w-[90%] sm:max-w-[85%] pt-0.5">
         {/* Text content */}
         {hasContent && (
           <div className="rounded-2xl px-4 py-3 bg-muted">
@@ -188,7 +188,7 @@ function ToolResultDisplay({
   // Trip saved confirmation
   if (name === 'save_trip' && result.success) {
     return (
-      <div className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-3">
+      <div className="text-sm text-green-600 dark:text-green-400 bg-green-500/10 rounded-xl p-3">
         trip saved successfully!{' '}
         <a href="/trips" className="underline hover:no-underline">
           view it in your trips

@@ -141,27 +141,35 @@ function FlightCard({ flight, isSelected, onSelect }: FlightCardProps) {
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full text-left rounded-lg border p-3 transition-all",
+        "w-full text-left rounded-xl border p-3 transition-all overflow-hidden",
         "hover:border-primary/50 hover:bg-accent/50",
         isSelected
           ? "border-primary bg-primary/5 ring-1 ring-primary"
           : "border-border bg-background"
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        {/* Airline & Flight */}
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-            <Plane className="w-4 h-4 text-muted-foreground" />
+      {/* Mobile: stacked layout, Desktop: horizontal */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        {/* Top row on mobile: Airline + Price */}
+        <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+              <Plane className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{flight.airline}</p>
+              <p className="text-xs text-muted-foreground">{flight.flight_number}</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium truncate">{flight.airline}</p>
-            <p className="text-xs text-muted-foreground">{flight.flight_number}</p>
+          {/* Price shown here on mobile, hidden on desktop */}
+          <div className="flex items-center gap-1.5 sm:hidden">
+            <p className="text-sm font-semibold text-primary">${flight.price}</p>
+            {isSelected && <Check className="w-4 h-4 text-primary" />}
           </div>
         </div>
 
-        {/* Times */}
-        <div className="flex items-center gap-3 text-center">
+        {/* Times - centered on mobile */}
+        <div className="flex items-center justify-center gap-2 sm:gap-3 text-center">
           <div>
             <p className="text-sm font-medium">{flight.departure_time}</p>
             <p className="text-xs text-muted-foreground">{flight.departure_airport}</p>
@@ -171,7 +179,7 @@ function FlightCard({ flight, isSelected, onSelect }: FlightCardProps) {
               <Clock className="w-3 h-3" />
               <span>{flight.duration}</span>
             </div>
-            <div className="w-16 h-px bg-border my-1" />
+            <div className="w-10 sm:w-16 h-px bg-border my-1" />
             <span className="text-xs text-muted-foreground">{stopsText}</span>
           </div>
           <div>
@@ -180,14 +188,10 @@ function FlightCard({ flight, isSelected, onSelect }: FlightCardProps) {
           </div>
         </div>
 
-        {/* Price & Selection */}
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold text-primary">
-            ${flight.price}
-          </p>
-          {isSelected && (
-            <Check className="w-4 h-4 text-primary" />
-          )}
+        {/* Price - hidden on mobile, shown on desktop */}
+        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+          <p className="text-sm font-semibold text-primary">${flight.price}</p>
+          {isSelected && <Check className="w-4 h-4 text-primary" />}
         </div>
       </div>
     </button>

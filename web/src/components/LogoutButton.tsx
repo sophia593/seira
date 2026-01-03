@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export default function LogoutButton() {
   const router = useRouter();
@@ -28,14 +29,15 @@ export default function LogoutButton() {
 
   return (
     <div className="flex items-center gap-2">
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         onClick={handleLogout}
         disabled={loading}
-        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? "Logging out..." : "Log out"}
-      </button>
-      {error && <span className="text-sm text-red-600">{error}</span>}
+        {loading ? "logging out..." : "log out"}
+      </Button>
+      {error && <span className="text-sm text-destructive">{error}</span>}
     </div>
   );
 }

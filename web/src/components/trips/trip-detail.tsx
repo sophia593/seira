@@ -32,11 +32,11 @@ interface TripDetailProps {
 // =============================================================================
 
 const STATUS_STYLES: Record<TripDetail['status'], { bg: string; text: string }> = {
-  draft: { bg: 'bg-zinc-100 dark:bg-zinc-800', text: 'text-zinc-600 dark:text-zinc-400' },
-  quoted: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
-  booked: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400' },
-  completed: { bg: 'bg-zinc-100 dark:bg-zinc-800', text: 'text-zinc-500' },
-  cancelled: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' },
+  draft: { bg: 'bg-muted', text: 'text-muted-foreground' },
+  quoted: { bg: 'bg-primary/10', text: 'text-primary' },
+  booked: { bg: 'bg-green-500/10', text: 'text-green-600 dark:text-green-400' },
+  completed: { bg: 'bg-muted', text: 'text-muted-foreground' },
+  cancelled: { bg: 'bg-destructive/10', text: 'text-destructive' },
 }
 
 // =============================================================================
@@ -116,7 +116,7 @@ function TripHeader({ trip, destination }: { trip: TripDetail; destination: stri
 
       {/* Price Summary */}
       {trip.estimated_total && (
-        <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-zinc-100 to-zinc-50 dark:from-zinc-800/50 dark:to-zinc-900/50 border">
+        <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-muted to-muted/50 border">
           <div>
             <p className="text-sm text-muted-foreground lowercase">estimated total</p>
             <p className="text-2xl sm:text-3xl font-semibold">
@@ -234,8 +234,8 @@ function FlightSection({ trip }: { trip: TripDetail }) {
     <div className="rounded-xl border bg-card p-5">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-          <Plane className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Plane className="w-5 h-5 text-primary" />
         </div>
         <div>
           <h3 className="font-medium lowercase">flights</h3>
@@ -368,8 +368,8 @@ function HotelSection({ trip }: { trip: TripDetail }) {
     <div className="rounded-xl border bg-card p-5">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-          <Building2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+          <Building2 className="w-5 h-5 text-foreground" />
         </div>
         <div>
           <h3 className="font-medium lowercase">hotel</h3>

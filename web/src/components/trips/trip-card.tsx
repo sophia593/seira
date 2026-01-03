@@ -19,11 +19,11 @@ interface TripCardProps {
 // =============================================================================
 
 const STATUS_STYLES: Record<Trip['status'], { bg: string; text: string }> = {
-  draft: { bg: 'bg-zinc-100 dark:bg-zinc-800', text: 'text-zinc-600 dark:text-zinc-400' },
-  quoted: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
-  booked: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400' },
-  completed: { bg: 'bg-zinc-100 dark:bg-zinc-800', text: 'text-zinc-500' },
-  cancelled: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' },
+  draft: { bg: 'bg-muted', text: 'text-muted-foreground' },
+  quoted: { bg: 'bg-primary/10', text: 'text-primary' },
+  booked: { bg: 'bg-green-500/10', text: 'text-green-600 dark:text-green-400' },
+  completed: { bg: 'bg-muted', text: 'text-muted-foreground' },
+  cancelled: { bg: 'bg-destructive/10', text: 'text-destructive' },
 }
 
 function StatusBadge({ status }: { status: Trip['status'] }) {

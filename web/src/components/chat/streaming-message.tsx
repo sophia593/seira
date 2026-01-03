@@ -1,8 +1,9 @@
 'use client'
 
 import { memo } from 'react'
-import { Bot, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AvatarAssistant } from '@/components/ui/avatar'
 import { type ToolCall } from '@/stores/conversation-store'
 import { ToolIndicator } from './tool-indicator'
 import { EventResultsGrid } from './tool-results/event-results-grid'
@@ -49,14 +50,12 @@ export const StreamingMessage = memo(function StreamingMessage({
   const isJustStarted = !hasContent && !hasPendingTools && !hasCompletedTools
 
   return (
-    <div className={cn('flex gap-3', className)}>
+    <div className={cn('flex items-start gap-3 animate-message-in', className)}>
       {/* Avatar */}
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-        <Bot className="w-5 h-5 text-muted-foreground" />
-      </div>
+      <AvatarAssistant size="default" className="flex-shrink-0" />
 
       {/* Content area */}
-      <div className="flex-1 min-w-0 space-y-3">
+      <div className="flex-1 min-w-0 space-y-3 max-w-[90%] sm:max-w-[85%] pt-0.5">
         {/* Initial loading skeleton (no content, no tools yet) */}
         {isJustStarted && <LoadingSkeleton />}
 
@@ -151,7 +150,7 @@ function ToolResultDisplay({ name, result }: ToolResultDisplayProps) {
   // Trip saved confirmation
   if (name === 'save_trip' && result.success) {
     return (
-      <div className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-3">
+      <div className="text-sm text-green-600 dark:text-green-400 bg-green-500/10 rounded-xl p-3">
         trip saved successfully!{' '}
         <a href="/trips" className="underline hover:no-underline">
           view it in your trips

@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -43,14 +46,14 @@ export default function SignupPage() {
 
   if (checkEmail) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm text-center">
-          <h1 className="text-2xl font-semibold mb-4">Check your email</h1>
-          <p className="text-gray-600">
-            We sent a confirmation link to <strong>{email}</strong>. Click the link to activate your account.
+          <h1 className="text-2xl font-semibold mb-4 lowercase">check your email</h1>
+          <p className="text-muted-foreground">
+            we sent a confirmation link to <strong className="text-foreground">{email}</strong>. click the link to activate your account.
           </p>
-          <Link href="/login" className="mt-4 inline-block text-blue-600 hover:underline">
-            Back to login
+          <Link href="/login" className="mt-4 inline-block text-primary hover:underline">
+            back to login
           </Link>
         </div>
       </div>
@@ -58,59 +61,53 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold text-center mb-6">Sign up</h1>
+        <h1 className="text-2xl font-semibold text-center mb-6 lowercase">sign up</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="email">email</Label>
+            <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="you@example.com"
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="password">password</Label>
+            <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full"
           >
-            {loading ? "Creating account..." : "Sign up"}
-          </button>
+            {loading ? "creating account..." : "sign up"}
+          </Button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <Link href="/login" className="text-blue-600 hover:underline">
-            Log in
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          already have an account?{" "}
+          <Link href="/login" className="text-primary hover:underline">
+            log in
           </Link>
         </p>
       </div>

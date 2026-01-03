@@ -31,26 +31,26 @@ export const EmptyState = memo(function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center min-h-[400px] text-center px-4",
+        "flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] text-center px-4",
         className
       )}
     >
       {/* Icon */}
-      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-        <Plane className="w-8 h-8 text-primary" />
+      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 sm:mb-6">
+        <Plane className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
       </div>
 
       {/* Heading */}
-      <h2 className="text-2xl font-semibold mb-2">Plan your next adventure</h2>
+      <h2 className="text-xl sm:text-2xl font-semibold mb-2 lowercase">plan your next adventure</h2>
 
       {/* Subheading */}
-      <p className="text-muted-foreground max-w-md mb-8">
-        Tell me about an event you want to attend, and I&apos;ll help you plan
+      <p className="text-sm sm:text-base text-muted-foreground max-w-sm sm:max-w-md mb-6 sm:mb-8">
+        tell me about an event you want to attend, and i&apos;ll help you plan
         the perfect trip with flights and everything coordinated.
       </p>
 
       {/* Suggestions */}
-      <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+      <div className="flex flex-wrap gap-2 justify-center max-w-xs sm:max-w-lg">
         {suggestions.map((suggestion) => (
           <SuggestionChip
             key={suggestion.text}
