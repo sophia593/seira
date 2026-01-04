@@ -6,10 +6,14 @@ import {
   MapPin,
   Building2,
   MessageSquare,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { type TripDetail } from '@/lib/api'
+import { type TripDetail, type RefreshQuotesResponse } from '@/lib/api'
 import { EventDetailCard } from './event-detail-card'
 import { FlightsSection } from './flights-section'
 import { type TripEventFlat, type TripFlightFlat } from '@/types/trip'
@@ -21,6 +25,9 @@ import { type TripEventFlat, type TripFlightFlat } from '@/types/trip'
 interface TripDetailProps {
   trip: TripDetail
   className?: string
+  onRefreshQuotes?: () => Promise<void>
+  isRefreshing?: boolean
+  refreshResult?: RefreshQuotesResponse | null
 }
 
 // =============================================================================
@@ -39,7 +46,13 @@ const STATUS_STYLES: Record<TripDetail['status'], { bg: string; text: string }> 
 // Main Component
 // =============================================================================
 
-export function TripDetailComponent({ trip, className }: TripDetailProps) {
+export function TripDetailComponent({
+  trip,
+  className,
+  onRefreshQuotes,
+  isRefreshing,
+  refreshResult,
+}: TripDetailProps) {
   const destination = [trip.destination_city, trip.destination_country]
     .filter(Boolean)
     .join(', ')
@@ -81,10 +94,20 @@ export function TripDetailComponent({ trip, className }: TripDetailProps) {
     purchase_url: trip.flight_purchase_url,
   } : null
 
+  // Check if trip has a Ticketmaster event that can be refreshed
+  const canRefresh = trip.event_provider === 'ticketmaster' && !!trip.event_provider_id
+
   return (
     <div className={cn('space-y-6', className)}>
       {/* Header */}
-      <TripHeader trip={trip} destination={destination} />
+      <TripHeader
+        trip={trip}
+        destination={destination}
+        canRefresh={canRefresh}
+        onRefreshQuotes={onRefreshQuotes}
+        isRefreshing={isRefreshing}
+        refreshResult={refreshResult}
+      />
 
       {/* Event Section - Using standalone component */}
       {eventData && <EventDetailCard event={eventData} />}
@@ -120,7 +143,23 @@ export function TripDetailComponent({ trip, className }: TripDetailProps) {
 // Trip Header
 // =============================================================================
 
-function TripHeader({ trip, destination }: { trip: TripDetail; destination: string }) {
+interface TripHeaderProps {
+  trip: TripDetail
+  destination: string
+  canRefresh?: boolean
+  onRefreshQuotes?: () => Promise<void>
+  isRefreshing?: boolean
+  refreshResult?: RefreshQuotesResponse | null
+}
+
+function TripHeader({
+  trip,
+  destination,
+  canRefresh,
+  onRefreshQuotes,
+  isRefreshing,
+  refreshResult,
+}: TripHeaderProps) {
   const styles = STATUS_STYLES[trip.status]
 
   return (
@@ -157,14 +196,70 @@ function TripHeader({ trip, destination }: { trip: TripDetail; destination: stri
               ${trip.estimated_total.toLocaleString()}
             </p>
           </div>
-          {trip.status === 'quoted' && trip.quote_expires_at && (
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">quote expires</p>
-              <p className="text-sm font-medium">{formatShortDate(trip.quote_expires_at)}</p>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {trip.status === 'quoted' && trip.quote_expires_at && (
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">quote expires</p>
+                <p className="text-sm font-medium">{formatShortDate(trip.quote_expires_at)}</p>
+              </div>
+            )}
+            {canRefresh && onRefreshQuotes && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefreshQuotes}
+                disabled={isRefreshing}
+                className="lowercase"
+              >
+                <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
+                {isRefreshing ? 'refreshing...' : 'refresh prices'}
+              </Button>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Refresh Result Message */}
+      {refreshResult && (
+        <PriceChangeMessage result={refreshResult} />
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
+// Price Change Message
+// =============================================================================
+
+function PriceChangeMessage({ result }: { result: RefreshQuotesResponse }) {
+  const { price_change, previous_price, new_price } = result
+
+  if (price_change === null || price_change === 0) {
+    return (
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-muted text-muted-foreground text-sm">
+        <Minus className="w-4 h-4" />
+        <span>prices unchanged</span>
+      </div>
+    )
+  }
+
+  const isIncrease = price_change > 0
+  const Icon = isIncrease ? TrendingUp : TrendingDown
+  const colorClass = isIncrease
+    ? 'bg-destructive/10 text-destructive'
+    : 'bg-green-500/10 text-green-600 dark:text-green-400'
+
+  return (
+    <div className={cn("flex items-center gap-2 p-3 rounded-lg text-sm", colorClass)}>
+      <Icon className="w-4 h-4" />
+      <span>
+        price {isIncrease ? 'increased' : 'decreased'} by ${Math.abs(price_change).toFixed(2)}
+        {previous_price !== null && new_price !== null && (
+          <span className="text-xs ml-1 opacity-75">
+            (${previous_price.toFixed(2)} → ${new_price.toFixed(2)})
+          </span>
+        )}
+      </span>
     </div>
   )
 }

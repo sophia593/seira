@@ -127,6 +127,14 @@ export interface UserWithPreferences {
   preferences: UserPreferences
 }
 
+export interface RefreshQuotesResponse {
+  trip: TripDetail
+  event_updated: boolean
+  previous_price: number | null
+  new_price: number | null
+  price_change: number | null
+}
+
 interface RequestOptions {
   headers?: Record<string, string>
   signal?: AbortSignal
@@ -363,8 +371,8 @@ export function createApiClient(config: ApiClientConfig) {
     return del<void>(`/api/v1/trips/${id}`)
   }
 
-  async function refreshTripQuotes(id: string): Promise<TripDetail> {
-    return post<TripDetail>(`/api/v1/trips/${id}/refresh-quotes`)
+  async function refreshTripQuotes(id: string): Promise<RefreshQuotesResponse> {
+    return post<RefreshQuotesResponse>(`/api/v1/trips/${id}/refresh-quotes`)
   }
 
   // ---------------------------------------------------------------------------

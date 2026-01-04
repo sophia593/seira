@@ -75,6 +75,7 @@ export type {
   Conversation,
   ConversationWithMessages,
   Message,
+  RefreshQuotesResponse,
   Trip,
   TripDetail,
   UserProfile,
