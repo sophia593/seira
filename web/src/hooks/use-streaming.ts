@@ -107,7 +107,7 @@ function parseSSEEvent(chunk: string): StreamEvent | null {
 
 export function useStreaming(
   callbacks: StreamCallbacks,
-  baseUrl: string = process.env.NEXT_PUBLIC_API_URL || ""
+  baseUrl: string = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "")
 ): UseStreamingReturn {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);

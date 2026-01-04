@@ -21,7 +21,8 @@ function getBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL
 
   if (envUrl) {
-    return envUrl
+    // Remove trailing slashes to prevent double-slash URLs
+    return envUrl.replace(/\/+$/, "")
   }
 
   // Only allow localhost fallback in development
