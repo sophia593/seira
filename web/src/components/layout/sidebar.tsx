@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { useSidebar } from "@/hooks/use-sidebar"
 import { getApi, ApiError } from "@/lib/api"
 import type { Conversation } from "@/lib/api/client"
+import { startNewConversation } from "@/stores/conversation-store"
 import { toast } from "@/components/ui/sonner"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -59,6 +60,8 @@ export function Sidebar() {
   async function handleNewChat() {
     setIsCreating(true)
     try {
+      // Clear the conversation store for a fresh start
+      startNewConversation()
       const api = getApi()
       const conversation = await api.createConversation()
       setConversations((prev) => [conversation, ...prev])
@@ -163,14 +166,21 @@ export function Sidebar() {
             {isLoading ? (
               <ConversationListSkeleton count={5} />
             ) : conversations.length === 0 ? (
-              <p
+              <div
                 className={cn(
                   "py-4 text-center text-sm text-muted-foreground",
                   isCollapsed && "px-1 text-xs"
                 )}
               >
-                {isCollapsed ? "Empty" : "No conversations yet"}
-              </p>
+                {isCollapsed ? (
+                  <span>—</span>
+                ) : (
+                  <>
+                    <p>no conversations yet</p>
+                    <p className="text-xs mt-1 opacity-70">click "new chat" to start</p>
+                  </>
+                )}
+              </div>
             ) : (
               conversations.slice(0, 20).map((conversation) => (
                 <SidebarItem

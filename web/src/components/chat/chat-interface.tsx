@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useStreaming } from "@/hooks/use-streaming"
 import { getApi } from "@/lib/api"
 import {
@@ -12,10 +12,12 @@ import {
   selectSelectedEvent,
   selectSelectedFlight,
   selectError,
+  selectConversationId,
+  loadExistingConversation,
 } from "@/stores/conversation-store"
 import { MessageList } from "./message-list"
 import { ChatInput } from "./chat-input"
-import { Loader2 } from "lucide-react"
+import { Loader2, Bug } from "lucide-react"
 
 interface ChatInterfaceProps {
   conversationId?: string
@@ -24,10 +26,26 @@ interface ChatInterfaceProps {
 export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [scrollTrigger, setScrollTrigger] = useState(0)
+  const lastMessageRef = useRef<string | null>(null)
+  const [showDebug, setShowDebug] = useState(false)
+
+  // Debug: Log when component mounts/unmounts
+  useEffect(() => {
+    console.log('[ChatInterface] MOUNTED', { conversationId })
+    return () => {
+      console.log('[ChatInterface] UNMOUNTED', { conversationId })
+    }
+  }, [])
 
   // Store state
   const messages = useConversationStore(selectMessages)
   const isStreaming = useConversationStore(selectIsStreaming)
+  const storeConversationId = useConversationStore(selectConversationId)
+
+  // Debug: Log when messages change
+  useEffect(() => {
+    console.log('[ChatInterface] Messages changed:', messages.length, messages.map(m => ({ id: m.id, role: m.role })))
+  }, [messages])
   const streamingContent = useConversationStore(selectStreamingContent)
   const pendingToolCalls = useConversationStore(selectStreamingToolCalls)
   const selectedEvent = useConversationStore(selectSelectedEvent)
@@ -51,51 +69,82 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     reset,
   } = useConversationStore()
 
-  // Load conversation history when conversationId changes
-  useEffect(() => {
-    reset()
-    setConversationId(conversationId ?? null)
+  // Track if this is the initial mount
+  const hasInitialized = useRef(false)
+  const previousConversationId = useRef<string | undefined>(conversationId)
 
+  // Load conversation history ONLY when navigating to an existing conversation
+  useEffect(() => {
+    // If no conversationId prop, this is a fresh /chat - do nothing
     if (!conversationId) {
+      // Only reset on very first mount with no conversation
+      if (!hasInitialized.current) {
+        hasInitialized.current = true
+        const state = useConversationStore.getState()
+        // Only reset if store is completely empty
+        if (!state.conversationId && state.messages.length === 0) {
+          reset()
+        }
+      }
       return
     }
 
-    let cancelled = false
+    // If conversationId matches what's in store, skip (we just created it)
+    const storeState = useConversationStore.getState()
+    if (conversationId === storeState.conversationId) {
+      return
+    }
 
-    async function loadConversation() {
-      setIsLoading(true)
-      try {
-        const api = getApi()
-        const data = await api.getConversation(conversationId!)
+    // If we're streaming, don't interrupt
+    if (storeState.isStreaming) {
+      return
+    }
 
-        if (cancelled) return
+    // Only load if we're navigating to a DIFFERENT conversation
+    if (previousConversationId.current !== conversationId) {
+      previousConversationId.current = conversationId
 
-        setConversation(data.conversation)
-        setMessages(data.messages)
-      } catch (err) {
-        if (cancelled) return
-        console.error("Failed to load conversation:", err)
-        setError("Failed to load conversation")
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
+      // Clear state for the new conversation
+      loadExistingConversation(conversationId)
+
+      let cancelled = false
+
+      async function loadConversation() {
+        setIsLoading(true)
+        try {
+          const api = getApi()
+          const data = await api.getConversation(conversationId!)
+
+          if (cancelled) return
+
+          setConversation(data.conversation)
+          setMessages(data.messages)
+        } catch (err) {
+          if (cancelled) return
+          console.error("Failed to load conversation:", err)
+          setError("Failed to load conversation")
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false)
+          }
         }
       }
-    }
 
-    loadConversation()
+      loadConversation()
 
-    return () => {
-      cancelled = true
+      return () => {
+        cancelled = true
+      }
     }
-  }, [conversationId, reset, setConversationId, setConversation, setMessages, setError])
+  }, [conversationId, setConversation, setMessages, setError])
 
   // Streaming hook with callbacks
   const { sendMessage, abort } = useStreaming({
     onStart: ({ conversation_id }) => {
       if (!conversationId && conversation_id) {
         setConversationId(conversation_id)
-        window.history.replaceState(null, "", `/chat/${conversation_id}`)
+        // Don't update URL - it can cause issues. User can navigate to conversation later.
+        // window.history.replaceState(null, "", `/chat/${conversation_id}`)
       }
     },
     onText: ({ text }) => {
@@ -123,6 +172,9 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const handleSendMessage = useCallback(
     async (content: string) => {
       if (!content.trim() || isStreaming) return
+
+      // Store for retry
+      lastMessageRef.current = content.trim()
 
       // Add user message to store immediately for optimistic UI
       const userMessage = {
@@ -184,6 +236,14 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     finalizeStream()
   }, [abort, finalizeStream])
 
+  // Handle retry after error
+  const handleRetry = useCallback(() => {
+    if (lastMessageRef.current) {
+      setError(null)
+      handleSendMessage(lastMessageRef.current)
+    }
+  }, [setError, handleSendMessage])
+
   // Show loading state while fetching conversation
   if (isLoading) {
     return (
@@ -196,6 +256,34 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Debug Panel - Toggle with keyboard shortcut or button */}
+      <button
+        onClick={() => setShowDebug(!showDebug)}
+        className="fixed bottom-20 right-4 z-50 p-2 rounded-full bg-muted hover:bg-muted/80 opacity-50 hover:opacity-100 transition-opacity"
+        title="Toggle debug panel"
+      >
+        <Bug className="w-4 h-4" />
+      </button>
+      {showDebug && (
+        <div className="fixed bottom-32 right-4 z-50 p-3 rounded-lg bg-black/90 text-white text-xs font-mono max-w-sm">
+          <div className="space-y-1">
+            <div>prop conversationId: {conversationId || "(none)"}</div>
+            <div>store conversationId: {storeConversationId || "(none)"}</div>
+            <div>messages: {messages.length}</div>
+            <div>isStreaming: {isStreaming ? "true" : "false"}</div>
+            <div>streamingContent: {streamingContent.length} chars</div>
+            <div>toolCalls: {pendingToolCalls.length}</div>
+            <div className="pt-1 border-t border-white/20 mt-1">
+              {messages.map((m, i) => (
+                <div key={m.id} className="truncate">
+                  {i + 1}. {m.role}: {m.content?.slice(0, 30) || "(tool)"}...
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Messages area */}
       <MessageList
         messages={messages}
@@ -213,11 +301,19 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
 
       {/* Error display */}
       {storeError && (
-        <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm text-center">
-          {storeError}
+        <div className="px-4 py-3 bg-destructive/10 text-destructive text-sm text-center flex items-center justify-center gap-3">
+          <span>{storeError}</span>
+          {lastMessageRef.current && (
+            <button
+              onClick={handleRetry}
+              className="px-3 py-1 bg-destructive/20 hover:bg-destructive/30 rounded-md transition-colors"
+            >
+              Retry
+            </button>
+          )}
           <button
             onClick={() => setError(null)}
-            className="ml-2 underline"
+            className="underline opacity-70 hover:opacity-100"
           >
             Dismiss
           </button>

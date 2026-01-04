@@ -207,7 +207,7 @@ async def create_message(
     conversation_id: str,
     role: str,
     content: str,
-    tool_calls: Optional[Dict[str, Any]] = None,
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
     tool_call_id: Optional[str] = None,
     tokens_used: Optional[int] = None,
     model_version: Optional[str] = None,
@@ -250,7 +250,7 @@ async def create_user_message(
 async def create_assistant_message(
     conversation_id: str,
     content: str,
-    tool_calls: Optional[Dict[str, Any]] = None,
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
     tokens_used: Optional[int] = None,
     model_version: Optional[str] = None,
 ) -> Dict[str, Any]:

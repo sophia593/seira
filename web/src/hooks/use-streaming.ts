@@ -113,6 +113,10 @@ export function useStreaming(
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Use ref to always have latest callbacks (prevents stale closure issues)
+  const callbacksRef = useRef(callbacks);
+  callbacksRef.current = callbacks;
+
   const abort = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -199,8 +203,8 @@ export function useStreaming(
             const event = parseSSEEvent(part);
             if (!event) continue;
 
-            // Dispatch to appropriate callback
-            dispatchEvent(event, callbacks, setError);
+            // Dispatch to appropriate callback (use ref for latest callbacks)
+            dispatchEvent(event, callbacksRef.current, setError);
           }
         }
 
@@ -208,7 +212,7 @@ export function useStreaming(
         if (buffer.trim()) {
           const event = parseSSEEvent(buffer);
           if (event) {
-            dispatchEvent(event, callbacks, setError);
+            dispatchEvent(event, callbacksRef.current, setError);
           }
         }
       } catch (err) {
@@ -219,13 +223,13 @@ export function useStreaming(
 
         const errorMessage = err instanceof Error ? err.message : "Unknown error";
         setError(errorMessage);
-        callbacks.onError?.({ message: errorMessage });
+        callbacksRef.current.onError?.({ message: errorMessage });
       } finally {
         setIsStreaming(false);
         abortControllerRef.current = null;
       }
     },
-    [callbacks, baseUrl, abort]
+    [baseUrl, abort]
   );
 
   return {

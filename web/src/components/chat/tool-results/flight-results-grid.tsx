@@ -38,7 +38,7 @@ export const FlightResultsGrid = memo(function FlightResultsGrid({
   if (!outboundFlights || outboundFlights.length === 0) {
     return (
       <div className="text-sm text-muted-foreground py-2">
-        No flights found matching your search.
+        no flights found matching your search.
       </div>
     )
   }
