@@ -200,9 +200,11 @@ async def run_conversation(
 
         except Exception as e:
             logger.exception(f"Error in orchestrator stream: {e}")
+            # Include error type in message for debugging
+            error_type = type(e).__name__
             yield StreamEvent(
                 type="error",
-                data={"message": "An error occurred. Please try again."},
+                data={"message": f"Error ({error_type}): {str(e)[:100]}"},
             )
             return
 

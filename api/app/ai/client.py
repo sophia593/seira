@@ -88,7 +88,8 @@ def get_client():
 
         settings = get_settings()
         if not settings.ANTHROPIC_API_KEY:
-            raise ValueError("ANTHROPIC_API_KEY is not set")
+            logger.error("ANTHROPIC_API_KEY is not set in environment variables!")
+            raise ValueError("ANTHROPIC_API_KEY is not set - please add it to Railway environment variables")
 
         _client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
         logger.info(f"Initialized Anthropic client (model: {settings.CLAUDE_MODEL})")
