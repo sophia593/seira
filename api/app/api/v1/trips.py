@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.core.auth import User, get_current_user
 from app.services import trip as trip_service
+from app.integrations.ticketmaster import TicketmasterClient
 
 router = APIRouter(prefix="/trips", tags=["trips"])
 
@@ -240,3 +241,114 @@ async def delete_trip(
         raise HTTPException(status_code=404, detail="Trip not found")
 
     await trip_service.delete_trip(trip_id)
+
+
+class RefreshQuotesResponse(BaseModel):
+    """Response from refreshing trip quotes."""
+    trip: TripDetailResponse
+    event_updated: bool = False
+    previous_price: Optional[float] = None
+    new_price: Optional[float] = None
+    price_change: Optional[float] = None
+
+
+@router.post("/{trip_id}/refresh-quotes", response_model=RefreshQuotesResponse)
+async def refresh_quotes(
+    trip_id: str,
+    current: User = Depends(get_current_user),
+):
+    """
+    Refresh quotes for a trip by re-fetching event data from Ticketmaster.
+
+    Updates the trip with current pricing information.
+    """
+    # Verify trip exists and user owns it
+    existing = await trip_service.get_trip(trip_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    if existing["user_id"] != current.id:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    # Check if trip has a Ticketmaster event linked
+    event_provider = existing.get("event_provider")
+    event_provider_id = existing.get("event_provider_id")
+
+    if not event_provider_id or event_provider != "ticketmaster":
+        raise HTTPException(
+            status_code=400,
+            detail="Trip has no Ticketmaster event linked. Cannot refresh quotes."
+        )
+
+    # Store previous price for comparison
+    previous_price = existing.get("event_price_estimate")
+    if previous_price is not None:
+        previous_price = float(previous_price)
+
+    # Fetch updated event data from Ticketmaster
+    try:
+        async with TicketmasterClient() as client:
+            event = await client.get_event(event_provider_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch event from Ticketmaster: {str(e)}"
+        )
+
+    # Prepare updates with fresh event data
+    updates: Dict[str, Any] = {
+        "quoted_at": datetime.utcnow().isoformat(),
+    }
+
+    # Update event details if available
+    if event.name:
+        updates["event_name"] = event.name
+    if event.date:
+        updates["event_date"] = event.date
+    if event.time:
+        updates["event_time"] = event.time
+    if event.venue:
+        updates["event_venue"] = event.venue.name
+        if event.venue.address:
+            venue_address = event.venue.address
+            if event.venue.city:
+                venue_address += f", {event.venue.city}"
+            if event.venue.state:
+                venue_address += f", {event.venue.state}"
+            updates["event_venue_address"] = venue_address
+        if event.venue.city:
+            updates["destination_city"] = event.venue.city
+        if event.venue.country:
+            updates["destination_country"] = event.venue.country
+    if event.purchase_url:
+        updates["event_purchase_url"] = event.purchase_url
+
+    # Update price if available
+    new_price = None
+    if event.price_range and event.price_range.min is not None:
+        new_price = event.price_range.min
+        updates["event_price_estimate"] = new_price
+
+        # Recalculate estimated total
+        flight_price = existing.get("flight_price") or 0
+        hotel_price = existing.get("hotel_price") or 0
+        if flight_price:
+            flight_price = float(flight_price)
+        if hotel_price:
+            hotel_price = float(hotel_price)
+        updates["estimated_total"] = new_price + flight_price + hotel_price
+
+    # Update the trip
+    updated_trip = await trip_service.update_trip(trip_id, updates)
+
+    # Calculate price change
+    price_change = None
+    if previous_price is not None and new_price is not None:
+        price_change = new_price - previous_price
+
+    return RefreshQuotesResponse(
+        trip=TripDetailResponse(**_format_trip(updated_trip)),
+        event_updated=True,
+        previous_price=previous_price,
+        new_price=new_price,
+        price_change=price_change,
+    )
