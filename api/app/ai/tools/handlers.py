@@ -59,9 +59,10 @@ async def search_events(
     category = input.get("category")
 
     logger.info(
-        f"search_events: query={query}, city={city}, "
-        f"dates={date_from} to {date_to}, category={category}"
+        f"search_events CALLED: query={query!r}, city={city!r}, "
+        f"dates={date_from} to {date_to}, category={category!r}"
     )
+    logger.info(f"search_events raw input: {input}")
 
     # Map category to Ticketmaster segment
     segment = CATEGORY_TO_SEGMENT.get(category) if category else None
@@ -75,7 +76,12 @@ async def search_events(
             query = category_keyword
 
     try:
+        logger.info(f"Creating TicketmasterClient...")
         async with TicketmasterClient() as client:
+            logger.info(
+                f"Calling Ticketmaster API: keyword={query!r}, city={city!r}, "
+                f"start_date={date_from}, end_date={date_to}, segment={segment!r}"
+            )
             result = await client.search_events(
                 keyword=query if query else None,
                 city=city,
@@ -84,6 +90,7 @@ async def search_events(
                 segment=segment,
                 size=20,
             )
+            logger.info(f"Ticketmaster returned {result.total_count} events")
 
         # Convert Event models to dicts for tool response
         events = [_format_event(e) for e in result.events]

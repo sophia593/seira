@@ -107,6 +107,8 @@ class TicketmasterClient:
         self.api_key = api_key or settings.TICKETMASTER_API_KEY
         self.use_cache = use_cache
 
+        logger.info(f"TicketmasterClient init: api_key={'SET' if self.api_key else 'MISSING'}")
+
         if not self.api_key:
             raise ValueError("TICKETMASTER_API_KEY is required")
 
