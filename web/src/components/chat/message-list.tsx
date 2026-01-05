@@ -121,27 +121,16 @@ export const MessageList = memo(function MessageList({
     return () => clearTimeout(timer)
   }, [scrollToBottom])
 
-  // Auto-scroll when content changes (messages, streaming)
+  // Auto-scroll when streaming ends to show full response
   useEffect(() => {
-    if (shouldAutoScrollRef.current) {
-      // Only scroll on significant changes, not every character
-      // During streaming: scroll less frequently (when new message starts or completes)
-      // After streaming: smooth scroll to show final message
-      if (!isStreaming) {
-        scrollToBottom(false) // smooth scroll when streaming ends
-      }
+    if (shouldAutoScrollRef.current && !isStreaming) {
+      // Streaming just ended - smooth scroll to show the complete message
+      scrollToBottom(false)
     }
   }, [messages, isStreaming, scrollToBottom])
 
-  // Scroll when streaming starts (user sent a message)
-  const prevIsStreaming = useRef(isStreaming)
-  useEffect(() => {
-    if (isStreaming && !prevIsStreaming.current && shouldAutoScrollRef.current) {
-      // Streaming just started - scroll to bottom to show the response beginning
-      scrollToBottom(true)
-    }
-    prevIsStreaming.current = isStreaming
-  }, [isStreaming, scrollToBottom])
+  // Don't auto-scroll when streaming starts - let user watch from top
+  // The user's message will be visible and Claude's response grows below it
 
   // Handle external scroll trigger (e.g., when user sends a message)
   useEffect(() => {
