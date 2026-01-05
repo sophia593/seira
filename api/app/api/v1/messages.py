@@ -31,7 +31,7 @@ class MessageResponse(BaseModel):
     conversation_id: str
     role: str
     content: str
-    tool_calls: Optional[List[Dict[str, Any]]] = None
+    tool_calls: Optional[Any] = None  # list of tool call dicts from DB
     tool_call_id: Optional[str] = None
     tokens_used: Optional[int] = None
     model_version: Optional[str] = None
