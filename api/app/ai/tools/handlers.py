@@ -12,6 +12,7 @@ from typing import Any
 
 from app.ai.tools.registry import register_tool
 from app.integrations.ticketmaster import TicketmasterClient, Event
+from app.services import trip as trip_service
 
 logger = logging.getLogger(__name__)
 
@@ -348,9 +349,7 @@ async def save_trip(
     user_id: str | None = None,
 ) -> dict[str, Any]:
     """
-    Save a trip to the user's account.
-
-    TODO: Actually save to Supabase trips table
+    Save a trip to the user's account in Supabase.
     """
     if not user_id:
         return {
@@ -360,31 +359,90 @@ async def save_trip(
 
     title = input.get("title", "Untitled Trip")
     event = input.get("event", {})
-    outbound_flight = input.get("outbound_flight")
-    return_flight = input.get("return_flight")
+    outbound_flight = input.get("outbound_flight", {})
+    return_flight = input.get("return_flight", {})
     estimated_total = input.get("estimated_total")
     notes = input.get("notes")
 
     logger.info(f"save_trip: title={title}, user_id={user_id}")
 
-    # TODO: Actually save to database
-    # For MVP, just return success with the trip data
+    try:
+        # Build trip data from input
+        trip_kwargs = {
+            "notes": notes,
+            "status": "draft",
+        }
 
-    trip_data = {
-        "id": f"trip_{datetime.now().strftime('%Y%m%d%H%M%S')}",
-        "user_id": user_id,
-        "title": title,
-        "event": event,
-        "outbound_flight": outbound_flight,
-        "return_flight": return_flight,
-        "estimated_total": estimated_total,
-        "notes": notes,
-        "status": "draft",
-        "created_at": datetime.now().isoformat(),
-    }
+        # Extract event details
+        if event:
+            trip_kwargs["event_name"] = event.get("name")
+            trip_kwargs["event_date"] = event.get("date")
+            trip_kwargs["event_time"] = event.get("time")
+            trip_kwargs["event_venue"] = event.get("venue")
+            trip_kwargs["event_purchase_url"] = event.get("ticket_url") or event.get("url")
+            trip_kwargs["event_price_estimate"] = event.get("price_min")
+            trip_kwargs["event_provider"] = "ticketmaster"
+            trip_kwargs["event_provider_id"] = event.get("id")
+            # Extract city from event
+            city = event.get("city", "")
+            if city:
+                trip_kwargs["destination_city"] = city
 
-    return {
-        "success": True,
-        "message": f"Trip '{title}' saved successfully!",
-        "trip": trip_data,
-    }
+        # Extract outbound flight details
+        if outbound_flight:
+            trip_kwargs["flight_origin"] = outbound_flight.get("origin")
+            trip_kwargs["flight_destination"] = outbound_flight.get("destination")
+            trip_kwargs["flight_outbound_date"] = outbound_flight.get("departure_date")
+            trip_kwargs["flight_outbound_time"] = outbound_flight.get("departure_time")
+            trip_kwargs["flight_carrier"] = outbound_flight.get("airline")
+            trip_kwargs["flight_price"] = outbound_flight.get("price")
+            trip_kwargs["flight_purchase_url"] = outbound_flight.get("booking_url")
+
+        # Extract return flight details (append to notes for now since schema has single flight)
+        if return_flight:
+            return_info = (
+                f"Return flight: {return_flight.get('airline')} "
+                f"{return_flight.get('departure_date')} {return_flight.get('departure_time')} "
+                f"${return_flight.get('price', 'N/A')}"
+            )
+            if trip_kwargs.get("notes"):
+                trip_kwargs["notes"] += f"\n\n{return_info}"
+            else:
+                trip_kwargs["notes"] = return_info
+            # Add return flight price to total
+            if return_flight.get("price") and trip_kwargs.get("flight_price"):
+                trip_kwargs["flight_price"] += return_flight.get("price", 0)
+
+        # Set estimated total
+        if estimated_total:
+            trip_kwargs["estimated_total"] = estimated_total
+
+        # Create trip in database
+        trip = await trip_service.create_trip(
+            user_id=user_id,
+            title=title,
+            **trip_kwargs,
+        )
+
+        logger.info(f"Trip saved successfully: id={trip.get('id')}")
+
+        return {
+            "success": True,
+            "message": f"Trip '{title}' saved successfully! You can view it in My Trips.",
+            "trip": {
+                "id": trip.get("id"),
+                "title": trip.get("title"),
+                "status": trip.get("status"),
+                "destination_city": trip.get("destination_city"),
+                "event_name": trip.get("event_name"),
+                "event_date": trip.get("event_date"),
+                "estimated_total": trip.get("estimated_total"),
+            },
+        }
+
+    except Exception as e:
+        logger.exception(f"Failed to save trip: {e}")
+        return {
+            "success": False,
+            "error": f"Failed to save trip: {str(e)}",
+        }
