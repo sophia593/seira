@@ -33,6 +33,7 @@ interface EventFromApi {
   price_min?: number
   url?: string
   purchase_url?: string
+  ticket_url?: string  // Backend uses this field name
 }
 
 interface EventResultsGridProps {
@@ -131,6 +132,6 @@ function normalizeEvent(apiEvent: EventFromApi): Event {
     price_min: apiEvent.price_min ?? null,
     price_max: null,
     currency: 'USD',
-    purchase_url: apiEvent.purchase_url ?? apiEvent.url ?? '#',
+    purchase_url: apiEvent.ticket_url ?? apiEvent.purchase_url ?? apiEvent.url ?? '#',
   }
 }
