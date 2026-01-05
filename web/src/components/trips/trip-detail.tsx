@@ -98,7 +98,7 @@ export function TripDetailComponent({
   const canRefresh = trip.event_provider === 'ticketmaster' && !!trip.event_provider_id
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-4 sm:space-y-6', className)}>
       {/* Header */}
       <TripHeader
         trip={trip}
@@ -128,9 +128,9 @@ export function TripDetailComponent({
 
       {/* Continue in Chat */}
       {trip.conversation_id && (
-        <Button asChild variant="outline" className="w-full lowercase">
+        <Button asChild variant="outline" className="w-full lowercase text-xs sm:text-sm">
           <Link href={`/chat/${trip.conversation_id}`}>
-            <MessageSquare className="w-4 h-4 mr-2" />
+            <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             continue planning in chat
           </Link>
         </Button>
@@ -163,22 +163,22 @@ function TripHeader({
   const styles = STATUS_STYLES[trip.status]
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight lowercase truncate">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight lowercase truncate">
             {trip.title || trip.event_name || 'untitled trip'}
           </h1>
           {destination && (
-            <p className="text-muted-foreground mt-1 lowercase flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 flex-shrink-0" />
+            <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1 lowercase flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
               {destination}
             </p>
           )}
         </div>
         <span
           className={cn(
-            'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium lowercase flex-shrink-0',
+            'inline-flex items-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium lowercase flex-shrink-0',
             styles.bg,
             styles.text
           )}
@@ -189,18 +189,18 @@ function TripHeader({
 
       {/* Price Summary */}
       {trip.estimated_total && (
-        <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-muted to-muted/50 border">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-muted to-muted/50 border">
           <div>
-            <p className="text-sm text-muted-foreground lowercase">estimated total</p>
-            <p className="text-2xl sm:text-3xl font-semibold">
+            <p className="text-xs sm:text-sm text-muted-foreground lowercase">estimated total</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-semibold">
               ${trip.estimated_total.toLocaleString()}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {trip.status === 'quoted' && trip.quote_expires_at && (
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <p className="text-xs text-muted-foreground">quote expires</p>
-                <p className="text-sm font-medium">{formatShortDate(trip.quote_expires_at)}</p>
+                <p className="text-xs sm:text-sm font-medium">{formatShortDate(trip.quote_expires_at)}</p>
               </div>
             )}
             {canRefresh && onRefreshQuotes && (
@@ -209,10 +209,10 @@ function TripHeader({
                 size="sm"
                 onClick={onRefreshQuotes}
                 disabled={isRefreshing}
-                className="lowercase"
+                className="lowercase text-xs sm:text-sm"
               >
-                <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
-                {isRefreshing ? 'refreshing...' : 'refresh prices'}
+                <RefreshCw className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2", isRefreshing && "animate-spin")} />
+                {isRefreshing ? 'refreshing...' : 'refresh'}
               </Button>
             )}
           </div>
@@ -270,16 +270,16 @@ function PriceChangeMessage({ result }: { result: RefreshQuotesResponse }) {
 
 function HotelPlaceholder() {
   return (
-    <div className="rounded-xl border border-dashed bg-card/50 p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-          <Building2 className="w-5 h-5 text-muted-foreground" />
+    <div className="rounded-xl border border-dashed bg-card/50 p-3 sm:p-5">
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-muted flex items-center justify-center">
+          <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
         </div>
         <div>
-          <h3 className="font-medium lowercase">hotel</h3>
+          <h3 className="font-medium lowercase text-sm sm:text-base">hotel</h3>
         </div>
       </div>
-      <p className="text-sm text-muted-foreground text-center py-4">
+      <p className="text-xs sm:text-sm text-muted-foreground text-center py-3 sm:py-4">
         hotel coming soon
       </p>
     </div>
@@ -303,14 +303,14 @@ function HotelSection({ trip }: { trip: TripDetail }) {
   }
 
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="rounded-xl border bg-card p-3 sm:p-5">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-          <Building2 className="w-5 h-5 text-foreground" />
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-muted flex items-center justify-center">
+          <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
         </div>
         <div>
-          <h3 className="font-medium lowercase">hotel</h3>
+          <h3 className="font-medium lowercase text-sm sm:text-base">hotel</h3>
           {nights && (
             <p className="text-xs text-muted-foreground">{nights} night{nights > 1 ? 's' : ''}</p>
           )}
@@ -318,14 +318,14 @@ function HotelSection({ trip }: { trip: TripDetail }) {
       </div>
 
       {/* Hotel Details */}
-      <div className="space-y-3">
-        <p className="font-medium lowercase">{trip.hotel_name}</p>
+      <div className="space-y-2 sm:space-y-3">
+        <p className="font-medium lowercase text-sm sm:text-base">{trip.hotel_name}</p>
 
         {(checkIn || checkOut) && (
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
             {checkIn && (
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">check-in</p>
                   <p className="font-medium">{checkIn}</p>
@@ -333,8 +333,8 @@ function HotelSection({ trip }: { trip: TripDetail }) {
               </div>
             )}
             {checkOut && (
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">check-out</p>
                   <p className="font-medium">{checkOut}</p>
@@ -346,12 +346,12 @@ function HotelSection({ trip }: { trip: TripDetail }) {
       </div>
 
       {/* Price & Book */}
-      <div className="mt-4 flex items-center justify-between">
+      <div className="mt-3 sm:mt-4 flex items-center justify-between">
         {trip.hotel_price && (
-          <p className="font-semibold">${trip.hotel_price}</p>
+          <p className="font-semibold text-sm sm:text-base">${trip.hotel_price}</p>
         )}
         {trip.hotel_purchase_url && (
-          <Button asChild size="sm" variant="outline" className="lowercase">
+          <Button asChild size="sm" variant="outline" className="lowercase text-xs sm:text-sm">
             <a href={trip.hotel_purchase_url} target="_blank" rel="noopener noreferrer">
               book hotel
             </a>
@@ -368,9 +368,9 @@ function HotelSection({ trip }: { trip: TripDetail }) {
 
 function NotesSection({ notes }: { notes: string }) {
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <h3 className="font-medium lowercase mb-3">notes</h3>
-      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{notes}</p>
+    <div className="rounded-xl border bg-card p-3 sm:p-5">
+      <h3 className="font-medium lowercase mb-2 sm:mb-3 text-sm sm:text-base">notes</h3>
+      <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap">{notes}</p>
     </div>
   )
 }

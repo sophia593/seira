@@ -36,12 +36,19 @@ import { ConversationListSkeleton } from "@/components/chat/conversation-list-sk
 import { SidebarItem } from "./sidebar-item"
 import { UserMenu } from "./user-menu"
 
-export function Sidebar() {
+interface SidebarProps {
+  /** When true, hides the collapse toggle (used in mobile drawer) */
+  isMobile?: boolean
+}
+
+export function Sidebar({ isMobile = false }: SidebarProps) {
   const router = useRouter()
   const params = useParams()
   const currentConversationId = params?.id as string | undefined
 
-  const { isCollapsed, toggle } = useSidebar()
+  const { isCollapsed: storedCollapsed, toggle } = useSidebar()
+  // In mobile mode, always show expanded sidebar
+  const isCollapsed = isMobile ? false : storedCollapsed
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
@@ -169,31 +176,34 @@ export function Sidebar() {
           {!isCollapsed && (
             <Link
               href="/chat"
-              className="flex items-center gap-2 font-semibold"
+              className="flex items-center gap-2 font-semibold lowercase"
             >
               <MessageSquare className="h-5 w-5" />
-              <span>Seira</span>
+              <span>seira</span>
             </Link>
           )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={toggle}
-                className="shrink-0"
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="h-4 w-4" />
-                ) : (
-                  <ChevronLeft className="h-4 w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            </TooltipContent>
-          </Tooltip>
+          {/* Hide collapse toggle on mobile - drawer handles show/hide */}
+          {!isMobile && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={toggle}
+                  className="shrink-0"
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="h-4 w-4" />
+                  ) : (
+                    <ChevronLeft className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {/* New Chat Button */}

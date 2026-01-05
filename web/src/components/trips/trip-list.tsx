@@ -41,7 +41,7 @@ export function TripList({ trips, isLoading, error, showGrouping = true }: TripL
 
   // Simple grid without grouping
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
       {trips.map((trip) => (
         <TripCard key={trip.id} trip={trip} />
       ))}
@@ -63,12 +63,12 @@ function GroupedTripList({ trips }: { trips: Trip[] }) {
   )
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Active Trips */}
       {activeTrips.length > 0 && (
         <section>
-          <h2 className="text-section-title mb-4">upcoming</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <h2 className="text-base sm:text-section-title mb-3 sm:mb-4">upcoming</h2>
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
             {activeTrips.map((trip) => (
               <TripCard key={trip.id} trip={trip} />
             ))}
@@ -79,8 +79,8 @@ function GroupedTripList({ trips }: { trips: Trip[] }) {
       {/* Past Trips */}
       {pastTrips.length > 0 && (
         <section>
-          <h2 className="text-section-title mb-4">past</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <h2 className="text-base sm:text-section-title mb-3 sm:mb-4">past</h2>
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
             {pastTrips.map((trip) => (
               <TripCard key={trip.id} trip={trip} />
             ))}
@@ -97,15 +97,15 @@ function GroupedTripList({ trips }: { trips: Trip[] }) {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-        <Plane className="w-8 h-8 text-primary" />
+    <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-center px-4">
+      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+        <Plane className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
       </div>
-      <h3 className="text-lg font-medium mb-2 lowercase">no trips yet</h3>
-      <p className="text-muted-foreground mb-6 max-w-sm">
+      <h3 className="text-base sm:text-lg font-medium mb-2 lowercase">no trips yet</h3>
+      <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-sm">
         start planning your first trip by chatting with seira about an event you want to attend.
       </p>
-      <Button asChild className="lowercase">
+      <Button asChild className="lowercase w-full sm:w-auto">
         <Link href="/chat">
           <Plus className="w-4 h-4 mr-2" />
           plan your first trip

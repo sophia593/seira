@@ -88,7 +88,7 @@ function SuggestionChip({ icon: Icon, text, onClick }: SuggestionChipProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-2 px-4 py-2 text-sm",
+        "inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm",
         "bg-secondary hover:bg-secondary/80 rounded-full",
         "transition-colors cursor-pointer",
         "border border-transparent hover:border-primary/20"

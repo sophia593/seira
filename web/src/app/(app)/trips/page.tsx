@@ -76,16 +76,16 @@ export default function TripsPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-page-title">trips</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-page-title">trips</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">
               your upcoming and past travel plans
             </p>
           </div>
-          <Button asChild className="lowercase">
+          <Button asChild className="lowercase w-full sm:w-auto">
             <Link href="/chat">
               <Plus className="w-4 h-4 mr-2" />
               plan a trip
@@ -94,13 +94,13 @@ export default function TripsPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6">
           {filters.map((filter) => (
             <button
               key={filter.value}
               onClick={() => setActiveFilter(filter.value)}
               className={cn(
-                'px-4 py-2 text-sm rounded-full transition-colors',
+                'px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full transition-colors',
                 activeFilter === filter.value
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-secondary hover:bg-secondary/80 text-muted-foreground'
@@ -108,7 +108,7 @@ export default function TripsPage() {
             >
               {filter.label}
               {!isLoading && (
-                <span className="ml-1.5 opacity-70">({counts[filter.value]})</span>
+                <span className="ml-1 sm:ml-1.5 opacity-70">({counts[filter.value]})</span>
               )}
             </button>
           ))}

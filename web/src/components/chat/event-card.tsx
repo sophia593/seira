@@ -107,7 +107,7 @@ export const EventCard = memo(function EventCard({
       </div>
 
       {/* Content */}
-      <div className="flex flex-col flex-1 p-4">
+      <div className="flex flex-col flex-1 p-3 sm:p-4">
         {/* Event name */}
         <h3 className="font-medium lowercase line-clamp-2 mb-2">{name}</h3>
 

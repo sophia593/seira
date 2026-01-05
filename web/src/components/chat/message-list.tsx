@@ -161,11 +161,11 @@ export const MessageList = memo(function MessageList({
     <div className={cn("relative flex-1 min-h-0", className)}>
       {/* Scrollable message area */}
       <ScrollArea className="h-full" viewportRef={viewportRef}>
-        <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           {isEmpty ? (
             <EmptyState onSuggestionClick={onSuggestionClick} />
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Rendered messages */}
               {messages.map((message) => (
                 <MessageItem

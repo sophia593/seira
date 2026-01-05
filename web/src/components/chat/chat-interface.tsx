@@ -246,7 +246,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
         <div className="flex-1 overflow-hidden">
           <MessageListSkeleton count={4} />
         </div>
-        <div className="border-t bg-background p-4">
+        <div className="border-t bg-background px-3 py-3 sm:p-4">
           <div className="max-w-3xl mx-auto">
             <ChatInput onSend={() => {}} onStop={() => {}} isStreaming={false} />
           </div>
@@ -322,7 +322,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       )}
 
       {/* Input area */}
-      <div className="border-t bg-background p-4">
+      <div className="border-t bg-background px-3 py-3 sm:p-4">
         <div className="max-w-3xl mx-auto">
           <ChatInput
             onSend={handleSendMessage}

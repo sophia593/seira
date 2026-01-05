@@ -22,9 +22,9 @@ export function MobileNav() {
         )}
       </Button>
 
-      <div className="flex items-center gap-2 font-semibold">
+      <div className="flex items-center gap-2 font-semibold lowercase">
         <MessageSquare className="h-5 w-5" />
-        <span>Seira</span>
+        <span>seira</span>
       </div>
 
       <UserMenu isCollapsed />

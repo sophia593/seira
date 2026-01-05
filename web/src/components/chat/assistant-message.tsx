@@ -50,15 +50,15 @@ export const AssistantMessage = memo(function AssistantMessage({
   const hasToolCalls = toolCalls && toolCalls.length > 0
 
   return (
-    <div className={cn("flex items-start gap-3", className)}>
+    <div className={cn("flex items-start gap-2 sm:gap-3", className)}>
       {/* Avatar */}
       <AvatarAssistant size="default" className="flex-shrink-0" />
 
       {/* Message content */}
-      <div className="flex-1 space-y-3 max-w-[90%] sm:max-w-[85%] pt-0.5">
+      <div className="flex-1 space-y-2 sm:space-y-3 max-w-[90%] sm:max-w-[85%] pt-0.5">
         {/* Text content */}
         {hasContent && (
-          <div className="rounded-2xl rounded-bl-md px-4 py-3 bg-muted">
+          <div className="rounded-2xl rounded-bl-md px-3 sm:px-4 py-2 sm:py-3 bg-muted">
             <div className="prose prose-sm max-w-none break-words prose-neutral dark:prose-invert">
               <Markdown content={content} />
             </div>

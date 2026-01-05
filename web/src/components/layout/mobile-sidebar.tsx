@@ -32,7 +32,7 @@ export function MobileSidebar() {
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <Sidebar />
+        <Sidebar isMobile />
       </div>
     </>
   )

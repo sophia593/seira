@@ -91,7 +91,7 @@ export const EventResultsGrid = memo(function EventResultsGrid({
       <p className="text-xs text-muted-foreground mb-3">
         found {events.length} event{events.length !== 1 ? 's' : ''}. click to select:
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {normalizedEvents.slice(0, 6).map((event, index) => (
           <EventCard
             key={event.id}

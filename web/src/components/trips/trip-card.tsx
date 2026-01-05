@@ -74,14 +74,14 @@ export function TripCard({ trip, className }: TripCardProps) {
     <Link
       href={`/trips/${id}`}
       className={cn(
-        'block rounded-xl border border-border/50 bg-card p-4 shadow-sm',
+        'block rounded-xl border border-border/50 bg-card p-3 sm:p-4 shadow-sm',
         'hover:border-border hover:shadow-md transition-all duration-200',
         className
       )}
     >
       {/* Header: Title + Status */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <h3 className="font-medium lowercase line-clamp-1">
+      <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <h3 className="font-medium lowercase line-clamp-1 text-sm sm:text-base">
           {title || event_name || 'untitled trip'}
         </h3>
         <StatusBadge status={status} />
