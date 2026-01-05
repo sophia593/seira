@@ -70,74 +70,68 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     reset,
   } = useConversationStore()
 
-  // Track if this is the initial mount
-  const hasInitialized = useRef(false)
-  const previousConversationId = useRef<string | undefined>(conversationId)
+  // Track loaded conversation to avoid duplicate fetches
+  const loadedConversationId = useRef<string | null>(null)
 
-  // Load conversation history ONLY when navigating to an existing conversation
+  // Load conversation history when conversationId changes
   useEffect(() => {
-    // If no conversationId prop, this is a fresh /chat - do nothing
+    // No conversation ID - reset for fresh chat
     if (!conversationId) {
-      // Only reset on very first mount with no conversation
-      if (!hasInitialized.current) {
-        hasInitialized.current = true
-        const state = useConversationStore.getState()
-        // Only reset if store is completely empty
-        if (!state.conversationId && state.messages.length === 0) {
-          reset()
-        }
+      if (loadedConversationId.current !== null) {
+        loadedConversationId.current = null
+        reset()
       }
       return
     }
 
-    // If conversationId matches what's in store, skip (we just created it)
-    const storeState = useConversationStore.getState()
-    if (conversationId === storeState.conversationId) {
+    // Already loaded this conversation
+    if (loadedConversationId.current === conversationId) {
       return
     }
 
     // If we're streaming, don't interrupt
+    const storeState = useConversationStore.getState()
     if (storeState.isStreaming) {
       return
     }
 
-    // Only load if we're navigating to a DIFFERENT conversation
-    if (previousConversationId.current !== conversationId) {
-      previousConversationId.current = conversationId
+    // Mark as loading this conversation
+    loadedConversationId.current = conversationId
 
-      // Clear state for the new conversation
-      loadExistingConversation(conversationId)
+    // Clear state for the new conversation
+    loadExistingConversation(conversationId)
 
-      let cancelled = false
+    let cancelled = false
 
-      async function loadConversation() {
-        setIsLoading(true)
-        try {
-          const api = getApi()
-          const data = await api.getConversation(conversationId!)
+    async function loadConversation() {
+      setIsLoading(true)
+      try {
+        const api = getApi()
+        const data = await api.getConversation(conversationId!)
 
-          if (cancelled) return
+        if (cancelled) return
 
-          setConversation(data.conversation)
-          setMessages(data.messages)
-        } catch (err) {
-          if (cancelled) return
-          console.error("Failed to load conversation:", err)
-          setError("Failed to load conversation")
-        } finally {
-          if (!cancelled) {
-            setIsLoading(false)
-          }
+        setConversation(data.conversation)
+        setMessages(data.messages)
+      } catch (err) {
+        if (cancelled) return
+        console.error("Failed to load conversation:", err)
+        setError("Failed to load conversation")
+        // Reset loaded ID so user can retry
+        loadedConversationId.current = null
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
         }
       }
-
-      loadConversation()
-
-      return () => {
-        cancelled = true
-      }
     }
-  }, [conversationId, setConversation, setMessages, setError])
+
+    loadConversation()
+
+    return () => {
+      cancelled = true
+    }
+  }, [conversationId, setConversation, setMessages, setError, reset])
 
   // Streaming hook with callbacks
   const { sendMessage, abort } = useStreaming({

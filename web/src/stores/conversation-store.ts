@@ -112,8 +112,8 @@ const initialState = {
   returnFlight: null,
 }
 
-// Track highest message count ever seen (prevents regression)
-let maxMessagesEverSeen = 0
+// Track current conversation ID to prevent cross-conversation state issues
+let currentLoadedConversationId: string | null = null
 
 // -----------------------------------------------------------------------------
 // Store
@@ -132,39 +132,14 @@ export const useConversationStore = create<ConversationState>((set) => ({
   setConversationId: (conversationId) => set({ conversationId }),
 
   setMessages: (messages) =>
-    set((state) => {
-      console.log('[Store] setMessages called', {
-        currentCount: state.messages.length,
-        newCount: messages.length,
-        maxEver: maxMessagesEverSeen
-      })
-      // Don't overwrite if we have more messages (prevents race conditions)
-      if (state.messages.length > messages.length) {
-        console.log('[Store] setMessages BLOCKED - would lose messages (current > new)')
-        return state
-      }
-      // Also don't go below our high water mark
-      if (maxMessagesEverSeen > messages.length) {
-        console.log('[Store] setMessages BLOCKED - would go below max ever seen')
-        return state
-      }
-      // Update high water mark
-      if (messages.length > maxMessagesEverSeen) {
-        maxMessagesEverSeen = messages.length
-        console.log('[Store] setMessages - new max:', maxMessagesEverSeen)
-      }
+    set(() => {
+      console.log('[Store] setMessages called', { newCount: messages.length })
       return { messages }
     }),
 
   addMessage: (message) =>
     set((state) => {
-      const newCount = state.messages.length + 1
-      console.log('[Store] addMessage', { role: message.role, id: message.id, totalAfter: newCount })
-      // Update high water mark
-      if (newCount > maxMessagesEverSeen) {
-        maxMessagesEverSeen = newCount
-        console.log('[Store] addMessage - new max:', maxMessagesEverSeen)
-      }
+      console.log('[Store] addMessage', { role: message.role, id: message.id })
       return {
         messages: [...state.messages, message],
       }
@@ -247,8 +222,6 @@ export const useConversationStore = create<ConversationState>((set) => ({
       console.log('[Store] finalizeStream called', {
         hasAssistantMessage: !!assistantMessage,
         hasStreamingMessage: !!state.streamingMessage,
-        streamingContentLength: state.streamingMessage?.content?.length ?? 0,
-        currentMessageCount: state.messages.length
       })
 
       // If no assistant message provided, create one from streaming content
@@ -270,21 +243,12 @@ export const useConversationStore = create<ConversationState>((set) => ({
             })),
             created_at: new Date().toISOString(),
           }
-          console.log('[Store] finalizeStream - created message from streaming', { id: finalMessage.id })
         }
       }
 
       const newMessages = finalMessage
         ? [...state.messages, finalMessage]
         : state.messages
-
-      console.log('[Store] finalizeStream - final message count:', newMessages.length)
-
-      // Update high water mark
-      if (newMessages.length > maxMessagesEverSeen) {
-        maxMessagesEverSeen = newMessages.length
-        console.log('[Store] finalizeStream - new max:', maxMessagesEverSeen)
-      }
 
       return {
         isStreaming: false,
@@ -319,46 +283,29 @@ export const useConversationStore = create<ConversationState>((set) => ({
       returnFlight: null,
     }),
 
-  reset: () =>
-    set((state) => {
-      console.log('[Store] reset called', {
-        messageCount: state.messages.length,
-        hasStreamingMessage: !!state.streamingMessage,
-        isStreaming: state.isStreaming,
-        maxEver: maxMessagesEverSeen
-      })
-      // Never clear messages if we have any, are streaming, or ever had messages
-      if (state.messages.length > 0 || state.streamingMessage || maxMessagesEverSeen > 0) {
-        console.log('[Store] reset BLOCKED - preserving messages (had messages at some point)')
-        return state // Don't reset, keep current state
-      }
-      console.log('[Store] reset ALLOWED - clearing state')
-      return initialState
-    }),
+  reset: () => {
+    console.log('[Store] reset called')
+    currentLoadedConversationId = null
+    return set(initialState)
+  },
 }))
 
 // Export a function to start fresh for a new conversation (called when user clicks "New Chat")
 export function startNewConversation() {
-  console.log('[Store] startNewConversation - clearing high water mark and resetting')
-  maxMessagesEverSeen = 0
+  console.log('[Store] startNewConversation')
+  currentLoadedConversationId = null
   useConversationStore.setState({
     ...initialState,
-    selectedEvent: null,
-    selectedFlight: null,
-    returnFlight: null,
   })
 }
 
-// Export a function to load an existing conversation (resets high water mark for the new conversation)
+// Export a function to load an existing conversation
 export function loadExistingConversation(conversationId: string) {
-  console.log('[Store] loadExistingConversation - clearing for new conversation:', conversationId)
-  maxMessagesEverSeen = 0
+  console.log('[Store] loadExistingConversation:', conversationId)
+  currentLoadedConversationId = conversationId
   useConversationStore.setState({
     ...initialState,
     conversationId,
-    selectedEvent: null,
-    selectedFlight: null,
-    returnFlight: null,
   })
 }
 
