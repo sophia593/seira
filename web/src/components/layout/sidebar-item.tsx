@@ -22,6 +22,7 @@ interface SidebarItemProps {
   conversation: Conversation
   isActive: boolean
   isCollapsed: boolean
+  isDeleting?: boolean
   onRename?: (id: string) => void
   onDelete?: (id: string) => void
 }
@@ -30,6 +31,7 @@ export function SidebarItem({
   conversation,
   isActive,
   isCollapsed,
+  isDeleting,
   onRename,
   onDelete,
 }: SidebarItemProps) {
@@ -43,9 +45,10 @@ export function SidebarItem({
           <Link
             href={`/chat/${conversation.id}`}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+              "flex items-center justify-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-150",
               "hover:bg-accent",
-              isActive && "bg-accent"
+              isActive && "bg-accent",
+              isDeleting && "opacity-40 scale-[0.97] bg-destructive/10"
             )}
           >
             <MessageSquare className="h-4 w-4 shrink-0" />
@@ -60,9 +63,10 @@ export function SidebarItem({
   const content = (
     <div
       className={cn(
-        "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+        "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-150",
         "hover:bg-accent",
-        isActive && "bg-accent"
+        isActive && "bg-accent",
+        isDeleting && "opacity-40 scale-[0.97] bg-destructive/10"
       )}
     >
       <Link

@@ -129,12 +129,21 @@ async def search_events(
                 start_date=date_from,
                 end_date=date_to,
                 segment=segment,
-                size=20,
+                size=100,  # Fetch more to get variety after deduping
             )
             logger.info(f"Ticketmaster returned {result.total_count} events")
 
+        # Dedupe events by name (Ticketmaster returns one entry per performance)
+        # Keep the first (soonest) occurrence of each unique event
+        seen_names: set[str] = set()
+        unique_events: list[Event] = []
+        for e in result.events:
+            if e.name not in seen_names:
+                seen_names.add(e.name)
+                unique_events.append(e)
+
         # Convert Event models to dicts for tool response
-        events = [_format_event(e) for e in result.events]
+        events = [_format_event(e) for e in unique_events]
 
         return {
             "success": True,
@@ -146,6 +155,7 @@ async def search_events(
                 "category": category,
             },
             "count": result.total_count,
+            "unique_count": len(unique_events),
             "events": events,
         }
 

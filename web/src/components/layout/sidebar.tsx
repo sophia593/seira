@@ -53,6 +53,9 @@ export function Sidebar() {
   const [isRenaming, setIsRenaming] = useState(false)
   const renameInputRef = useRef<HTMLInputElement>(null)
 
+  // Track which conversation is being deleted (for visual feedback)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
   // Fetch conversations on mount and when route changes
   useEffect(() => {
     async function fetchConversations() {
@@ -121,21 +124,26 @@ export function Sidebar() {
   }
 
   async function handleDelete(id: string) {
-    // Optimistic update - remove immediately for smooth UX
+    // Brief visual feedback before deletion
+    setDeletingId(id)
+
+    // Small delay for visual feedback
+    await new Promise((r) => setTimeout(r, 200))
+
+    // Optimistic update
     const previousConversations = conversations
     setConversations((prev) => prev.filter((c) => c.id !== id))
+    setDeletingId(null)
 
-    // Navigate away first if deleting current conversation
-    const wasCurrentConversation = currentConversationId === id
-    if (wasCurrentConversation) {
-      startNewConversation() // Clear the store
+    // Navigate away if deleting current conversation
+    if (currentConversationId === id) {
+      startNewConversation()
       router.push("/chat")
     }
 
     try {
       const api = getApi()
       await api.deleteConversation(id)
-      toast.success("Conversation deleted")
     } catch {
       // Rollback on failure
       setConversations(previousConversations)
@@ -238,6 +246,7 @@ export function Sidebar() {
                   conversation={conversation}
                   isActive={currentConversationId === conversation.id}
                   isCollapsed={isCollapsed}
+                  isDeleting={deletingId === conversation.id}
                   onRename={handleRename}
                   onDelete={handleDelete}
                 />
@@ -308,6 +317,7 @@ export function Sidebar() {
           </form>
         </DialogContent>
       </Dialog>
+
     </TooltipProvider>
   )
 }
