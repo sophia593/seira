@@ -82,7 +82,7 @@ export function SidebarItem({
           <Button
             variant="ghost"
             size="icon-sm"
-            className="h-6 w-6 opacity-60 hover:opacity-100 data-[state=open]:opacity-100"
+            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
           >
             <MoreHorizontal className="h-4 w-4" />
           </Button>
