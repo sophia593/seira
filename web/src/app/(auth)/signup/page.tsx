@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { getApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,11 @@ export default function SignupPage() {
     const { error, data } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          name: name.trim(), // Store in user metadata
+        },
+      },
     });
 
     if (error) {
@@ -38,6 +45,17 @@ export default function SignupPage() {
       setCheckEmail(true);
       setLoading(false);
       return;
+    }
+
+    // If we have a session, save the name to the users table
+    if (data.session && name.trim()) {
+      try {
+        const api = getApi();
+        await api.updateMe({ name: name.trim() });
+      } catch (err) {
+        console.error("Failed to save name:", err);
+        // Don't block signup if name save fails
+      }
     }
 
     router.push("/chat");
@@ -66,6 +84,18 @@ export default function SignupPage() {
         <h1 className="text-2xl font-semibold text-center mb-6 lowercase">sign up</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">first name</Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="your first name"
+              autoFocus
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">email</Label>
             <Input
