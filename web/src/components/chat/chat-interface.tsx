@@ -171,10 +171,13 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       // Store for retry
       lastMessageRef.current = content.trim()
 
+      // Use store's conversationId (updated after first message) or the prop
+      const currentConversationId = useConversationStore.getState().conversationId || conversationId
+
       // Add user message to store immediately for optimistic UI
       const userMessage = {
         id: `temp-${Date.now()}`,
-        conversation_id: conversationId ?? "",
+        conversation_id: currentConversationId ?? "",
         role: "user" as const,
         content: content.trim(),
         created_at: new Date().toISOString(),
@@ -187,9 +190,9 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       // Start streaming
       startStream()
 
-      // Send to API
+      // Send to API - use currentConversationId to maintain session
       await sendMessage(content.trim(), {
-        conversationId: conversationId,
+        conversationId: currentConversationId,
       })
     },
     [conversationId, isStreaming, addMessage, startStream, sendMessage]
