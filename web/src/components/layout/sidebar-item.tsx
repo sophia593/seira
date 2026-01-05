@@ -83,7 +83,7 @@ export function SidebarItem({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40 z-[100]">
+        <DropdownMenuContent align="end" className="w-40 z-[100] !bg-background border shadow-lg">
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation()
