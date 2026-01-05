@@ -94,72 +94,32 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border pt-8 sm:pt-12 pb-6 sm:pb-8 px-4 sm:px-6">
+      <footer className="border-t border-border py-6 sm:py-8 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 mb-8 sm:mb-10">
-            {/* Brand */}
-            <div className="sm:col-span-1">
-              <Logo className="text-lg mb-2 sm:mb-3" linkToHome={false} />
-              <p className="text-sm text-muted-foreground">
-                AI-powered trip planning for live events.
-              </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Logo className="text-lg" linkToHome={false} />
+              <span className="text-sm text-muted-foreground">
+                — AI-powered trip planning
+              </span>
             </div>
 
-            {/* Links - row on mobile, columns on desktop */}
-            <div className="grid grid-cols-3 sm:contents gap-4">
-              {/* Product */}
-              <div>
-                <h4 className="text-xs sm:text-sm font-medium text-foreground mb-2 sm:mb-3 lowercase">product</h4>
-                <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                  <li>
-                    <Link href="/signup" className="hover:text-foreground transition-colors">
-                      get started
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/login" className="hover:text-foreground transition-colors">
-                      log in
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Resources */}
-              <div>
-                <h4 className="text-xs sm:text-sm font-medium text-foreground mb-2 sm:mb-3 lowercase">resources</h4>
-                <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                  <li>
-                    <span className="text-muted-foreground/50 cursor-default">help center</span>
-                  </li>
-                  <li>
-                    <span className="text-muted-foreground/50 cursor-default">contact</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Legal */}
-              <div>
-                <h4 className="text-xs sm:text-sm font-medium text-foreground mb-2 sm:mb-3 lowercase">legal</h4>
-                <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                  <li>
-                    <span className="text-muted-foreground/50 cursor-default">privacy</span>
-                  </li>
-                  <li>
-                    <span className="text-muted-foreground/50 cursor-default">terms</span>
-                  </li>
-                </ul>
-              </div>
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <Link href="/privacy" className="hover:text-foreground transition-colors">
+                privacy
+              </Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors">
+                terms
+              </Link>
+              <a href="mailto:hello@seira.app" className="hover:text-foreground transition-colors">
+                contact
+              </a>
             </div>
           </div>
 
-          {/* Bottom bar */}
-          <div className="pt-4 sm:pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
-            <p className="text-xs sm:text-sm text-muted-foreground lowercase">
-              © 2025 seira. all rights reserved.
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground lowercase">
-              built with claude ai
-            </p>
+          <div className="mt-6 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+            <p>© 2025 seira. all rights reserved.</p>
+            <p>built with claude ai</p>
           </div>
         </div>
       </footer>
