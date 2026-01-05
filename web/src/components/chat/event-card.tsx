@@ -11,6 +11,7 @@ import { type Event } from '@/types/event'
 
 interface EventCardProps {
   event: Event
+  index?: number
   isSelected?: boolean
   onSelect?: (event: Event) => void
 }
@@ -21,6 +22,7 @@ interface EventCardProps {
 
 export const EventCard = memo(function EventCard({
   event,
+  index,
   isSelected = false,
   onSelect,
 }: EventCardProps) {
@@ -77,6 +79,15 @@ export const EventCard = memo(function EventCard({
         }
       }}
     >
+      {/* Number badge */}
+      {typeof index === 'number' && (
+        <div className="absolute top-2 left-2 z-10">
+          <div className="w-6 h-6 rounded-full bg-black/70 flex items-center justify-center">
+            <span className="text-xs font-bold text-white">{index + 1}</span>
+          </div>
+        </div>
+      )}
+
       {/* Selected indicator */}
       {isSelected && (
         <div className="absolute top-2 right-2 z-10">
