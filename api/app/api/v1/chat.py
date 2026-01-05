@@ -28,27 +28,83 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 def _generate_title(message: str, max_length: int = 40) -> str:
-    """Generate a conversation title from the first message."""
+    """Generate a clean conversation title from the first message."""
+    import re
+
     # Clean up and take first line
     title = message.strip().split("\n")[0].strip()
+    original_title = title
 
-    # Remove common prefixes
-    prefixes_to_remove = [
-        "find me ", "find ", "search for ", "look for ", "show me ",
-        "i want to ", "i'd like to ", "can you ", "please ",
-        "help me ", "i need "
+    # Remove filler phrases first (before checking if it's a question)
+    filler_prefixes = [
+        r"^i mean,?\s*",
+        r"^okay,?\s*",
+        r"^ok,?\s*",
+        r"^so,?\s*",
+        r"^well,?\s*",
+        r"^hey,?\s*",
+        r"^hi,?\s*",
+        r"^hello,?\s*",
+        r"^um+,?\s*",
+        r"^like,?\s*",
+        r"^actually,?\s*",
     ]
-    title_lower = title.lower()
-    for prefix in prefixes_to_remove:
-        if title_lower.startswith(prefix):
-            title = title[len(prefix):]
-            break
+    for pattern in filler_prefixes:
+        title = re.sub(pattern, "", title, flags=re.IGNORECASE)
 
-    # Truncate if too long
+    # Skip pure questions without substance (these make bad titles)
+    title_lower = title.lower().strip()
+    question_only_patterns = [
+        r"^what (is|are|city|cities|date|time|about|else)",
+        r"^where (is|are|can|do)",
+        r"^when (is|are|can|do)",
+        r"^how (do|can|much|many|about)",
+        r"^which (one|city|date)",
+        r"^can you",
+        r"^do you",
+        r"^is there",
+        r"^are there",
+        r"^what's ",
+    ]
+    for pattern in question_only_patterns:
+        if re.match(pattern, title_lower):
+            return "new chat"
+
+    # Remove common request prefixes (order matters - more specific first)
+    request_prefixes = [
+        r"^i('m| am) (looking to|trying to|wanting to)\s*",
+        r"^i('d| would) (like to|love to|want to)\s*",
+        r"^i (really )?(want to|need to|have to|wanna)\s*",
+        r"^(find me|search for|look for|show me|get me)\s*",
+        r"^(find|search|look)\s+",
+        r"^(can you|could you|please)\s*(find|search|show|help|get)?\s*(me\s*)?",
+        r"^(help me|help us)\s*(find|search|with|plan)?\s*",
+        r"^(see|attend|go to|visit)\s*",
+    ]
+    for pattern in request_prefixes:
+        title = re.sub(pattern, "", title, flags=re.IGNORECASE)
+
+    # Clean up any double spaces and trim
+    title = re.sub(r"\s+", " ", title).strip()
+
+    # If we stripped everything, use original but cleaned
+    if not title or len(title) < 3:
+        title = re.sub(r"\s+", " ", original_title).strip()
+
+    # Capitalize first letter
+    if title:
+        title = title[0].upper() + title[1:] if len(title) > 1 else title.upper()
+
+    # Smart truncation - don't cut words in half
     if len(title) > max_length:
-        title = title[:max_length - 3].rstrip() + "..."
+        truncated = title[:max_length - 3]
+        # Find last space to avoid cutting mid-word
+        last_space = truncated.rfind(" ")
+        if last_space > max_length // 2:  # Only if we don't lose too much
+            truncated = truncated[:last_space]
+        title = truncated.rstrip() + "..."
 
-    return title.strip() or "New chat"
+    return title.strip() or "new chat"
 
 
 # -----------------------------------------------------------------------------
