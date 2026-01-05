@@ -59,11 +59,11 @@ export function SidebarItem({
     )
   }
 
-  // For expanded sidebar, use a div wrapper with Link and separate dropdown
-  const content = (
+  // For expanded sidebar, show link with menu button
+  return (
     <div
       className={cn(
-        "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-150",
+        "group relative flex items-center rounded-md text-sm transition-all duration-150",
         "hover:bg-accent",
         isActive && "bg-accent",
         isDeleting && "opacity-40 scale-[0.97] bg-destructive/10"
@@ -71,23 +71,23 @@ export function SidebarItem({
     >
       <Link
         href={`/chat/${conversation.id}`}
-        className="flex items-center gap-2 min-w-0 flex-1"
+        className="flex items-center gap-2 min-w-0 flex-1 px-2 py-1.5"
       >
         <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className="truncate">{title}</span>
+        <span className="truncate pr-6">{title}</span>
       </Link>
 
+      {/* Always visible menu button */}
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+          <button
+            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-accent-foreground/10"
+            onClick={(e) => e.preventDefault()}
           >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+          </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40 z-[100] bg-white dark:bg-zinc-900 border shadow-lg">
+        <DropdownMenuContent align="end" className="w-40 z-[100]">
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation()
@@ -112,6 +112,4 @@ export function SidebarItem({
       </DropdownMenu>
     </div>
   )
-
-  return content
 }
