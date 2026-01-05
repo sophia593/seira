@@ -66,7 +66,7 @@ export default function Home() {
                 </div>
                 <span className="text-xs font-medium text-muted-foreground mb-1 sm:mb-2">02</span>
                 <h3 className="text-sm sm:text-base font-medium text-foreground mb-1 lowercase">
-                  we find options
+                  we find everything
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground text-center">
                   Tickets, flights, and hotels
@@ -82,10 +82,10 @@ export default function Home() {
                 </div>
                 <span className="text-xs font-medium text-muted-foreground mb-1 sm:mb-2">03</span>
                 <h3 className="text-sm sm:text-base font-medium text-foreground mb-1 lowercase">
-                  book your trip
+                  book and go
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground text-center">
-                  Review and book when ready
+                  Review, book, and you're set
                 </p>
               </div>
             </div>
