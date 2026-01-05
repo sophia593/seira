@@ -13,6 +13,7 @@ from typing import Any
 from app.ai.tools.registry import register_tool
 from app.integrations.ticketmaster import TicketmasterClient, Event
 from app.services import trip as trip_service
+from app.services import user as user_service
 
 logger = logging.getLogger(__name__)
 
@@ -223,6 +224,22 @@ async def search_flights(
     return_date = input.get("return_date")
     cabin_class = input.get("cabin_class", "economy")
     passengers = input.get("passengers", 1)
+
+    # Fetch user preferences to fill in defaults
+    if user_id:
+        try:
+            prefs = await user_service.get_preferences_row(user_id)
+            if prefs:
+                # Use home_airport as default origin if not provided
+                if not origin and prefs.get("home_airport"):
+                    origin = prefs["home_airport"]
+                    logger.info(f"Using user's home airport as origin: {origin}")
+                # Use preferred cabin class if not explicitly specified
+                if cabin_class == "economy" and prefs.get("cabin_class"):
+                    cabin_class = prefs["cabin_class"]
+                    logger.info(f"Using user's preferred cabin class: {cabin_class}")
+        except Exception as e:
+            logger.warning(f"Failed to fetch user preferences: {e}")
 
     logger.info(
         f"search_flights: {origin} -> {destination}, "
