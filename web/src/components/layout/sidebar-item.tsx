@@ -81,10 +81,10 @@ export function SidebarItem({
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <button
-            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-accent-foreground/10"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-muted text-muted-foreground/70 hover:text-foreground transition-colors"
             onClick={(e) => e.preventDefault()}
           >
-            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+            <MoreHorizontal className="h-4 w-4" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40 z-[100]">
