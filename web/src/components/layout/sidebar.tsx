@@ -53,7 +53,7 @@ export function Sidebar() {
   const [isRenaming, setIsRenaming] = useState(false)
   const renameInputRef = useRef<HTMLInputElement>(null)
 
-  // Fetch conversations on mount
+  // Fetch conversations on mount and when route changes
   useEffect(() => {
     async function fetchConversations() {
       try {
@@ -70,7 +70,7 @@ export function Sidebar() {
     }
 
     fetchConversations()
-  }, [])
+  }, [currentConversationId]) // Refetch when conversation changes
 
   async function handleNewChat() {
     setIsCreating(true)
