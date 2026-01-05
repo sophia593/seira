@@ -84,14 +84,14 @@ export function SidebarItem({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={() => onRename?.(conversation.id)}>
+          <DropdownMenuItem onSelect={() => onRename?.(conversation.id)}>
             <Pencil className="mr-2 h-4 w-4" />
             Rename
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onClick={() => onDelete?.(conversation.id)}
+            onSelect={() => onDelete?.(conversation.id)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete
