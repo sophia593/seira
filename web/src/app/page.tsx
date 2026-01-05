@@ -1,28 +1,14 @@
 import Link from "next/link"
-import { MessageSquare, Sparkles, Search, CheckCircle, ArrowRight } from "lucide-react"
+import { MessageSquare, Sparkles, Search, CheckCircle } from "lucide-react"
 import { Logo } from "@/components/logo"
+import { LandingHeader } from "@/components/landing-header"
+import { LandingCTA } from "@/components/landing-cta"
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 max-w-6xl mx-auto w-full">
-        <Logo className="text-lg sm:text-xl" linkToHome={false} />
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            href="/login"
-            className="text-nav px-3 sm:px-4 py-2 text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors"
-          >
-            log in
-          </Link>
-          <Link
-            href="/signup"
-            className="text-nav px-3 sm:px-4 py-2 text-sm sm:text-base bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            sign up
-          </Link>
-        </div>
-      </header>
+      <LandingHeader />
 
       {/* Hero */}
       <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-16 sm:pb-20">
@@ -43,13 +29,7 @@ export default function Home() {
             We&apos;ll find flights, hotels, and tickets — all in one conversation.
           </p>
 
-          <Link
-            href="/signup"
-            className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all hover:gap-3 lowercase group"
-          >
-            get started free
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+          <LandingCTA />
         </div>
 
         {/* How it works */}
