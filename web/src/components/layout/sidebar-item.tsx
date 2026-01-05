@@ -73,7 +73,7 @@ export function SidebarItem({
         <span className="truncate">{title}</span>
       </Link>
 
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -83,15 +83,23 @@ export function SidebarItem({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onSelect={() => onRename?.(conversation.id)}>
+        <DropdownMenuContent align="end" className="w-40 z-[100]">
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation()
+              onRename?.(conversation.id)
+            }}
+          >
             <Pencil className="mr-2 h-4 w-4" />
             Rename
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => onDelete?.(conversation.id)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete?.(conversation.id)
+            }}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete
