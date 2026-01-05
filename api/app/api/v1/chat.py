@@ -27,6 +27,30 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
+def _generate_title(message: str, max_length: int = 40) -> str:
+    """Generate a conversation title from the first message."""
+    # Clean up and take first line
+    title = message.strip().split("\n")[0].strip()
+
+    # Remove common prefixes
+    prefixes_to_remove = [
+        "find me ", "find ", "search for ", "look for ", "show me ",
+        "i want to ", "i'd like to ", "can you ", "please ",
+        "help me ", "i need "
+    ]
+    title_lower = title.lower()
+    for prefix in prefixes_to_remove:
+        if title_lower.startswith(prefix):
+            title = title[len(prefix):]
+            break
+
+    # Truncate if too long
+    if len(title) > max_length:
+        title = title[:max_length - 3].rstrip() + "..."
+
+    return title.strip() or "New chat"
+
+
 # -----------------------------------------------------------------------------
 # Request/Response models
 # -----------------------------------------------------------------------------
@@ -160,10 +184,11 @@ async def chat(
             raise HTTPException(status_code=404, detail="Conversation not found")
         require_owner(current, conversation["user_id"])
     else:
-        # Create new conversation
+        # Create new conversation with auto-generated title
+        title = _generate_title(user_message)
         conversation = await conversation_service.create_conversation(
             user_id=current.id,
-            title=None,  # Can be set later or auto-generated
+            title=title,
         )
         conversation_id = conversation["id"]
 
