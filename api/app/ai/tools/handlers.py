@@ -17,6 +17,32 @@ logger = logging.getLogger(__name__)
 
 
 # -----------------------------------------------------------------------------
+# City name normalization (Ticketmaster needs full city names)
+# -----------------------------------------------------------------------------
+
+CITY_ALIASES = {
+    "nyc": "New York",
+    "ny": "New York",
+    "la": "Los Angeles",
+    "sf": "San Francisco",
+    "dc": "Washington",
+    "chi": "Chicago",
+    "philly": "Philadelphia",
+    "vegas": "Las Vegas",
+    "nola": "New Orleans",
+    "atl": "Atlanta",
+    "bos": "Boston",
+    "sea": "Seattle",
+    "pdx": "Portland",
+    "den": "Denver",
+    "phx": "Phoenix",
+    "mia": "Miami",
+    "dfw": "Dallas",
+    "hou": "Houston",
+}
+
+
+# -----------------------------------------------------------------------------
 # Category to Segment mapping
 # -----------------------------------------------------------------------------
 
@@ -39,6 +65,18 @@ CATEGORY_KEYWORDS = {
 }
 
 
+def normalize_city(city: str | None) -> str | None:
+    """Normalize city abbreviations to full names for Ticketmaster API."""
+    if not city:
+        return None
+    # Check aliases first (case-insensitive)
+    normalized = CITY_ALIASES.get(city.lower().strip())
+    if normalized:
+        return normalized
+    # Return as-is if not an alias
+    return city.strip()
+
+
 # -----------------------------------------------------------------------------
 # search_events
 # -----------------------------------------------------------------------------
@@ -53,13 +91,14 @@ async def search_events(
     Search for live events using Ticketmaster API.
     """
     query = input.get("query", "")
-    city = input.get("city")
+    city_raw = input.get("city")
+    city = normalize_city(city_raw)  # Normalize "NYC" -> "New York" etc.
     date_from = input.get("date_from")
     date_to = input.get("date_to")
     category = input.get("category")
 
     logger.info(
-        f"search_events CALLED: query={query!r}, city={city!r}, "
+        f"search_events CALLED: query={query!r}, city_raw={city_raw!r}, city={city!r}, "
         f"dates={date_from} to {date_to}, category={category!r}"
     )
     logger.info(f"search_events raw input: {input}")
