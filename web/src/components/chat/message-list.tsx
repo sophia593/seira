@@ -124,11 +124,24 @@ export const MessageList = memo(function MessageList({
   // Auto-scroll when content changes (messages, streaming)
   useEffect(() => {
     if (shouldAutoScrollRef.current) {
-      // Use instant scroll during streaming for smoothness
-      // Use smooth scroll for discrete updates (new message complete)
-      scrollToBottom(isStreaming)
+      // Only scroll on significant changes, not every character
+      // During streaming: scroll less frequently (when new message starts or completes)
+      // After streaming: smooth scroll to show final message
+      if (!isStreaming) {
+        scrollToBottom(false) // smooth scroll when streaming ends
+      }
     }
-  }, [messages, streamingContent, pendingToolCalls, isStreaming, scrollToBottom])
+  }, [messages, isStreaming, scrollToBottom])
+
+  // Scroll when streaming starts (user sent a message)
+  const prevIsStreaming = useRef(isStreaming)
+  useEffect(() => {
+    if (isStreaming && !prevIsStreaming.current && shouldAutoScrollRef.current) {
+      // Streaming just started - scroll to bottom to show the response beginning
+      scrollToBottom(true)
+    }
+    prevIsStreaming.current = isStreaming
+  }, [isStreaming, scrollToBottom])
 
   // Handle external scroll trigger (e.g., when user sends a message)
   useEffect(() => {
