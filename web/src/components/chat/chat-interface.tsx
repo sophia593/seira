@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useStreaming } from "@/hooks/use-streaming"
-import { getApi } from "@/lib/api"
+import { getApi, type Message } from "@/lib/api"
 import {
   useConversationStore,
   selectMessages,
@@ -22,6 +22,48 @@ import { Bug } from "lucide-react"
 
 interface ChatInterfaceProps {
   conversationId?: string
+}
+
+/**
+ * Merge tool results from "tool" role messages into assistant tool_calls.
+ *
+ * When loaded from DB:
+ * - Assistant messages have tool_calls with {id, name, input} but no result
+ * - Tool results are stored as separate messages with role="tool"
+ *
+ * This function merges them so tool results display correctly.
+ */
+function mergeToolResults(messages: Message[]): Message[] {
+  // Build a map of tool_call_id -> result from tool messages
+  const toolResults = new Map<string, unknown>()
+
+  for (const msg of messages) {
+    if (msg.role === "tool" && msg.tool_call_id && msg.content) {
+      try {
+        // Tool results are stored as JSON strings
+        const parsed = JSON.parse(msg.content)
+        toolResults.set(msg.tool_call_id, parsed)
+      } catch {
+        // If not valid JSON, use as-is
+        toolResults.set(msg.tool_call_id, { raw: msg.content })
+      }
+    }
+  }
+
+  // Merge results into assistant tool_calls
+  return messages.map((msg) => {
+    if (msg.role === "assistant" && msg.tool_calls && Array.isArray(msg.tool_calls)) {
+      const mergedToolCalls = (msg.tool_calls as Array<Record<string, unknown>>).map((tc) => {
+        const result = toolResults.get(tc.id as string)
+        if (result) {
+          return { ...tc, result }
+        }
+        return tc
+      })
+      return { ...msg, tool_calls: mergedToolCalls }
+    }
+    return msg
+  })
 }
 
 export function ChatInterface({ conversationId }: ChatInterfaceProps) {
@@ -111,8 +153,11 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
 
         if (cancelled) return
 
+        // Merge tool results from "tool" messages into assistant tool_calls
+        const processedMessages = mergeToolResults(data.messages)
+
         setConversation(data.conversation)
-        setMessages(data.messages)
+        setMessages(processedMessages)
       } catch (err) {
         if (cancelled) return
         console.error("Failed to load conversation:", err)
