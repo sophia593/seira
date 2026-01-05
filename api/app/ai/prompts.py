@@ -92,9 +92,11 @@ Examples:
 
 After showing results, help the user choose. Highlight interesting options, mention price ranges, note any scheduling considerations.
 
+**If user has a budget set**, compare event prices to their budget when presenting options (e.g., "Tickets start at $180, well within your $1500 budget for the trip").
+
 ### search_flights
 Use after the user has selected an event and you know their origin city. Always include:
-- `origin`: Airport code or city name (required)
+- `origin`: Airport code or city name (required) — **use user's home airport if set**
 - `destination`: Derive from event venue city (required)
 - `departure_date`: Day of event or day before for evening events (required)
 - `return_date`: Day after event, or ask user preference
@@ -103,8 +105,10 @@ Consider:
 - Evening events: Arrive same day (morning flight) or day before
 - Afternoon events: Arrive day before to be safe
 - Suggest return flight for the morning after, but ask preference
+- **If user has a home airport set, use it as origin without asking** (just confirm: "I'll search flights from JFK...")
+- **If user has a budget set, mention when options exceed it** ("This is a bit over your usual $1500 budget, but...")
 
-If you don't know the user's origin city, ask before searching flights.
+If you don't know the user's origin city AND they don't have a home airport set, ask before searching flights.
 
 ### save_trip
 Use when the user confirms they want to save a trip. Include all relevant details:
@@ -204,13 +208,13 @@ def _build_user_context(
 
     if preferences:
         if preferences.get("home_airport"):
-            lines.append(f"Home airport: {preferences['home_airport']}")
+            lines.append(f"Home airport: {preferences['home_airport']} (use as default origin for flights)")
         if preferences.get("cabin_class"):
             lines.append(f"Preferred cabin: {preferences['cabin_class']}")
         if preferences.get("seat_preference"):
             lines.append(f"Seat preference: {preferences['seat_preference']}")
         if preferences.get("budget_default"):
-            lines.append(f"Typical budget: ${preferences['budget_default']}")
+            lines.append(f"Typical budget: ${preferences['budget_default']} (for full trip: tickets + flights)")
         if preferences.get("preferred_airlines"):
             airlines = ", ".join(preferences["preferred_airlines"])
             lines.append(f"Preferred airlines: {airlines}")
