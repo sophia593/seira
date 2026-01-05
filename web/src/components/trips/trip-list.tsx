@@ -15,13 +15,14 @@ interface TripListProps {
   trips: Trip[]
   isLoading?: boolean
   error?: string | null
+  showGrouping?: boolean
 }
 
 // =============================================================================
 // Main Component
 // =============================================================================
 
-export function TripList({ trips, isLoading, error }: TripListProps) {
+export function TripList({ trips, isLoading, error, showGrouping = true }: TripListProps) {
   if (isLoading) {
     return <TripListSkeleton count={4} />
   }
@@ -34,7 +35,18 @@ export function TripList({ trips, isLoading, error }: TripListProps) {
     return <EmptyState />
   }
 
-  return <GroupedTripList trips={trips} />
+  if (showGrouping) {
+    return <GroupedTripList trips={trips} />
+  }
+
+  // Simple grid without grouping
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {trips.map((trip) => (
+        <TripCard key={trip.id} trip={trip} />
+      ))}
+    </div>
+  )
 }
 
 // =============================================================================
