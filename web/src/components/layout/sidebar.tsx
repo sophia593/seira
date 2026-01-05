@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -17,7 +17,15 @@ import type { Conversation } from "@/lib/api/client"
 import { startNewConversation } from "@/stores/conversation-store"
 import { toast } from "@/components/ui/sonner"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import {
   Tooltip,
   TooltipContent,
@@ -37,6 +45,13 @@ export function Sidebar() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
+
+  // Rename dialog state
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false)
+  const [renamingConversation, setRenamingConversation] = useState<Conversation | null>(null)
+  const [renameValue, setRenameValue] = useState("")
+  const [isRenaming, setIsRenaming] = useState(false)
+  const renameInputRef = useRef<HTMLInputElement>(null)
 
   // Fetch conversations on mount
   useEffect(() => {
@@ -74,8 +89,35 @@ export function Sidebar() {
   }
 
   function handleRename(id: string) {
-    // TODO: Implement rename dialog
-    console.log("Rename:", id)
+    const conversation = conversations.find((c) => c.id === id)
+    if (conversation) {
+      setRenamingConversation(conversation)
+      setRenameValue(conversation.title || "")
+      setRenameDialogOpen(true)
+      // Focus input after dialog opens
+      setTimeout(() => renameInputRef.current?.select(), 100)
+    }
+  }
+
+  async function handleRenameSubmit() {
+    if (!renamingConversation || !renameValue.trim()) return
+
+    setIsRenaming(true)
+    try {
+      const api = getApi()
+      const updated = await api.updateConversation(renamingConversation.id, {
+        title: renameValue.trim(),
+      })
+      setConversations((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c))
+      )
+      toast.success("Conversation renamed")
+      setRenameDialogOpen(false)
+    } catch {
+      toast.error("Failed to rename conversation")
+    } finally {
+      setIsRenaming(false)
+    }
   }
 
   async function handleDelete(id: string) {
@@ -229,6 +271,43 @@ export function Sidebar() {
           <UserMenu isCollapsed={isCollapsed} />
         </div>
       </aside>
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="lowercase">rename conversation</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleRenameSubmit()
+            }}
+          >
+            <Input
+              ref={renameInputRef}
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="Conversation name"
+              className="mb-4"
+              autoFocus
+            />
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRenameDialogOpen(false)}
+                disabled={isRenaming}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isRenaming || !renameValue.trim()}>
+                {isRenaming ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   )
 }
