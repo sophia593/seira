@@ -24,7 +24,18 @@ CATEGORY_TO_SEGMENT = {
     "sports": "Sports",
     "music": "Music",
     "theater": "Arts & Theatre",
-    "comedy": "Arts & Theatre",  # Comedy is under Arts & Theatre in Ticketmaster
+    "comedy": None,  # Don't filter by segment - use keyword search instead
+    "concert": "Music",
+    "basketball": "Sports",
+    "football": "Sports",
+    "baseball": "Sports",
+    "hockey": "Sports",
+}
+
+# Keywords to add for certain categories
+CATEGORY_KEYWORDS = {
+    "comedy": "comedy",
+    "standup": "comedy",
 }
 
 
@@ -54,6 +65,14 @@ async def search_events(
 
     # Map category to Ticketmaster segment
     segment = CATEGORY_TO_SEGMENT.get(category) if category else None
+
+    # For certain categories, enhance keyword search
+    if category and category.lower() in CATEGORY_KEYWORDS:
+        category_keyword = CATEGORY_KEYWORDS[category.lower()]
+        if query:
+            query = f"{query} {category_keyword}"
+        else:
+            query = category_keyword
 
     try:
         async with TicketmasterClient() as client:
