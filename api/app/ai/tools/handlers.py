@@ -7,6 +7,7 @@ Implementation of tool functions called by Claude.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -133,14 +134,35 @@ async def search_events(
             )
             logger.info(f"Ticketmaster returned {result.total_count} events")
 
-        # Dedupe events by name (Ticketmaster returns one entry per performance)
-        # Keep the first (soonest) occurrence of each unique event
-        seen_names: set[str] = set()
-        unique_events: list[Event] = []
-        for e in result.events:
-            if e.name not in seen_names:
-                seen_names.add(e.name)
-                unique_events.append(e)
+        # Determine if this is a specific event search vs browsing
+        # If query closely matches event names, user wants to see all dates
+        # If browsing (e.g., "broadway", "concerts"), dedupe to show variety
+        is_specific_search = False
+        if query:
+            query_lower = query.lower().strip()
+            # Check if any event name contains the query as a significant match
+            for e in result.events[:10]:  # Check first few results
+                name_lower = e.name.lower()
+                # If query is a substantial part of the event name, it's specific
+                if query_lower in name_lower or name_lower.startswith(query_lower):
+                    is_specific_search = True
+                    break
+
+        if is_specific_search:
+            # For specific searches, show all dates (limit to reasonable amount)
+            unique_events = result.events[:20]
+            logger.info(f"Specific search detected, showing {len(unique_events)} dates")
+        else:
+            # For browsing, dedupe by normalized name to show variety
+            seen_names: set[str] = set()
+            unique_events: list[Event] = []
+            for e in result.events:
+                # Normalize name: lowercase, remove parenthetical suffixes like "(NY)"
+                normalized = re.sub(r'\s*\([^)]*\)\s*$', '', e.name.lower().strip())
+                if normalized not in seen_names:
+                    seen_names.add(normalized)
+                    unique_events.append(e)
+            logger.info(f"Browse search, deduped to {len(unique_events)} unique events")
 
         # Convert Event models to dicts for tool response
         events = [_format_event(e) for e in unique_events]

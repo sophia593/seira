@@ -188,9 +188,25 @@ function formatEventDate(dateString: string): string {
 
 /**
  * Format time: "20:00" → "8:00 pm"
+ * Handles various input formats gracefully
  */
-function formatEventTime(timeString: string): string {
-  const [hours, minutes] = timeString.split(':').map(Number)
+function formatEventTime(timeString: string): string | null {
+  if (!timeString) return null
+
+  // If already contains am/pm, just lowercase it
+  if (/am|pm/i.test(timeString)) {
+    return timeString.toLowerCase()
+  }
+
+  // Try to parse HH:MM format
+  const parts = timeString.split(':')
+  if (parts.length < 2) return null
+
+  const hours = parseInt(parts[0], 10)
+  const minutes = parseInt(parts[1], 10)
+
+  if (isNaN(hours) || isNaN(minutes)) return null
+
   const date = new Date()
   date.setHours(hours, minutes)
   return date
