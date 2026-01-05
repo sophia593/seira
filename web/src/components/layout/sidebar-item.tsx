@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { MoreHorizontal, Pencil, Trash2, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -34,8 +33,6 @@ export function SidebarItem({
   onRename,
   onDelete,
 }: SidebarItemProps) {
-  const [showMenu, setShowMenu] = useState(false)
-
   const title = conversation.title || "New conversation"
 
   const content = (
@@ -47,8 +44,6 @@ export function SidebarItem({
         isActive && "bg-accent",
         isCollapsed ? "justify-center" : "justify-between"
       )}
-      onMouseEnter={() => setShowMenu(true)}
-      onMouseLeave={() => setShowMenu(false)}
     >
       <div className={cn("flex items-center gap-2 min-w-0", !isCollapsed && "flex-1")}>
         {isCollapsed ? (
@@ -61,13 +56,13 @@ export function SidebarItem({
         )}
       </div>
 
-      {!isCollapsed && (showMenu || isActive) && (
+      {!isCollapsed && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
             <Button
               variant="ghost"
               size="icon-sm"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+              className="h-6 w-6 opacity-60 hover:opacity-100 data-[state=open]:opacity-100"
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>

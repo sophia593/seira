@@ -69,7 +69,7 @@ export default function TripDetailPage() {
   }
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
       <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
         {/* Back link */}
         <Link
@@ -98,7 +98,7 @@ export default function TripDetailPage() {
 
 function LoadingSkeleton() {
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
       <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
         <div className="animate-pulse space-y-6">
           {/* Back link */}
@@ -136,7 +136,7 @@ function LoadingSkeleton() {
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
       <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
         <Link
           href="/trips"

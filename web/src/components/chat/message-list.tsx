@@ -225,7 +225,11 @@ const MessageItem = memo(function MessageItem({
   }
 
   if (message.role === "user") {
-    return <UserMessage content={message.content} />
+    return (
+      <div className="animate-message-in">
+        <UserMessage content={message.content} />
+      </div>
+    )
   }
 
   // Cast tool_calls to the expected type for AssistantMessage
@@ -239,13 +243,15 @@ const MessageItem = memo(function MessageItem({
 
   // Assistant message
   return (
-    <AssistantMessage
-      content={message.content}
-      toolCalls={toolCalls}
-      selectedEvent={selectedEvent}
-      selectedFlight={selectedFlight}
-      onSelectEvent={onSelectEvent}
-      onSelectFlight={onSelectFlight}
-    />
+    <div className="animate-message-in">
+      <AssistantMessage
+        content={message.content}
+        toolCalls={toolCalls}
+        selectedEvent={selectedEvent}
+        selectedFlight={selectedFlight}
+        onSelectEvent={onSelectEvent}
+        onSelectFlight={onSelectFlight}
+      />
+    </div>
   )
 })

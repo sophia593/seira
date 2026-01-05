@@ -16,8 +16,9 @@ import {
   loadExistingConversation,
 } from "@/stores/conversation-store"
 import { MessageList } from "./message-list"
+import { MessageListSkeleton } from "./message-skeleton"
 import { ChatInput } from "./chat-input"
-import { Loader2, Bug } from "lucide-react"
+import { Bug } from "lucide-react"
 
 interface ChatInterfaceProps {
   conversationId?: string
@@ -247,9 +248,15 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   // Show loading state while fetching conversation
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        <p className="mt-2 text-sm text-muted-foreground">Loading conversation...</p>
+      <div className="flex flex-col h-full">
+        <div className="flex-1 overflow-hidden">
+          <MessageListSkeleton count={4} />
+        </div>
+        <div className="border-t bg-background p-4">
+          <div className="max-w-3xl mx-auto">
+            <ChatInput onSend={() => {}} onStop={() => {}} isStreaming={false} />
+          </div>
+        </div>
       </div>
     )
   }

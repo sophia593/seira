@@ -34,7 +34,7 @@ export default function TripsPage() {
   }, [])
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

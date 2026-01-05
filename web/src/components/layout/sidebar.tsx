@@ -79,16 +79,24 @@ export function Sidebar() {
   }
 
   async function handleDelete(id: string) {
+    // Optimistic update - remove immediately for smooth UX
+    const previousConversations = conversations
+    setConversations((prev) => prev.filter((c) => c.id !== id))
+
+    // Navigate away first if deleting current conversation
+    const wasCurrentConversation = currentConversationId === id
+    if (wasCurrentConversation) {
+      startNewConversation() // Clear the store
+      router.push("/chat")
+    }
+
     try {
       const api = getApi()
       await api.deleteConversation(id)
-      setConversations((prev) => prev.filter((c) => c.id !== id))
       toast.success("Conversation deleted")
-
-      if (currentConversationId === id) {
-        router.push("/chat")
-      }
     } catch {
+      // Rollback on failure
+      setConversations(previousConversations)
       toast.error("Failed to delete conversation")
     }
   }
