@@ -214,6 +214,12 @@ async def search_events(
     try:
         researcher = GeminiResearcher()
 
+        # Get current date for context
+        from datetime import date
+        today = date.today()
+        today_str = today.strftime("%B %d, %Y")  # e.g., "January 06, 2026"
+        year = today.year
+
         # Build a search query for Gemini
         gemini_query_parts = [query]
         if city:
@@ -222,15 +228,19 @@ async def search_events(
             gemini_query_parts.append(category)
         if date_from:
             gemini_query_parts.append(date_from)
+        else:
+            gemini_query_parts.append(str(year))  # Add current year if no date specified
 
-        gemini_query = f"{' '.join(gemini_query_parts)} tickets events schedule 2025"
+        gemini_query = f"{' '.join(gemini_query_parts)} tickets events schedule"
 
         gemini_result = await researcher.search(
             query=gemini_query,
             context=(
+                f"Today's date is {today_str}. "
                 f"Find upcoming events, shows, concerts, or games for: {query}. "
                 f"Include specific dates, venues, cities, and ticket price ranges if available. "
-                f"Focus on events the user can actually attend and buy tickets for."
+                f"Focus on events the user can actually attend and buy tickets for. "
+                f"If the user asks about 'tonight' or 'this weekend', use today's date as reference."
             ),
         )
 
