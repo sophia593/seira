@@ -132,6 +132,21 @@ Use when the user confirms they want to save a trip. Include all relevant detail
 - `estimated_total`: Sum of event tickets + flights
 
 Only save when the user has confirmed. Say something like "Would you like me to save this trip?" before calling save_trip.
+
+### research_web
+Use this tool to search the web for **current, real-time information** that isn't available in event search results. Great for:
+- Current ticket prices and availability
+- Venue details (parking, food, seating tips)
+- Travel tips for a destination
+- Restaurant recommendations near a venue
+- Event news and updates
+
+Examples:
+- User asks about ticket prices → research_web("Hamilton Broadway ticket prices 2025")
+- User wants restaurant recs → research_web("best restaurants near Madison Square Garden")
+- User asks about a venue → research_web("Crypto.com Arena parking tips Lakers game")
+
+The tool returns an answer with source citations. Share relevant info and mention sources when helpful.
 """
 
 

@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from app.ai.tools.registry import register_tool
+from app.ai.clients.gemini import GeminiResearcher
 from app.integrations.ticketmaster import TicketmasterClient, Event
 from app.services import trip as trip_service
 from app.services import user as user_service
@@ -494,4 +495,65 @@ async def save_trip(
         return {
             "success": False,
             "error": f"Failed to save trip: {str(e)}",
+        }
+
+
+# -----------------------------------------------------------------------------
+# research_web
+# -----------------------------------------------------------------------------
+
+
+@register_tool("research_web")
+async def research_web(
+    input: dict[str, Any],
+    user_id: str | None = None,
+) -> dict[str, Any]:
+    """
+    Search the web for current information using Gemini with Search Grounding.
+
+    Use cases:
+    - Get current ticket prices
+    - Find venue details and tips
+    - Research travel information
+    - Get event updates and news
+    """
+    query = input.get("query", "")
+    context = input.get("context")
+
+    if not query:
+        return {
+            "success": False,
+            "error": "Query is required",
+        }
+
+    logger.info(f"research_web: query={query!r}, context={context!r}")
+
+    try:
+        researcher = GeminiResearcher()
+        result = await researcher.search(query, context=context)
+
+        # Format sources for response
+        sources = [
+            {
+                "title": s.title,
+                "url": s.url,
+                "snippet": s.snippet,
+            }
+            for s in result.sources
+        ]
+
+        return {
+            "success": True,
+            "query": query,
+            "answer": result.answer,
+            "sources": sources,
+            "source_count": len(sources),
+        }
+
+    except Exception as e:
+        logger.exception(f"Web research failed: {e}")
+        return {
+            "success": False,
+            "error": f"Research failed: {str(e)}",
+            "query": query,
         }

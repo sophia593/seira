@@ -6,3 +6,4 @@ PyJWT
 upstash-redis
 anyio
 anthropic
+google-genai
