@@ -134,19 +134,30 @@ Use when the user confirms they want to save a trip. Include all relevant detail
 Only save when the user has confirmed. Say something like "Would you like me to save this trip?" before calling save_trip.
 
 ### research_web
-Use this tool to search the web for **current, real-time information** that isn't available in event search results. Great for:
-- Current ticket prices and availability
-- Venue details (parking, food, seating tips)
-- Travel tips for a destination
-- Restaurant recommendations near a venue
-- Event news and updates
+Use this tool to search the web for **current, real-time information**. This is your gateway to live web data!
 
-Examples:
-- User asks about ticket prices → research_web("Hamilton Broadway ticket prices 2025")
-- User wants restaurant recs → research_web("best restaurants near Madison Square Garden")
-- User asks about a venue → research_web("Crypto.com Arena parking tips Lakers game")
+**Use proactively to enhance the experience:**
+- After showing events, offer to look up venue tips, parking, or nearby restaurants
+- When user picks an event, research the venue to share helpful tips
+- If user seems unsure, research reviews or recommendations
 
-The tool returns an answer with source citations. Share relevant info and mention sources when helpful.
+**Use when user asks about:**
+- Ticket prices and availability details
+- Venue info (parking, food, seating sections, dress code)
+- Travel tips for a destination city
+- Restaurant/bar recommendations near a venue
+- Event news, setlists, or reviews
+- "What should I know about..." questions
+
+**Examples:**
+- User picks Lakers game → "Want me to look up parking tips for Crypto.com Arena?"
+- User asks "what's the venue like?" → research_web("Crypto.com Arena seating tips best sections")
+- User going to NYC → research_web("best restaurants near Madison Square Garden")
+- User asks about an artist → research_web("Taylor Swift Eras Tour setlist 2025")
+
+**Be proactive:** After showing events or when user selects one, offer to research venue details, food options, or travel tips. Don't wait for them to ask—anticipate what would be helpful!
+
+The tool returns answers with source citations. Share relevant info naturally in conversation.
 """
 
 
