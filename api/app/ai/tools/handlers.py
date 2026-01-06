@@ -174,9 +174,18 @@ async def search_events(
 
         events = [_format_event(e) for e in unique_events]
 
+        # =====================================================================
+        # VERIFIED TICKETMASTER RESULTS
+        # These are real, bookable events from Ticketmaster's database
+        # =====================================================================
         return {
             "success": True,
-            "source": "ticketmaster",
+            "result_type": "VERIFIED_EVENTS",
+            "data_source": {
+                "provider": "Ticketmaster",
+                "reliability": "high",
+                "description": "Official event listings with real-time availability and direct booking links",
+            },
             "query": query,
             "filters": {
                 "city": city,
@@ -184,12 +193,22 @@ async def search_events(
                 "date_to": date_to,
                 "category": category,
             },
-            "count": result.total_count,
-            "unique_count": len(unique_events),
+            "summary": {
+                "total_found": result.total_count,
+                "showing": len(unique_events),
+                "message": f"Found {result.total_count} verified events on Ticketmaster",
+            },
             "events": events,
+            "instructions_for_assistant": (
+                "These are VERIFIED events from Ticketmaster. You can confidently present these to the user "
+                "with dates, venues, and prices. The ticket_url links go directly to purchase pages. "
+                "Help the user choose an event and proceed to flight search."
+            ),
         }
 
+    # =========================================================================
     # RESCUE: Ticketmaster returned 0 results or failed - try Gemini
+    # =========================================================================
     logger.info(f"Ticketmaster returned 0 results, trying Gemini rescue search")
 
     try:
@@ -204,24 +223,41 @@ async def search_events(
         if date_from:
             gemini_query_parts.append(date_from)
 
-        gemini_query = f"{' '.join(gemini_query_parts)} tickets events schedule"
+        gemini_query = f"{' '.join(gemini_query_parts)} tickets events schedule 2025"
 
         gemini_result = await researcher.search(
             query=gemini_query,
-            context=f"Find upcoming events, shows, or games for: {query}. Include dates, venues, and ticket information if available.",
+            context=(
+                f"Find upcoming events, shows, concerts, or games for: {query}. "
+                f"Include specific dates, venues, cities, and ticket price ranges if available. "
+                f"Focus on events the user can actually attend and buy tickets for."
+            ),
         )
 
         logger.info(f"Gemini rescue returned {len(gemini_result.answer)} chars")
 
-        # Format sources
+        # Format sources with more detail
         sources = [
-            {"title": s.title, "url": s.url}
+            {
+                "title": s.title or "Source",
+                "url": s.url,
+                "snippet": s.snippet,
+            }
             for s in gemini_result.sources
         ]
 
+        # =====================================================================
+        # WEB RESEARCH RESULTS (UNVERIFIED)
+        # These are from web search and should be verified by the user
+        # =====================================================================
         return {
             "success": True,
-            "source": "web_search",
+            "result_type": "WEB_RESEARCH",
+            "data_source": {
+                "provider": "Google Search (via Gemini)",
+                "reliability": "medium",
+                "description": "Web search results - information may be outdated or incomplete",
+            },
             "query": query,
             "filters": {
                 "city": city,
@@ -229,22 +265,43 @@ async def search_events(
                 "date_to": date_to,
                 "category": category,
             },
-            "count": 0,
-            "events": [],
-            "web_research": {
-                "answer": gemini_result.answer,
-                "sources": sources,
-                "note": "No events found in Ticketmaster. Here's what I found from web search:",
+            "summary": {
+                "total_found": 0,
+                "ticketmaster_searched": True,
+                "message": "No events found on Ticketmaster. Found information from web search instead.",
             },
+            "events": [],  # No structured events from web search
+            "web_research": {
+                "content": gemini_result.answer,
+                "sources": sources,
+                "source_count": len(sources),
+            },
+            "instructions_for_assistant": (
+                "IMPORTANT: These are WEB RESEARCH results, NOT verified event listings. "
+                "Present this information to the user but clearly state:\n"
+                "1. This info comes from web search, not official ticketing\n"
+                "2. Dates, prices, and availability should be verified on official sites\n"
+                "3. Provide the source links so the user can verify\n"
+                "4. Offer to help them search for tickets once they confirm the event details\n\n"
+                "DO NOT present web research as if it were verified Ticketmaster events. "
+                "Be helpful but honest about the data source limitations."
+            ),
         }
 
     except Exception as e:
         logger.exception(f"Gemini rescue search also failed: {e}")
 
-        # Both failed - return error
+        # =====================================================================
+        # BOTH SOURCES FAILED
+        # =====================================================================
         return {
             "success": False,
-            "error": ticketmaster_error or str(e),
+            "result_type": "ERROR",
+            "error": {
+                "message": ticketmaster_error or str(e),
+                "ticketmaster_tried": True,
+                "web_search_tried": True,
+            },
             "query": query,
             "filters": {
                 "city": city,
@@ -252,8 +309,18 @@ async def search_events(
                 "date_to": date_to,
                 "category": category,
             },
-            "count": 0,
+            "summary": {
+                "total_found": 0,
+                "message": "Could not find events from any source",
+            },
             "events": [],
+            "instructions_for_assistant": (
+                "Both Ticketmaster and web search failed. Apologize to the user and suggest:\n"
+                "1. Try a different search term or spelling\n"
+                "2. Check if the event/artist name is correct\n"
+                "3. Try broadening the search (remove city or date filters)\n"
+                "4. Search directly on the venue or artist's official website"
+            ),
         }
 
 
