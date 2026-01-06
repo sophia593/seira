@@ -93,6 +93,7 @@ async def search_events(
 ) -> dict[str, Any]:
     """
     Search for live events using Ticketmaster API.
+    Falls back to Gemini web search if no results found.
     """
     query = input.get("query", "")
     city_raw = input.get("city")
@@ -111,22 +112,28 @@ async def search_events(
     segment = CATEGORY_TO_SEGMENT.get(category) if category else None
 
     # For certain categories, enhance keyword search
+    search_query = query
     if category and category.lower() in CATEGORY_KEYWORDS:
         category_keyword = CATEGORY_KEYWORDS[category.lower()]
-        if query:
-            query = f"{query} {category_keyword}"
+        if search_query:
+            search_query = f"{search_query} {category_keyword}"
         else:
-            query = category_keyword
+            search_query = category_keyword
+
+    # Try Ticketmaster first
+    ticketmaster_failed = False
+    ticketmaster_error = None
+    result = None
 
     try:
         logger.info(f"Creating TicketmasterClient...")
         async with TicketmasterClient() as client:
             logger.info(
-                f"Calling Ticketmaster API: keyword={query!r}, city={city!r}, "
+                f"Calling Ticketmaster API: keyword={search_query!r}, city={city!r}, "
                 f"start_date={date_from}, end_date={date_to}, segment={segment!r}"
             )
             result = await client.search_events(
-                keyword=query if query else None,
+                keyword=search_query if search_query else None,
                 city=city,
                 start_date=date_from,
                 end_date=date_to,
@@ -135,41 +142,41 @@ async def search_events(
             )
             logger.info(f"Ticketmaster returned {result.total_count} events")
 
+    except Exception as e:
+        logger.exception(f"Ticketmaster search failed: {e}")
+        ticketmaster_failed = True
+        ticketmaster_error = str(e)
+
+    # If Ticketmaster returned results, process and return them
+    if result and result.total_count > 0:
         # Determine if this is a specific event search vs browsing
-        # If query closely matches event names, user wants to see all dates
-        # If browsing (e.g., "broadway", "concerts"), dedupe to show variety
         is_specific_search = False
-        if query:
-            query_lower = query.lower().strip()
-            # Check if any event name contains the query as a significant match
-            for e in result.events[:10]:  # Check first few results
+        if search_query:
+            query_lower = search_query.lower().strip()
+            for e in result.events[:10]:
                 name_lower = e.name.lower()
-                # If query is a substantial part of the event name, it's specific
                 if query_lower in name_lower or name_lower.startswith(query_lower):
                     is_specific_search = True
                     break
 
         if is_specific_search:
-            # For specific searches, show all dates (limit to reasonable amount)
             unique_events = result.events[:20]
             logger.info(f"Specific search detected, showing {len(unique_events)} dates")
         else:
-            # For browsing, dedupe by normalized name to show variety
             seen_names: set[str] = set()
             unique_events: list[Event] = []
             for e in result.events:
-                # Normalize name: lowercase, remove parenthetical suffixes like "(NY)"
                 normalized = re.sub(r'\s*\([^)]*\)\s*$', '', e.name.lower().strip())
                 if normalized not in seen_names:
                     seen_names.add(normalized)
                     unique_events.append(e)
             logger.info(f"Browse search, deduped to {len(unique_events)} unique events")
 
-        # Convert Event models to dicts for tool response
         events = [_format_event(e) for e in unique_events]
 
         return {
             "success": True,
+            "source": "ticketmaster",
             "query": query,
             "filters": {
                 "city": city,
@@ -182,11 +189,62 @@ async def search_events(
             "events": events,
         }
 
+    # RESCUE: Ticketmaster returned 0 results or failed - try Gemini
+    logger.info(f"Ticketmaster returned 0 results, trying Gemini rescue search")
+
+    try:
+        researcher = GeminiResearcher()
+
+        # Build a search query for Gemini
+        gemini_query_parts = [query]
+        if city:
+            gemini_query_parts.append(city)
+        if category:
+            gemini_query_parts.append(category)
+        if date_from:
+            gemini_query_parts.append(date_from)
+
+        gemini_query = f"{' '.join(gemini_query_parts)} tickets events schedule"
+
+        gemini_result = await researcher.search(
+            query=gemini_query,
+            context=f"Find upcoming events, shows, or games for: {query}. Include dates, venues, and ticket information if available.",
+        )
+
+        logger.info(f"Gemini rescue returned {len(gemini_result.answer)} chars")
+
+        # Format sources
+        sources = [
+            {"title": s.title, "url": s.url}
+            for s in gemini_result.sources
+        ]
+
+        return {
+            "success": True,
+            "source": "web_search",
+            "query": query,
+            "filters": {
+                "city": city,
+                "date_from": date_from,
+                "date_to": date_to,
+                "category": category,
+            },
+            "count": 0,
+            "events": [],
+            "web_research": {
+                "answer": gemini_result.answer,
+                "sources": sources,
+                "note": "No events found in Ticketmaster. Here's what I found from web search:",
+            },
+        }
+
     except Exception as e:
-        logger.exception(f"Ticketmaster search failed: {e}")
+        logger.exception(f"Gemini rescue search also failed: {e}")
+
+        # Both failed - return error
         return {
             "success": False,
-            "error": str(e),
+            "error": ticketmaster_error or str(e),
             "query": query,
             "filters": {
                 "city": city,
