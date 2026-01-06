@@ -53,15 +53,16 @@ class GeminiResearcher:
             print(f"  - {source.title}: {source.url}")
     """
 
-    def __init__(self, model: str = "gemini-2.0-flash"):
+    def __init__(self, model: str | None = None):
         """
         Initialize the Gemini researcher.
 
         Args:
-            model: Gemini model to use. Defaults to gemini-2.0-flash.
+            model: Gemini model to use. Defaults to config GEMINI_MODEL.
                    Options: gemini-2.0-flash, gemini-1.5-pro, gemini-1.5-flash
         """
-        self.model = model
+        settings = get_settings()
+        self.model = model or settings.GEMINI_MODEL
         self._client = None
 
     def _get_client(self):
@@ -89,7 +90,7 @@ class GeminiResearcher:
         self,
         query: str,
         context: str | None = None,
-        max_tokens: int = 1024,
+        max_tokens: int | None = None,
     ) -> SearchResult:
         """
         Perform a grounded search query using Gemini.
@@ -105,6 +106,11 @@ class GeminiResearcher:
         from google.genai import types
 
         client = self._get_client()
+        settings = get_settings()
+
+        # Use config default if not specified
+        if max_tokens is None:
+            max_tokens = settings.GEMINI_MAX_TOKENS
 
         # Build the prompt
         if context:

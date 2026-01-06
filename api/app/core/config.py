@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     CLAUDE_MAX_TOKENS: int = 4096
     CLAUDE_TIMEOUT: int = 60  # seconds
 
+    # Gemini settings
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MAX_TOKENS: int = 1024
+    GEMINI_TIMEOUT: int = 30  # seconds
+
     model_config = SettingsConfigDict(
         env_file=".env",          # local only (Railway uses real env vars)
         env_file_encoding="utf-8",
