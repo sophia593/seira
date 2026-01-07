@@ -22,6 +22,8 @@ import { Bug } from "lucide-react"
 
 interface ChatInterfaceProps {
   conversationId?: string
+  /** Initial prompt to pre-fill in the input */
+  initialPrompt?: string
 }
 
 /**
@@ -66,7 +68,7 @@ function mergeToolResults(messages: Message[]): Message[] {
   })
 }
 
-export function ChatInterface({ conversationId }: ChatInterfaceProps) {
+export function ChatInterface({ conversationId, initialPrompt }: ChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [scrollTrigger, setScrollTrigger] = useState(0)
   const lastMessageRef = useRef<string | null>(null)
@@ -377,6 +379,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
             onStop={handleStop}
             isStreaming={isStreaming}
             autoFocus
+            initialValue={initialPrompt}
           />
         </div>
       </div>

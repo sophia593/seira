@@ -64,8 +64,8 @@ export const EventCard = memo(function EventCard({
       onClick={handleCardClick}
       className={cn(
         'relative flex flex-col rounded-xl border bg-card overflow-hidden',
-        'cursor-pointer transition-all duration-200',
-        'hover:shadow-md hover:border-border',
+        'cursor-pointer transition-colors duration-150',
+        'hover:border-border hover:shadow-sm',
         // Selected state
         isSelected ? 'border-primary ring-1 ring-primary' : 'border-border/50'
       )}

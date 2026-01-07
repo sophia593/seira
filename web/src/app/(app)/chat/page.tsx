@@ -1,7 +1,11 @@
-"use client"
+'use client'
 
-import { ChatInterface } from "@/components/chat"
+import { useSearchParams } from 'next/navigation'
+import { ChatInterface } from '@/components/chat'
 
 export default function ChatPage() {
-  return <ChatInterface />
+  const searchParams = useSearchParams()
+  const initialPrompt = searchParams.get('prompt') || undefined
+
+  return <ChatInterface initialPrompt={initialPrompt} />
 }

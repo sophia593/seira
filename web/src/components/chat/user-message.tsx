@@ -1,35 +1,62 @@
-"use client"
+'use client'
 
-import { memo } from "react"
-import { cn } from "@/lib/utils"
-import { AvatarUser } from "@/components/ui/avatar"
-import { useUserStore } from "@/stores/user-store"
+import { memo, useState, useEffect } from 'react'
+import { cn } from '@/lib/utils'
+
+// =============================================================================
+// Types
+// =============================================================================
 
 interface UserMessageProps {
   content: string
   className?: string
+  /** Enable fade-in animation */
+  animate?: boolean
 }
+
+// =============================================================================
+// Main Component
+// =============================================================================
 
 export const UserMessage = memo(function UserMessage({
   content,
   className,
+  animate = true,
 }: UserMessageProps) {
-  const user = useUserStore((state) => state.user)
+  const [isVisible, setIsVisible] = useState(!animate)
+
+  useEffect(() => {
+    if (!animate) return
+    // Immediate show for user messages (they typed it, no surprise)
+    requestAnimationFrame(() => setIsVisible(true))
+  }, [animate])
 
   return (
-    <div className={cn("flex items-start gap-2 sm:gap-3 justify-end animate-message-in", className)}>
-      {/* Message bubble */}
-      <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-br-md px-3 sm:px-4 py-2 sm:py-3 bg-primary text-primary-foreground">
-        <p className="text-sm whitespace-pre-wrap break-words">{content}</p>
+    <div
+      className={cn(
+        'flex justify-end',
+        // Animation - faster for user messages
+        'transition-all duration-200 ease-out',
+        animate && (isVisible
+          ? 'opacity-100 translate-y-0'
+          : 'opacity-0 translate-y-1'),
+        className
+      )}
+    >
+      <div
+        className={cn(
+          'max-w-[85%] sm:max-w-[75%]',
+          'rounded-2xl rounded-br-md',
+          'px-3 sm:px-4 py-2 sm:py-2.5',
+          'bg-primary text-primary-foreground',
+          'text-sm leading-relaxed',
+          'break-words'
+        )}
+      >
+        {content}
       </div>
-
-      {/* Avatar */}
-      <AvatarUser
-        src={user?.avatar_url}
-        name={user?.name}
-        size="default"
-        className="flex-shrink-0"
-      />
     </div>
   )
 })
+
+export default UserMessage

@@ -1,7 +1,7 @@
 'use client'
 
 import { memo } from 'react'
-import { Loader2, Check, Circle, X } from 'lucide-react'
+import { Loader2, Check, Circle, X, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { type ToolCall } from '@/stores/conversation-store'
 
@@ -11,38 +11,40 @@ import { type ToolCall } from '@/stores/conversation-store'
 
 interface ToolIndicatorProps {
   toolCall: ToolCall
+  onRetry?: () => void
 }
 
 // =============================================================================
 // Display Text Maps (lowercase per typography system)
 // =============================================================================
 
-// Pending state display text
 const PENDING_TEXT: Record<string, string> = {
   search_events: 'searching for events...',
   search_flights: 'searching for flights...',
   save_trip: 'saving your trip...',
+  research_web: 'searching the web...',
 }
 
-// Complete state display text (no counts)
 const COMPLETE_TEXT: Record<string, string> = {
   search_events: 'found events',
   search_flights: 'found flights',
   save_trip: 'trip saved',
+  research_web: 'found results',
 }
 
-// Empty result display text
 const EMPTY_TEXT: Record<string, string> = {
-  search_events: 'no events found',
+  search_events: 'no events found for those dates',
   search_flights: 'no flights available',
-  save_trip: 'could not save trip',
+  save_trip: 'trip saved',
+  research_web: 'no results found',
 }
 
-// Error state display text
+// P1 fix: More actionable error messages
 const ERROR_TEXT: Record<string, string> = {
-  search_events: "couldn't search events",
-  search_flights: "couldn't search flights",
-  save_trip: "couldn't save trip",
+  search_events: "couldn't find events — try different dates or keywords",
+  search_flights: "couldn't search flights — try again",
+  save_trip: "couldn't save trip — try again",
+  research_web: "search didn't work — try rephrasing",
 }
 
 // =============================================================================
@@ -51,24 +53,24 @@ const ERROR_TEXT: Record<string, string> = {
 
 export const ToolIndicator = memo(function ToolIndicator({
   toolCall,
+  onRetry,
 }: ToolIndicatorProps) {
   const { name, status, result } = toolCall
 
-  // Determine if results are empty
   const hasResults = checkHasResults(name, result)
-
-  // Get display text based on state
-  const displayText = getDisplayText(name, status, hasResults)
-
-  // Get icon and styling based on state
+  const displayText = getDisplayText(name, status, hasResults, result)
   const { icon, colorClass } = getIconConfig(status, hasResults)
+
+  // Check if this error is retryable
+  const isRetryable = status === 'error' && onRetry && isRetryableError(name)
 
   return (
     <div
       className={cn(
         'flex items-center gap-2 px-3 py-2 rounded-lg',
         'bg-muted/50 border border-border/50',
-        'transition-all duration-200 ease-out'
+        'transition-all duration-200 ease-out',
+        status === 'error' && 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/30'
       )}
     >
       {/* Icon */}
@@ -84,12 +86,26 @@ export const ToolIndicator = memo(function ToolIndicator({
       {/* Status text */}
       <span
         className={cn(
-          'text-sm text-muted-foreground',
+          'text-sm',
+          status === 'error'
+            ? 'text-amber-700 dark:text-amber-300'
+            : 'text-muted-foreground',
           'transition-opacity duration-200'
         )}
       >
         {displayText}
       </span>
+
+      {/* Retry button for retryable errors */}
+      {isRetryable && (
+        <button
+          onClick={onRetry}
+          className="ml-auto flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+        >
+          <RefreshCw className="w-3 h-3" />
+          retry
+        </button>
+      )}
     </div>
   )
 })
@@ -98,9 +114,6 @@ export const ToolIndicator = memo(function ToolIndicator({
 // Helper Functions
 // =============================================================================
 
-/**
- * Check if tool result contains actual data
- */
 function checkHasResults(toolName: string, result: unknown): boolean {
   if (!result) return false
 
@@ -116,18 +129,19 @@ function checkHasResults(toolName: string, result: unknown): boolean {
       )
     case 'save_trip':
       return Boolean(res.success)
+    case 'research_web':
+      // Has results if content exists and isn't an error
+      return Boolean(res.content) && !res.error
     default:
       return Boolean(result)
   }
 }
 
-/**
- * Get display text based on tool state
- */
 function getDisplayText(
   toolName: string,
   status: ToolCall['status'],
-  hasResults: boolean
+  hasResults: boolean,
+  result?: unknown
 ): string {
   switch (status) {
     case 'pending':
@@ -135,19 +149,27 @@ function getDisplayText(
       return PENDING_TEXT[toolName] || 'working...'
     case 'complete':
       if (hasResults) {
-        return COMPLETE_TEXT[toolName] || 'complete'
+        // For events/flights, could add count
+        if (toolName === 'search_events' && result) {
+          const res = result as Record<string, unknown>
+          const count = Array.isArray(res.events) ? res.events.length : 0
+          if (count > 0) return `found ${count} event${count !== 1 ? 's' : ''}`
+        }
+        if (toolName === 'search_flights' && result) {
+          const res = result as Record<string, unknown>
+          const outbound = Array.isArray(res.outbound_flights) ? res.outbound_flights.length : 0
+          if (outbound > 0) return `found ${outbound} flight${outbound !== 1 ? 's' : ''}`
+        }
+        return COMPLETE_TEXT[toolName] || 'done'
       }
       return EMPTY_TEXT[toolName] || 'no results'
     case 'error':
-      return ERROR_TEXT[toolName] || 'something went wrong'
+      return ERROR_TEXT[toolName] || 'something went wrong — try again'
     default:
       return 'working...'
   }
 }
 
-/**
- * Get icon component and color class based on state
- */
 function getIconConfig(
   status: ToolCall['status'],
   hasResults: boolean
@@ -173,7 +195,7 @@ function getIconConfig(
     case 'error':
       return {
         icon: <X className="w-4 h-4" />,
-        colorClass: 'text-destructive',
+        colorClass: 'text-amber-600 dark:text-amber-400',
       }
     default:
       return {
@@ -181,4 +203,9 @@ function getIconConfig(
         colorClass: 'text-muted-foreground',
       }
   }
+}
+
+function isRetryableError(toolName: string): boolean {
+  // Most tool errors are retryable except save_trip (needs user action)
+  return toolName !== 'save_trip'
 }

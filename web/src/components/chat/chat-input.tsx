@@ -31,6 +31,8 @@ interface ChatInputProps {
   maxLength?: number
   /** Auto-focus on mount */
   autoFocus?: boolean
+  /** Initial value to pre-fill the input */
+  initialValue?: string
 }
 
 // =============================================================================
@@ -54,11 +56,12 @@ export function ChatInput({
   placeholder = 'message seira...',
   maxLength = DEFAULT_MAX_LENGTH,
   autoFocus = false,
+  initialValue = '',
 }: ChatInputProps) {
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState(initialValue)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // ---------------------------------------------------------------------------
@@ -69,24 +72,6 @@ export function ChatInput({
   const isNearLimit = charCount >= maxLength * WARNING_THRESHOLD
   const isEmpty = input.trim().length === 0
   const canSend = !isEmpty && !isStreaming && !disabled && !isOverLimit
-
-  // ---------------------------------------------------------------------------
-  // Auto-focus on mount
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (autoFocus && textareaRef.current) {
-      textareaRef.current.focus()
-    }
-  }, [autoFocus])
-
-  // ---------------------------------------------------------------------------
-  // Re-focus after streaming completes
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (!isStreaming && !disabled && textareaRef.current) {
-      textareaRef.current.focus()
-    }
-  }, [isStreaming, disabled])
 
   // ---------------------------------------------------------------------------
   // Auto-resize textarea logic
@@ -102,6 +87,28 @@ export function ChatInput({
     const newHeight = Math.min(Math.max(textarea.scrollHeight, MIN_HEIGHT), MAX_HEIGHT)
     textarea.style.height = `${newHeight}px`
   }, [])
+
+  // ---------------------------------------------------------------------------
+  // Auto-focus on mount and resize for initial value
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (autoFocus && textareaRef.current) {
+      textareaRef.current.focus()
+    }
+    // Resize textarea if there's an initial value
+    if (initialValue) {
+      resizeTextarea()
+    }
+  }, [autoFocus, initialValue, resizeTextarea])
+
+  // ---------------------------------------------------------------------------
+  // Re-focus after streaming completes
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!isStreaming && !disabled && textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }, [isStreaming, disabled])
 
   // ---------------------------------------------------------------------------
   // Handle input changes

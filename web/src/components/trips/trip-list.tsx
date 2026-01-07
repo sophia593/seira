@@ -16,13 +16,15 @@ interface TripListProps {
   isLoading?: boolean
   error?: string | null
   showGrouping?: boolean
+  /** When filtering, show a lighter empty state */
+  emptyMessage?: string
 }
 
 // =============================================================================
 // Main Component
 // =============================================================================
 
-export function TripList({ trips, isLoading, error, showGrouping = true }: TripListProps) {
+export function TripList({ trips, isLoading, error, showGrouping = true, emptyMessage }: TripListProps) {
   if (isLoading) {
     return <TripListSkeleton count={4} />
   }
@@ -32,6 +34,10 @@ export function TripList({ trips, isLoading, error, showGrouping = true }: TripL
   }
 
   if (trips.length === 0) {
+    // If we have a custom message, show the lighter filtered empty state
+    if (emptyMessage) {
+      return <FilteredEmptyState message={emptyMessage} />
+    }
     return <EmptyState />
   }
 
@@ -106,11 +112,23 @@ function EmptyState() {
         start planning your first trip by chatting with seira about an event you want to attend.
       </p>
       <Button asChild className="lowercase w-full sm:w-auto">
-        <Link href="/chat">
+        <Link href="/chat?prompt=help%20me%20plan%20a%20trip%20to">
           <Plus className="w-4 h-4 mr-2" />
           plan your first trip
         </Link>
       </Button>
+    </div>
+  )
+}
+
+// =============================================================================
+// Filtered Empty State (lighter, for tab filters)
+// =============================================================================
+
+function FilteredEmptyState({ message }: { message: string }) {
+  return (
+    <div className="text-center py-12 text-muted-foreground text-sm">
+      {message}
     </div>
   )
 }

@@ -574,7 +574,7 @@ async def save_trip(
     if not user_id:
         return {
             "success": False,
-            "error": "User must be logged in to save trips",
+            "error": "sign in to save this trip to your account",
         }
 
     title = input.get("title", "Untitled Trip")
@@ -664,7 +664,7 @@ async def save_trip(
         logger.exception(f"Failed to save trip: {e}")
         return {
             "success": False,
-            "error": f"Failed to save trip: {str(e)}",
+            "error": "couldn't save your trip right now — please try again",
         }
 
 
@@ -769,6 +769,6 @@ async def research_web(
 
         return {
             "success": False,
-            "error": f"Research failed: {str(e)}",
+            "error": "couldn't complete the search — try a different query",
             "query": query,
         }

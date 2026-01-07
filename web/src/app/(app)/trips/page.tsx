@@ -86,7 +86,7 @@ export default function TripsPage() {
             </p>
           </div>
           <Button asChild className="lowercase w-full sm:w-auto">
-            <Link href="/chat">
+            <Link href="/chat?prompt=help%20me%20plan%20a%20trip%20to">
               <Plus className="w-4 h-4 mr-2" />
               plan a trip
             </Link>
@@ -120,6 +120,11 @@ export default function TripsPage() {
           isLoading={isLoading}
           error={error}
           showGrouping={activeFilter === 'all'}
+          emptyMessage={
+            activeFilter !== 'all' && trips.length > 0
+              ? `no ${activeFilter} trips yet`
+              : undefined
+          }
         />
       </div>
     </div>

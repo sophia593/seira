@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Check } from 'lucide-react'
 import Link from 'next/link'
 import { getApi } from '@/lib/api'
 import { useUserStore } from '@/stores/user-store'
@@ -54,40 +54,116 @@ export default function SettingsPage() {
   const [seatPreference, setSeatPreference] = useState('')
   const [budgetDefault, setBudgetDefault] = useState('')
 
+  // Initial values (for dirty checking)
+  const [initialName, setInitialName] = useState('')
+  const [initialHomeAirport, setInitialHomeAirport] = useState('')
+  const [initialCabinClass, setInitialCabinClass] = useState('')
+  const [initialSeatPreference, setInitialSeatPreference] = useState('')
+  const [initialBudgetDefault, setInitialBudgetDefault] = useState('')
+
   // Loading states
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isSavingPrefs, setIsSavingPrefs] = useState(false)
 
+  // Success states (for inline feedback)
+  const [profileSaved, setProfileSaved] = useState(false)
+  const [prefsSaved, setPrefsSaved] = useState(false)
+
+  // Dirty checking
+  const isProfileDirty = useMemo(() => {
+    return name.trim() !== initialName.trim()
+  }, [name, initialName])
+
+  const isPreferencesDirty = useMemo(() => {
+    return (
+      homeAirport.trim().toUpperCase() !== initialHomeAirport.trim().toUpperCase() ||
+      cabinClass !== initialCabinClass ||
+      seatPreference !== initialSeatPreference ||
+      budgetDefault !== initialBudgetDefault
+    )
+  }, [
+    homeAirport,
+    initialHomeAirport,
+    cabinClass,
+    initialCabinClass,
+    seatPreference,
+    initialSeatPreference,
+    budgetDefault,
+    initialBudgetDefault,
+  ])
+
   // Initialize form from store
   useEffect(() => {
     if (user) {
-      setName(user.name || '')
+      const userName = user.name || ''
+      setName(userName)
+      setInitialName(userName)
     }
     if (preferences) {
-      setHomeAirport(preferences.home_airport || '')
-      setCabinClass(preferences.cabin_class || '')
-      setSeatPreference(preferences.seat_preference || '')
-      setBudgetDefault(preferences.budget_default?.toString() || '')
+      const airport = preferences.home_airport || ''
+      const cabin = preferences.cabin_class || ''
+      const seat = preferences.seat_preference || ''
+      const budget = preferences.budget_default?.toString() || ''
+
+      setHomeAirport(airport)
+      setCabinClass(cabin)
+      setSeatPreference(seat)
+      setBudgetDefault(budget)
+
+      setInitialHomeAirport(airport)
+      setInitialCabinClass(cabin)
+      setInitialSeatPreference(seat)
+      setInitialBudgetDefault(budget)
     }
   }, [user, preferences])
 
+  // Reset success state when form changes
+  useEffect(() => {
+    if (isProfileDirty) {
+      setProfileSaved(false)
+    }
+  }, [isProfileDirty])
+
+  useEffect(() => {
+    if (isPreferencesDirty) {
+      setPrefsSaved(false)
+    }
+  }, [isPreferencesDirty])
+
   async function handleSaveProfile() {
+    if (!isProfileDirty) return
+
     setIsSavingProfile(true)
+    setProfileSaved(false)
+
     try {
       const api = getApi()
       const updated = await api.updateMe({ name: name.trim() || undefined })
       setUser({ ...user!, name: updated.name })
-      toast.success('Profile updated')
+
+      // Update initial value so dirty check resets
+      setInitialName(name.trim())
+
+      // Show success
+      setProfileSaved(true)
+      toast.success('profile updated')
+
+      // Reset success icon after delay
+      setTimeout(() => setProfileSaved(false), 3000)
     } catch (err) {
       console.error('Failed to update profile:', err)
-      toast.error('Failed to update profile')
+      toast.error('couldn\'t update profile')
     } finally {
       setIsSavingProfile(false)
     }
   }
 
   async function handleSavePreferences() {
+    if (!isPreferencesDirty) return
+
     setIsSavingPrefs(true)
+    setPrefsSaved(false)
+
     try {
       const api = getApi()
       const updated = await api.updatePreferences({
@@ -97,10 +173,22 @@ export default function SettingsPage() {
         budget_default: budgetDefault ? parseInt(budgetDefault, 10) : null,
       })
       setPreferences(updated)
-      toast.success('Preferences saved')
+
+      // Update initial values so dirty check resets
+      setInitialHomeAirport(homeAirport.trim().toUpperCase())
+      setInitialCabinClass(cabinClass)
+      setInitialSeatPreference(seatPreference)
+      setInitialBudgetDefault(budgetDefault)
+
+      // Show success
+      setPrefsSaved(true)
+      toast.success('preferences saved')
+
+      // Reset success icon after delay
+      setTimeout(() => setPrefsSaved(false), 3000)
     } catch (err) {
       console.error('Failed to update preferences:', err)
-      toast.error('Failed to save preferences')
+      toast.error('couldn\'t save preferences')
     } finally {
       setIsSavingPrefs(false)
     }
@@ -136,10 +224,14 @@ export default function SettingsPage() {
 
         {/* Profile Section */}
         <section className="mb-8 sm:mb-10">
-          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">profile</h2>
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">
+            profile
+          </h2>
           <div className="space-y-3 sm:space-y-4 p-4 sm:p-6 bg-card rounded-xl border">
             <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="email" className="text-sm">email</Label>
+              <Label htmlFor="email" className="text-sm">
+                email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -153,7 +245,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="name" className="text-sm">name</Label>
+              <Label htmlFor="name" className="text-sm">
+                name
+              </Label>
               <Input
                 id="name"
                 type="text"
@@ -164,27 +258,27 @@ export default function SettingsPage() {
               />
             </div>
 
-            <Button
+            <SaveButton
               onClick={handleSaveProfile}
-              disabled={isSavingProfile}
-              className="lowercase w-full sm:w-auto text-sm"
-            >
-              {isSavingProfile ? (
-                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
-              )}
-              save profile
-            </Button>
+              isLoading={isSavingProfile}
+              isSaved={profileSaved}
+              isDirty={isProfileDirty}
+              label="save profile"
+              savedLabel="saved"
+            />
           </div>
         </section>
 
         {/* Travel Preferences Section */}
         <section className="mb-8 sm:mb-10">
-          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">travel preferences</h2>
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">
+            travel preferences
+          </h2>
           <div className="space-y-3 sm:space-y-4 p-4 sm:p-6 bg-card rounded-xl border">
             <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="homeAirport" className="text-sm">home airport</Label>
+              <Label htmlFor="homeAirport" className="text-sm">
+                home airport
+              </Label>
               <Input
                 id="homeAirport"
                 type="text"
@@ -201,7 +295,9 @@ export default function SettingsPage() {
 
             <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
               <div className="space-y-1.5 sm:space-y-2">
-                <Label htmlFor="cabinClass" className="text-sm">preferred cabin</Label>
+                <Label htmlFor="cabinClass" className="text-sm">
+                  preferred cabin
+                </Label>
                 <Select value={cabinClass} onValueChange={setCabinClass}>
                   <SelectTrigger className="text-sm">
                     <SelectValue placeholder="select cabin class" />
@@ -217,7 +313,9 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-1.5 sm:space-y-2">
-                <Label htmlFor="seatPreference" className="text-sm">seat preference</Label>
+                <Label htmlFor="seatPreference" className="text-sm">
+                  seat preference
+                </Label>
                 <Select value={seatPreference} onValueChange={setSeatPreference}>
                   <SelectTrigger className="text-sm">
                     <SelectValue placeholder="select seat preference" />
@@ -234,7 +332,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="budget" className="text-sm">default budget (USD)</Label>
+              <Label htmlFor="budget" className="text-sm">
+                default budget (USD)
+              </Label>
               <Input
                 id="budget"
                 type="number"
@@ -249,21 +349,67 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <Button
+            <SaveButton
               onClick={handleSavePreferences}
-              disabled={isSavingPrefs}
-              className="lowercase w-full sm:w-auto text-sm"
-            >
-              {isSavingPrefs ? (
-                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
-              )}
-              save preferences
-            </Button>
+              isLoading={isSavingPrefs}
+              isSaved={prefsSaved}
+              isDirty={isPreferencesDirty}
+              label="save preferences"
+              savedLabel="saved"
+            />
           </div>
         </section>
       </div>
     </div>
+  )
+}
+
+// =============================================================================
+// Save Button Component
+// =============================================================================
+
+interface SaveButtonProps {
+  onClick: () => void
+  isLoading: boolean
+  isSaved: boolean
+  isDirty: boolean
+  label: string
+  savedLabel: string
+}
+
+function SaveButton({
+  onClick,
+  isLoading,
+  isSaved,
+  isDirty,
+  label,
+  savedLabel,
+}: SaveButtonProps) {
+  const isDisabled = isLoading || !isDirty
+
+  return (
+    <Button
+      onClick={onClick}
+      disabled={isDisabled}
+      className="lowercase w-full sm:w-auto text-sm"
+      variant={isSaved ? 'outline' : 'default'}
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 animate-spin" />
+          saving...
+        </>
+      ) : isSaved ? (
+        <>
+          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
+          {savedLabel}
+        </>
+      ) : (
+        <>
+          <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
+          {label}
+        </>
+      )}
+    </Button>
   )
 }

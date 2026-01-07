@@ -12,6 +12,8 @@ import { type TripEventData, isRichEvent } from '@/types/trip'
 interface EventDetailCardProps {
   event: TripEventData
   className?: string
+  /** Hide the event name (when already shown in page title) */
+  hideTitle?: boolean
 }
 
 // =============================================================================
@@ -23,7 +25,7 @@ interface EventDetailCardProps {
  * - Flat TripDetail event fields (current API)
  * - Rich TripEvent objects (future API)
  */
-export function EventDetailCard({ event, className }: EventDetailCardProps) {
+export function EventDetailCard({ event, className, hideTitle = false }: EventDetailCardProps) {
   // Normalize to common shape
   const normalized = normalizeEvent(event)
 
@@ -58,9 +60,11 @@ export function EventDetailCard({ event, className }: EventDetailCardProps) {
           {/* Event Details */}
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">Event</p>
-            <h2 className="text-xl sm:text-2xl font-semibold lowercase truncate">
-              {name}
-            </h2>
+            {!hideTitle && (
+              <h2 className="text-xl sm:text-2xl font-semibold lowercase truncate">
+                {name}
+              </h2>
+            )}
           </div>
         </div>
 

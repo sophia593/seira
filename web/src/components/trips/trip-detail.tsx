@@ -110,7 +110,12 @@ export function TripDetailComponent({
       />
 
       {/* Event Section - Using standalone component */}
-      {eventData && <EventDetailCard event={eventData} />}
+      {eventData && (
+        <EventDetailCard
+          event={eventData}
+          hideTitle={!trip.title || trip.title === trip.event_name}
+        />
+      )}
 
       {/* Flights Section - Using standalone component */}
       {hasFlight && (

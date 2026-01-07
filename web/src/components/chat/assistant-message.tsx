@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -32,6 +32,29 @@ interface AssistantMessageProps {
   onSelectEvent?: (event: SelectedEvent) => void
   onSelectFlight?: (flight: SelectedFlight) => void
   className?: string
+  /** Enable fade-in animation */
+  animate?: boolean
+  /** Whether this message is currently streaming */
+  isStreaming?: boolean
+}
+
+// -----------------------------------------------------------------------------
+// Animation Hook
+// -----------------------------------------------------------------------------
+
+function useMessageAnimation(enabled: boolean = true) {
+  const [isVisible, setIsVisible] = useState(!enabled)
+
+  useEffect(() => {
+    if (!enabled) return
+    // Small delay for smoother stagger when multiple messages load
+    const timer = requestAnimationFrame(() => {
+      setIsVisible(true)
+    })
+    return () => cancelAnimationFrame(timer)
+  }, [enabled])
+
+  return isVisible
 }
 
 // -----------------------------------------------------------------------------
@@ -46,12 +69,25 @@ export const AssistantMessage = memo(function AssistantMessage({
   onSelectEvent,
   onSelectFlight,
   className,
+  animate = true,
+  isStreaming = false,
 }: AssistantMessageProps) {
   const hasContent = content && content.length > 0
   const hasToolCalls = toolCalls && toolCalls.length > 0
+  const isVisible = useMessageAnimation(animate && !isStreaming)
 
   return (
-    <div className={cn("flex items-start gap-2 sm:gap-3", className)}>
+    <div
+      className={cn(
+        'flex items-start gap-2 sm:gap-3',
+        // Animation classes
+        'transition-all duration-300 ease-out',
+        animate && !isStreaming && (isVisible
+          ? 'opacity-100 translate-y-0'
+          : 'opacity-0 translate-y-2'),
+        className
+      )}
+    >
       {/* Avatar */}
       <AvatarAssistant size="default" className="flex-shrink-0" />
 
@@ -69,14 +105,16 @@ export const AssistantMessage = memo(function AssistantMessage({
         {/* Tool calls with results */}
         {hasToolCalls && (
           <div className="space-y-3">
-            {toolCalls.map((tool) => (
-              <CompletedToolCall
+            {toolCalls.map((tool, index) => (
+              <ToolCallWithAnimation
                 key={tool.id}
                 tool={tool}
                 selectedEvent={selectedEvent}
                 selectedFlight={selectedFlight}
                 onSelectEvent={onSelectEvent}
                 onSelectFlight={onSelectFlight}
+                animate={animate}
+                delay={index * 50}
               />
             ))}
           </div>
@@ -87,24 +125,36 @@ export const AssistantMessage = memo(function AssistantMessage({
 })
 
 // -----------------------------------------------------------------------------
-// Completed Tool Call (with results)
+// Tool Call with Animation
 // -----------------------------------------------------------------------------
 
-interface CompletedToolCallProps {
+interface ToolCallWithAnimationProps {
   tool: ToolCall
   selectedEvent?: SelectedEvent | null
   selectedFlight?: SelectedFlight | null
   onSelectEvent?: (event: SelectedEvent) => void
   onSelectFlight?: (flight: SelectedFlight) => void
+  animate?: boolean
+  delay?: number
 }
 
-function CompletedToolCall({
+function ToolCallWithAnimation({
   tool,
   selectedEvent,
   selectedFlight,
   onSelectEvent,
   onSelectFlight,
-}: CompletedToolCallProps) {
+  animate = true,
+  delay = 0,
+}: ToolCallWithAnimationProps) {
+  const [isVisible, setIsVisible] = useState(!animate)
+
+  useEffect(() => {
+    if (!animate) return
+    const timer = setTimeout(() => setIsVisible(true), delay)
+    return () => clearTimeout(timer)
+  }, [animate, delay])
+
   const isError = tool.is_error
 
   // Convert to store ToolCall format for ToolIndicator
@@ -118,7 +168,14 @@ function CompletedToolCall({
   }
 
   return (
-    <div className="space-y-2">
+    <div
+      className={cn(
+        'space-y-2 transition-all duration-200 ease-out',
+        animate && (isVisible
+          ? 'opacity-100 translate-y-0'
+          : 'opacity-0 translate-y-1')
+      )}
+    >
       {/* Status indicator */}
       <ToolIndicator toolCall={storeToolCall} />
 
@@ -136,8 +193,8 @@ function CompletedToolCall({
 
       {/* Error message */}
       {isError && tool.result && (
-        <div className="text-sm text-destructive bg-destructive/5 rounded-lg p-3">
-          {String(tool.result.error || 'an error occurred')}
+        <div className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3">
+          {String(tool.result.error || 'something went wrong')}
         </div>
       )}
     </div>
@@ -242,9 +299,9 @@ function ToolResultDisplay({
   if (name === 'save_trip' && result.success) {
     return (
       <div className="text-sm text-green-600 dark:text-green-400 bg-green-500/10 rounded-xl p-3">
-        trip saved successfully!{' '}
+        trip saved!{' '}
         <Link href="/trips" className="underline hover:no-underline">
-          view it in your trips
+          view your trips
         </Link>
       </div>
     )
