@@ -9,6 +9,7 @@ import { AvatarAssistant } from '@/components/ui/avatar'
 import { ToolIndicator } from './tool-indicator'
 import { EventResultsGrid } from './tool-results/event-results-grid'
 import { FlightResultsGrid } from './tool-results/flight-results-grid'
+import { WebResearchCard } from './tool-results/web-research-card'
 import type { SelectedEvent, SelectedFlight, ToolCall as StoreToolCall } from '@/stores/conversation-store'
 
 // -----------------------------------------------------------------------------
@@ -161,9 +162,61 @@ function ToolResultDisplay({
   result,
   onSelectEvent,
 }: ToolResultDisplayProps) {
-  // Event results
-  if (name === "search_events" && Array.isArray(result.events)) {
-    return <EventResultsGrid events={result.events} onSelect={onSelectEvent} />
+  // Event results - check if it's web research (Gemini rescue) or verified events
+  if (name === "search_events") {
+    // Web research results (Gemini rescue path)
+    if (result.result_type === "WEB_RESEARCH" && result.web_research) {
+      const webResearch = result.web_research as {
+        content: string
+        sources: Array<{
+          title: string
+          url: string
+          domain?: string
+          snippet?: string
+          is_official?: boolean
+        }>
+      }
+      return (
+        <WebResearchCard
+          content={webResearch.content}
+          sources={webResearch.sources || []}
+          searchType="event_details"
+          query={result.query as string}
+        />
+      )
+    }
+
+    // Verified Ticketmaster events
+    if (Array.isArray(result.events) && result.events.length > 0) {
+      return <EventResultsGrid events={result.events} onSelect={onSelectEvent} />
+    }
+
+    // No results found
+    if (result.result_type === "ERROR") {
+      return (
+        <div className="text-sm text-muted-foreground bg-muted rounded-xl p-3">
+          couldn't find events matching your search. try different keywords or dates.
+        </div>
+      )
+    }
+  }
+
+  // Web research tool (direct Gemini search)
+  if (name === "research_web" && result.success) {
+    return (
+      <WebResearchCard
+        content={result.answer as string}
+        sources={(result.sources as Array<{
+          title: string
+          url: string
+          domain?: string
+          snippet?: string
+          is_official?: boolean
+        }>) || []}
+        searchType={result.search_type as string}
+        query={result.query as string}
+      />
+    )
   }
 
   // Flight results
