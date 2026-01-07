@@ -88,17 +88,22 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "research_web",
-        "description": "Search the web for current information like ticket prices, venue details, travel tips, or event updates. Use when you need real-time data not available in search results.",
+        "description": "Search the web for current information. Use for: ticket prices, venue details (parking, policies), restaurant recommendations, hotel options, nightlife/bars, travel tips, or event updates. Automatically detects search type from query, or you can specify it.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The search query (e.g., 'Hamilton Broadway ticket prices January 2025', 'best restaurants near Madison Square Garden')",
+                    "description": "The search query (e.g., 'Hamilton Broadway ticket prices', 'best restaurants near MSG', 'jazz clubs New Orleans', 'hotels near Crypto.com Arena')",
                 },
                 "context": {
                     "type": "string",
                     "description": "Optional context about what the user is planning (helps focus the search)",
+                },
+                "search_type": {
+                    "type": "string",
+                    "enum": ["venue_info", "restaurant", "event_details", "tickets", "travel_tips", "accommodation", "nightlife", "general"],
+                    "description": "Type of search to perform. Auto-detected if not specified.",
                 },
             },
             "required": ["query"],

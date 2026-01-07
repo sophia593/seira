@@ -684,11 +684,15 @@ async def research_web(
     Use cases:
     - Get current ticket prices
     - Find venue details and tips
-    - Research travel information
-    - Get event updates and news
+    - Restaurant recommendations
+    - Hotel/accommodation options
+    - Nightlife and bars
+    - Travel tips
+    - Event updates and news
     """
     query = input.get("query", "")
     context = input.get("context")
+    search_type_str = input.get("search_type")
 
     if not query:
         return {
@@ -696,11 +700,19 @@ async def research_web(
             "error": "Query is required",
         }
 
-    logger.info(f"research_web: query={query!r}, context={context!r}")
+    # Parse search_type if provided
+    search_type = None
+    if search_type_str:
+        try:
+            search_type = SearchType(search_type_str)
+        except ValueError:
+            logger.warning(f"Invalid search_type: {search_type_str}, will auto-detect")
+
+    logger.info(f"research_web: query={query!r}, context={context!r}, search_type={search_type_str!r}")
 
     try:
         researcher = GeminiResearcher()
-        result = await researcher.search(query, context=context)
+        result = await researcher.search(query, context=context, search_type=search_type)
 
         source_count = len(result.sources)
         official_count = len(result.official_sources)

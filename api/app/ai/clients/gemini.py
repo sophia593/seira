@@ -29,16 +29,27 @@ class SearchType(Enum):
     EVENT_DETAILS = "event_details"
     TICKETS = "tickets"
     TRAVEL_TIPS = "travel_tips"
+    ACCOMMODATION = "accommodation"
+    NIGHTLIFE = "nightlife"
     GENERAL = "general"
 
 
 # Base context that applies to all searches
-BASE_CONTEXT = """You are researching information for a travel assistant that helps people attend live events (concerts, sports, theater).
+def get_base_context() -> str:
+    """Get base context with current date for time-aware searches."""
+    from datetime import date
+    today = date.today()
+    today_str = today.strftime("%B %d, %Y")  # e.g., "January 07, 2026"
+
+    return f"""You are researching information for a travel assistant that helps people attend live events (concerts, sports, theater).
+
+Today's date is {today_str}. Use this for any time-relative queries (tonight, this weekend, next month, etc.).
 
 Your job is to find accurate, actionable information. Prioritize:
 1. Official venue/team/artist sources over blogs
 2. Current information over outdated posts
 3. Specific details (prices, times, policies) over vague descriptions
+4. Include URLs to official sites when available
 
 Be concise but complete. If information conflicts between sources, note it."""
 
@@ -91,6 +102,27 @@ Focus on official ticketing sources and verified resale platforms.""",
 
 Prioritize recent travel guides and local knowledge.""",
 
+    SearchType.ACCOMMODATION: """Find hotel and accommodation options. Include if available:
+- Hotel names with proximity to venue/area
+- Price ranges per night (budget, mid-range, luxury)
+- Key amenities (parking, breakfast, pool, etc.)
+- Booking sites or direct links
+- Neighborhood/area descriptions
+- Any event-specific tips (book early, surge pricing, etc.)
+
+Prioritize well-reviewed options convenient for event-goers.""",
+
+    SearchType.NIGHTLIFE: """Find nightlife and entertainment venues. Include if available:
+- Venue names and type (bar, club, jazz club, speakeasy, etc.)
+- Location and neighborhood
+- Vibe/atmosphere description
+- Cover charges or reservation requirements
+- Hours of operation
+- What they're known for (live music, cocktails, dancing, etc.)
+- Any dress codes or age restrictions
+
+Prioritize places with good reviews and authentic local atmosphere.""",
+
     SearchType.GENERAL: """Find accurate, current information to answer this question.
 Be specific and cite your sources. If the information might be outdated or varies, note that.""",
 }
@@ -119,9 +151,20 @@ SEARCH_TYPE_KEYWORDS: dict[SearchType, list[str]] = {
         "availability", "face value", "fees",
     ],
     SearchType.TRAVEL_TIPS: [
-        "hotel", "stay", "neighborhood", "area", "airport", "transit",
-        "uber", "lyft", "taxi", "train", "subway", "getting to",
-        "weather", "pack", "bring", "visiting",
+        "getting to", "getting there", "airport", "transit",
+        "uber", "lyft", "taxi", "train", "subway",
+        "weather", "pack", "bring", "visiting", "first time",
+    ],
+    SearchType.ACCOMMODATION: [
+        "hotel", "hotels", "stay", "staying", "airbnb", "motel",
+        "lodging", "accommodation", "rooms", "book a room",
+        "where to stay", "sleep", "overnight",
+    ],
+    SearchType.NIGHTLIFE: [
+        "bar", "bars", "club", "clubs", "nightlife", "nightclub",
+        "jazz club", "jazz bar", "speakeasy", "lounge", "pub",
+        "live music", "dancing", "drinks", "cocktails", "late night",
+        "after party", "going out",
     ],
 }
 
@@ -167,6 +210,8 @@ def enhance_query(query: str, search_type: SearchType) -> str:
         SearchType.EVENT_DETAILS: ["official", "schedule", str(current_year)],
         SearchType.TICKETS: ["buy tickets", "official", "prices"],
         SearchType.TRAVEL_TIPS: ["travel guide", "tips", "visitors"],
+        SearchType.ACCOMMODATION: ["hotels", "book", str(current_year)],
+        SearchType.NIGHTLIFE: ["best", "reviews", str(current_year)],
         SearchType.GENERAL: [],
     }
 
@@ -203,11 +248,26 @@ class GroundedSource:
     def is_official(self) -> bool:
         """Check if this is likely an official/authoritative source."""
         official_patterns = [
+            # Government & education
             r"\.gov$", r"\.edu$",
+            # Ticketing platforms
             r"ticketmaster\.", r"axs\.com", r"livenation\.",
-            r"\.mlb\.com", r"\.nba\.com", r"\.nfl\.com", r"\.nhl\.com",
-            r"msg\.com", r"thegarden\.", r"crypto\.com/arena",
+            r"stubhub\.com", r"seatgeek\.com", r"vividseats\.com",
+            # Sports leagues
+            r"\.mlb\.com", r"\.nba\.com", r"\.nfl\.com", r"\.nhl\.com", r"\.mls\.com",
+            # Major venues
+            r"msg\.com", r"thegarden\.", r"crypto\.com",
+            r"chasecenter\.com", r"barclayscenter\.com", r"staples-center\.",
+            r"sofi.*stadium", r"climate.*pledge", r"tdgarden\.com",
+            # Restaurant/booking platforms
             r"opentable\.com", r"resy\.com", r"yelp\.com",
+            r"tripadvisor\.com", r"google\.com/maps",
+            # Hotel booking
+            r"booking\.com", r"hotels\.com", r"expedia\.com",
+            r"marriott\.com", r"hilton\.com", r"hyatt\.com",
+            # Travel
+            r"visitacity", r"timeout\.com", r"frommers\.com",
+            r"lonelyplanet\.com", r"fodors\.com",
         ]
         domain = self.domain.lower()
         return any(re.search(p, domain) for p in official_patterns)
@@ -301,7 +361,7 @@ class GeminiResearcher:
         """
         Build the full prompt with base context, type-specific guidance, and query.
         """
-        parts = [BASE_CONTEXT]
+        parts = [get_base_context()]
 
         # Add type-specific prompt
         type_prompt = SEARCH_PROMPTS.get(search_type, SEARCH_PROMPTS[SearchType.GENERAL])
@@ -562,4 +622,63 @@ class GeminiResearcher:
             query=query,
             search_type=SearchType.RESTAURANT,
             context=context,
+        )
+
+    async def search_hotels(
+        self,
+        location: str,
+        venue_name: str | None = None,
+        event_date: str | None = None,
+    ) -> SearchResult:
+        """
+        Convenience method for hotel/accommodation searches.
+
+        Args:
+            location: City or neighborhood
+            venue_name: Optional venue to search near
+            event_date: Optional event date for context
+
+        Returns:
+            SearchResult with hotel recommendations
+        """
+        if venue_name:
+            query = f"best hotels near {venue_name}"
+            context = f"User needs accommodation near {venue_name}"
+        else:
+            query = f"best hotels in {location}"
+            context = f"User is visiting {location} for a live event"
+
+        if event_date:
+            context += f" on {event_date}"
+
+        return await self.search(
+            query=query,
+            search_type=SearchType.ACCOMMODATION,
+            context=context,
+        )
+
+    async def search_nightlife(
+        self,
+        location: str,
+        venue_type: str | None = None,
+    ) -> SearchResult:
+        """
+        Convenience method for nightlife venue searches.
+
+        Args:
+            location: City or neighborhood
+            venue_type: Type of venue (jazz club, speakeasy, sports bar, etc.)
+
+        Returns:
+            SearchResult with nightlife recommendations
+        """
+        if venue_type:
+            query = f"best {venue_type} in {location}"
+        else:
+            query = f"best bars and nightlife in {location}"
+
+        return await self.search(
+            query=query,
+            search_type=SearchType.NIGHTLIFE,
+            context=f"User is looking for nightlife options in {location}",
         )
