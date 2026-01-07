@@ -50,6 +50,18 @@ async def health_check():
     return {"status": "ok"}
 
 
+@app.get("/metrics/ai", tags=["health"])
+async def ai_metrics():
+    """
+    Get AI tool metrics (Gemini rescue, research_web).
+
+    Shows success rates, trigger reasons, and source quality stats.
+    Useful for monitoring and debugging AI behavior.
+    """
+    from app.ai.metrics import get_all_metrics
+    return get_all_metrics()
+
+
 @app.get("/me", tags=["auth"])
 async def me(user: User = Depends(get_current_user)):
     """Return the current authenticated user. Useful for testing auth."""

@@ -13,6 +13,7 @@ from typing import Any
 
 from app.ai.tools.registry import register_tool
 from app.ai.clients.gemini import GeminiResearcher, SearchType
+from app.ai.metrics import gemini_rescue_metrics, research_web_metrics
 from app.integrations.ticketmaster import TicketmasterClient, Event
 from app.services import trip as trip_service
 from app.services import user as user_service
@@ -209,7 +210,11 @@ async def search_events(
     # =========================================================================
     # RESCUE: Ticketmaster returned 0 results or failed - try Gemini
     # =========================================================================
-    logger.info(f"Ticketmaster returned 0 results, trying Gemini rescue search")
+    trigger_reason = "api_failed" if ticketmaster_failed else "no_results"
+    logger.info(
+        f"GEMINI_RESCUE_TRIGGERED: reason={trigger_reason}, query={query!r}, "
+        f"city={city!r}, category={category!r}, dates={date_from} to {date_to}"
+    )
 
     try:
         researcher = GeminiResearcher()
@@ -245,7 +250,19 @@ async def search_events(
             search_type=SearchType.EVENT_DETAILS,
         )
 
-        logger.info(f"Gemini rescue returned {len(gemini_result.answer)} chars")
+        answer_length = len(gemini_result.answer)
+        source_count = len(gemini_result.sources)
+        official_count = len(gemini_result.official_sources)
+
+        # Record metrics
+        gemini_rescue_metrics.record_rescue(
+            query=query,
+            trigger_reason=trigger_reason,
+            success=True,
+            answer_length=answer_length,
+            source_count=source_count,
+            official_source_count=official_count,
+        )
 
         # Format sources with quality indicators
         sources = [
@@ -303,6 +320,17 @@ async def search_events(
 
     except Exception as e:
         logger.exception(f"Gemini rescue search also failed: {e}")
+
+        # Record failed rescue
+        gemini_rescue_metrics.record_rescue(
+            query=query,
+            trigger_reason=trigger_reason,
+            success=False,
+            answer_length=0,
+            source_count=0,
+            official_source_count=0,
+            error=str(e),
+        )
 
         # =====================================================================
         # BOTH SOURCES FAILED
@@ -670,6 +698,18 @@ async def research_web(
         researcher = GeminiResearcher()
         result = await researcher.search(query, context=context)
 
+        source_count = len(result.sources)
+        official_count = len(result.official_sources)
+
+        # Record metrics
+        research_web_metrics.record_call(
+            query=query,
+            search_type=result.search_type.value,
+            success=True,
+            source_count=source_count,
+            official_source_count=official_count,
+        )
+
         # Format sources for response with quality indicators
         sources = [
             {
@@ -689,13 +729,24 @@ async def research_web(
             "search_type": result.search_type.value,
             "answer": result.answer,
             "sources": sources,
-            "source_count": len(sources),
-            "official_source_count": len(result.official_sources),
+            "source_count": source_count,
+            "official_source_count": official_count,
             "has_official_sources": result.has_official_sources,
         }
 
     except Exception as e:
         logger.exception(f"Web research failed: {e}")
+
+        # Record failed call
+        research_web_metrics.record_call(
+            query=query,
+            search_type="unknown",
+            success=False,
+            source_count=0,
+            official_source_count=0,
+            error=str(e),
+        )
+
         return {
             "success": False,
             "error": f"Research failed: {str(e)}",
