@@ -254,14 +254,18 @@ async def search_events(
         source_count = len(gemini_result.sources)
         official_count = len(gemini_result.official_sources)
 
+        # Detect graceful failures (Gemini returned error message instead of crashing)
+        is_graceful_failure = source_count == 0 and answer_length < 200
+
         # Record metrics
         gemini_rescue_metrics.record_rescue(
             query=query,
             trigger_reason=trigger_reason,
-            success=True,
+            success=not is_graceful_failure,
             answer_length=answer_length,
             source_count=source_count,
             official_source_count=official_count,
+            error="graceful_failure" if is_graceful_failure else None,
         )
 
         # Format sources with quality indicators
@@ -701,13 +705,17 @@ async def research_web(
         source_count = len(result.sources)
         official_count = len(result.official_sources)
 
+        # Detect graceful failures (Gemini returned error message instead of crashing)
+        is_graceful_failure = source_count == 0 and len(result.answer) < 200
+
         # Record metrics
         research_web_metrics.record_call(
             query=query,
             search_type=result.search_type.value,
-            success=True,
+            success=not is_graceful_failure,
             source_count=source_count,
             official_source_count=official_count,
+            error="graceful_failure" if is_graceful_failure else None,
         )
 
         # Format sources for response with quality indicators

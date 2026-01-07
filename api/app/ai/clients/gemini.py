@@ -359,14 +359,22 @@ class GeminiResearcher:
             f"(enhanced: {final_query[:80]}...)"
         )
 
+        import asyncio
+
+        # Get timeout from settings (default 10s for search)
+        timeout_seconds = min(settings.GEMINI_TIMEOUT, 10)
+
         try:
-            response = await client.aio.models.generate_content(
-                model=self.model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
-                    max_output_tokens=max_tokens,
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=self.model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        tools=[types.Tool(google_search=types.GoogleSearch())],
+                        max_output_tokens=max_tokens,
+                    ),
                 ),
+                timeout=timeout_seconds,
             )
 
             # Extract the answer text
@@ -393,9 +401,36 @@ class GeminiResearcher:
                 model=self.model,
             )
 
+        except asyncio.TimeoutError:
+            logger.warning(f"Gemini search timed out after {timeout_seconds}s: {query[:50]}...")
+            return SearchResult(
+                answer=f"I couldn't find information on that right now (search timed out). Please try again or search directly on Google.",
+                sources=[],
+                query=query,
+                enhanced_query=final_query,
+                search_type=detected_type,
+                model=self.model,
+            )
+
         except Exception as e:
             logger.exception(f"Gemini search error: {e}")
-            raise
+            # Return graceful error instead of crashing
+            error_msg = str(e)
+            if "quota" in error_msg.lower():
+                friendly_msg = "I couldn't search for that right now (API limit reached). Please try again in a moment."
+            elif "invalid" in error_msg.lower() or "api_key" in error_msg.lower():
+                friendly_msg = "I couldn't search for that right now (configuration issue). Please try again later."
+            else:
+                friendly_msg = "I couldn't find information on that right now. Please try searching directly or rephrase your question."
+
+            return SearchResult(
+                answer=friendly_msg,
+                sources=[],
+                query=query,
+                enhanced_query=final_query,
+                search_type=detected_type,
+                model=self.model,
+            )
 
     def _extract_sources(self, response) -> list[GroundedSource]:
         """Extract source citations from the grounding metadata."""

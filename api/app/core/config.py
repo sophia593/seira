@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     # Gemini settings
     GEMINI_MODEL: str = "gemini-2.0-flash"
     GEMINI_MAX_TOKENS: int = 1024
-    GEMINI_TIMEOUT: int = 30  # seconds
+    GEMINI_TIMEOUT: int = 10  # seconds (max for web search)
 
     model_config = SettingsConfigDict(
         env_file=".env",          # local only (Railway uses real env vars)
