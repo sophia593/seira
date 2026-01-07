@@ -8,13 +8,180 @@ up-to-date information with source citations.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
+
+# -----------------------------------------------------------------------------
+# Search query types and prompts
+# -----------------------------------------------------------------------------
+
+class SearchType(Enum):
+    """Types of searches Seira performs, each with tailored prompts."""
+    VENUE_INFO = "venue_info"
+    RESTAURANT = "restaurant"
+    EVENT_DETAILS = "event_details"
+    TICKETS = "tickets"
+    TRAVEL_TIPS = "travel_tips"
+    GENERAL = "general"
+
+
+# Base context that applies to all searches
+BASE_CONTEXT = """You are researching information for a travel assistant that helps people attend live events (concerts, sports, theater).
+
+Your job is to find accurate, actionable information. Prioritize:
+1. Official venue/team/artist sources over blogs
+2. Current information over outdated posts
+3. Specific details (prices, times, policies) over vague descriptions
+
+Be concise but complete. If information conflicts between sources, note it."""
+
+
+# Type-specific prompts that guide what details to extract
+SEARCH_PROMPTS: dict[SearchType, str] = {
+    SearchType.VENUE_INFO: """Find practical venue information. Include if available:
+- Official policies (bags, cameras, re-entry, age restrictions)
+- Parking options and typical prices
+- Public transit access
+- Food/drink policies (outside food? cashless?)
+- Accessibility features
+- Tips for first-time visitors (best entrance, when to arrive)
+
+Focus on official venue sources and recent visitor experiences.""",
+
+    SearchType.RESTAURANT: """Find restaurant recommendations. For each option include:
+- Name and proximity to the venue/area
+- Cuisine type and price range ($ to $$$$)
+- Why it's good for pre/post-event dining (speed, vibe, reservations needed?)
+- Any standout dishes or features
+- Current hours if available (note these may change)
+
+Prioritize places with good reviews that work well for event-goers (timing, location, noise level).""",
+
+    SearchType.EVENT_DETAILS: """Find current event information. Include if available:
+- Date, time, and venue
+- Ticket price ranges (face value and resale if relevant)
+- Special notes (opener, set times, themed nights, giveaways)
+- Any recent news or changes
+- What to expect (duration, intermission, etc.)
+
+Prioritize official team/artist/venue announcements.""",
+
+    SearchType.TICKETS: """Find ticket and pricing information. Include if available:
+- Price ranges by section/tier
+- Where to buy (official box office, Ticketmaster, verified resale)
+- Any fees or gotchas to know about
+- Tips for getting good seats/prices
+- Availability status if known
+
+Focus on official ticketing sources and verified resale platforms.""",
+
+    SearchType.TRAVEL_TIPS: """Find travel tips for this destination/event. Include if available:
+- Best areas to stay near the venue
+- Transportation from airport to venue area
+- Local tips (neighborhood vibe, safety, getting around)
+- Weather considerations for the time of year
+- Any city-specific advice for visitors
+
+Prioritize recent travel guides and local knowledge.""",
+
+    SearchType.GENERAL: """Find accurate, current information to answer this question.
+Be specific and cite your sources. If the information might be outdated or varies, note that.""",
+}
+
+
+# Keywords that help classify search type
+SEARCH_TYPE_KEYWORDS: dict[SearchType, list[str]] = {
+    SearchType.VENUE_INFO: [
+        "arena", "stadium", "venue", "theater", "theatre", "amphitheater",
+        "parking", "bag policy", "clear bag", "entry", "gates", "seating",
+        "sections", "accessibility", "ada", "what to know", "first time",
+    ],
+    SearchType.RESTAURANT: [
+        "restaurant", "eat", "food", "dining", "dinner", "lunch", "brunch",
+        "bar", "drinks", "pregame", "pre-game", "postgame", "post-game",
+        "near", "around", "close to", "walking distance",
+    ],
+    SearchType.EVENT_DETAILS: [
+        "setlist", "set list", "opener", "opening act", "what time",
+        "start time", "doors", "schedule", "lineup", "who's playing",
+        "theme night", "giveaway", "bobblehead", "jersey",
+    ],
+    SearchType.TICKETS: [
+        "ticket", "tickets", "price", "prices", "cost", "how much",
+        "buy", "purchase", "resale", "stubhub", "seatgeek", "sold out",
+        "availability", "face value", "fees",
+    ],
+    SearchType.TRAVEL_TIPS: [
+        "hotel", "stay", "neighborhood", "area", "airport", "transit",
+        "uber", "lyft", "taxi", "train", "subway", "getting to",
+        "weather", "pack", "bring", "visiting",
+    ],
+}
+
+
+def detect_search_type(query: str) -> SearchType:
+    """
+    Detect the type of search based on query keywords.
+
+    Returns the most likely search type, or GENERAL if unclear.
+    """
+    query_lower = query.lower()
+
+    # Score each type by keyword matches
+    scores: dict[SearchType, int] = {t: 0 for t in SearchType}
+
+    for search_type, keywords in SEARCH_TYPE_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in query_lower:
+                scores[search_type] += 1
+                # Boost for exact phrase matches
+                if f" {keyword} " in f" {query_lower} ":
+                    scores[search_type] += 1
+
+    # Return highest scoring type, or GENERAL if no matches
+    best_type = max(scores, key=scores.get)
+    if scores[best_type] > 0:
+        return best_type
+    return SearchType.GENERAL
+
+
+def enhance_query(query: str, search_type: SearchType) -> str:
+    """
+    Enhance the search query with type-specific terms for better results.
+
+    Adds context signals that help Google Search return more relevant results.
+    """
+    from datetime import date
+    current_year = date.today().year
+
+    enhancements: dict[SearchType, list[str]] = {
+        SearchType.VENUE_INFO: ["official site", "visitor guide", "policies"],
+        SearchType.RESTAURANT: ["reviews", "reservations", "menu"],
+        SearchType.EVENT_DETAILS: ["official", "schedule", str(current_year)],
+        SearchType.TICKETS: ["buy tickets", "official", "prices"],
+        SearchType.TRAVEL_TIPS: ["travel guide", "tips", "visitors"],
+        SearchType.GENERAL: [],
+    }
+
+    # Don't over-stuff the query - just add one relevant term if missing
+    query_lower = query.lower()
+    for term in enhancements.get(search_type, []):
+        if term.lower() not in query_lower:
+            return f"{query} {term}"
+
+    return query
+
+
+# -----------------------------------------------------------------------------
+# Data classes
+# -----------------------------------------------------------------------------
 
 @dataclass
 class GroundedSource:
@@ -23,6 +190,28 @@ class GroundedSource:
     url: str
     snippet: str | None = None
 
+    @property
+    def domain(self) -> str:
+        """Extract domain from URL for display."""
+        try:
+            from urllib.parse import urlparse
+            return urlparse(self.url).netloc.replace("www.", "")
+        except Exception:
+            return self.url
+
+    @property
+    def is_official(self) -> bool:
+        """Check if this is likely an official/authoritative source."""
+        official_patterns = [
+            r"\.gov$", r"\.edu$",
+            r"ticketmaster\.", r"axs\.com", r"livenation\.",
+            r"\.mlb\.com", r"\.nba\.com", r"\.nfl\.com", r"\.nhl\.com",
+            r"msg\.com", r"thegarden\.", r"crypto\.com/arena",
+            r"opentable\.com", r"resy\.com", r"yelp\.com",
+        ]
+        domain = self.domain.lower()
+        return any(re.search(p, domain) for p in official_patterns)
+
 
 @dataclass
 class SearchResult:
@@ -30,27 +219,44 @@ class SearchResult:
     answer: str
     sources: list[GroundedSource]
     query: str
+    enhanced_query: str  # The actual query sent to Gemini
+    search_type: SearchType
     model: str
 
+    @property
+    def official_sources(self) -> list[GroundedSource]:
+        """Return only official/authoritative sources."""
+        return [s for s in self.sources if s.is_official]
+
+    @property
+    def has_official_sources(self) -> bool:
+        """Check if any official sources were found."""
+        return len(self.official_sources) > 0
+
+
+# -----------------------------------------------------------------------------
+# Main client
+# -----------------------------------------------------------------------------
 
 class GeminiResearcher:
     """
     Gemini client with Search Grounding for real-time research.
 
     Uses Gemini's built-in Google Search grounding to get current
-    information with source citations. Ideal for:
-    - Price lookups
-    - Event details
-    - Flight information
-    - Venue details
-    - Current news/updates
+    information with source citations. Optimized for:
+    - Venue details and policies
+    - Event information
+    - Restaurant recommendations
+    - Ticket pricing
+    - Travel tips
 
     Usage:
         researcher = GeminiResearcher()
-        result = await researcher.search("Lakers vs Celtics ticket prices February 2025")
+        result = await researcher.search("parking at Crypto.com Arena")
         print(result.answer)
-        for source in result.sources:
-            print(f"  - {source.title}: {source.url}")
+        print(f"Search type detected: {result.search_type.value}")
+        for source in result.official_sources:
+            print(f"  - {source.title} ({source.domain})")
     """
 
     def __init__(self, model: str | None = None):
@@ -59,7 +265,7 @@ class GeminiResearcher:
 
         Args:
             model: Gemini model to use. Defaults to config GEMINI_MODEL.
-                   Options: gemini-2.0-flash, gemini-1.5-pro, gemini-1.5-flash
+                   Recommended: gemini-2.0-flash for speed, gemini-1.5-pro for depth
         """
         settings = get_settings()
         self.model = model or settings.GEMINI_MODEL
@@ -86,10 +292,36 @@ class GeminiResearcher:
 
         return self._client
 
+    def _build_prompt(
+        self,
+        query: str,
+        search_type: SearchType,
+        context: str | None = None,
+    ) -> str:
+        """
+        Build the full prompt with base context, type-specific guidance, and query.
+        """
+        parts = [BASE_CONTEXT]
+
+        # Add type-specific prompt
+        type_prompt = SEARCH_PROMPTS.get(search_type, SEARCH_PROMPTS[SearchType.GENERAL])
+        parts.append(type_prompt)
+
+        # Add user-provided context if any
+        if context:
+            parts.append(f"Additional context: {context}")
+
+        # Add the actual query
+        parts.append(f"Question: {query}")
+
+        return "\n\n".join(parts)
+
     async def search(
         self,
         query: str,
         context: str | None = None,
+        search_type: SearchType | None = None,
+        should_enhance_query: bool = True,
         max_tokens: int | None = None,
     ) -> SearchResult:
         """
@@ -97,31 +329,37 @@ class GeminiResearcher:
 
         Args:
             query: The search query or question to research
-            context: Optional context to help focus the search
+            context: Optional context to help focus the search (e.g., "user is attending Lakers game on Feb 14")
+            search_type: Override auto-detected search type
+            should_enhance_query: Whether to add search-type-specific terms to query
             max_tokens: Maximum tokens in the response
 
         Returns:
-            SearchResult with answer text and source citations
+            SearchResult with answer text, source citations, and metadata
         """
         from google.genai import types
 
         client = self._get_client()
         settings = get_settings()
 
-        # Use config default if not specified
         if max_tokens is None:
             max_tokens = settings.GEMINI_MAX_TOKENS
 
-        # Build the prompt
-        if context:
-            prompt = f"{context}\n\nQuestion: {query}"
-        else:
-            prompt = query
+        # Detect or use provided search type
+        detected_type = search_type or detect_search_type(query)
 
-        logger.info(f"Gemini grounded search: {query[:100]}...")
+        # Optionally enhance the query
+        final_query = enhance_query(query, detected_type) if should_enhance_query else query
+
+        # Build the full prompt
+        prompt = self._build_prompt(final_query, detected_type, context)
+
+        logger.info(
+            f"Gemini search [{detected_type.value}]: {query[:80]}... "
+            f"(enhanced: {final_query[:80]}...)"
+        )
 
         try:
-            # Use Google Search grounding
             response = await client.aio.models.generate_content(
                 model=self.model,
                 contents=prompt,
@@ -142,13 +380,16 @@ class GeminiResearcher:
             sources = self._extract_sources(response)
 
             logger.info(
-                f"Gemini search complete: {len(answer)} chars, {len(sources)} sources"
+                f"Gemini search complete: {len(answer)} chars, "
+                f"{len(sources)} sources ({len([s for s in sources if s.is_official])} official)"
             )
 
             return SearchResult(
                 answer=answer.strip(),
                 sources=sources,
                 query=query,
+                enhanced_query=final_query,
+                search_type=detected_type,
                 model=self.model,
             )
 
@@ -161,17 +402,14 @@ class GeminiResearcher:
         sources = []
 
         try:
-            # Check for grounding metadata in the response
             if not response.candidates:
                 return sources
 
             candidate = response.candidates[0]
-
-            # Grounding metadata location varies by response structure
             grounding_metadata = getattr(candidate, "grounding_metadata", None)
 
             if grounding_metadata:
-                # Extract from grounding_chunks if available
+                # Extract from grounding_chunks
                 chunks = getattr(grounding_metadata, "grounding_chunks", [])
                 for chunk in chunks:
                     web = getattr(chunk, "web", None)
@@ -182,25 +420,27 @@ class GeminiResearcher:
                             snippet=None,
                         ))
 
-                # Also check grounding_supports for additional context
+                # Extract snippets from grounding_supports
                 supports = getattr(grounding_metadata, "grounding_supports", [])
                 for support in supports:
                     segment = getattr(support, "segment", None)
                     if segment:
                         snippet = getattr(segment, "text", None)
-                        # Match to existing source if possible
                         for source in sources:
                             if source.snippet is None:
                                 source.snippet = snippet
                                 break
 
-            # Dedupe sources by URL
+            # Dedupe by URL
             seen_urls = set()
             unique_sources = []
             for source in sources:
                 if source.url and source.url not in seen_urls:
                     seen_urls.add(source.url)
                     unique_sources.append(source)
+
+            # Sort: official sources first
+            unique_sources.sort(key=lambda s: (not s.is_official, s.domain))
 
             return unique_sources
 
@@ -212,18 +452,11 @@ class GeminiResearcher:
         self,
         query: str,
         context: str | None = None,
+        search_type: SearchType | None = None,
         max_retries: int = 2,
     ) -> SearchResult:
         """
         Perform a grounded search with automatic retry on failure.
-
-        Args:
-            query: The search query
-            context: Optional context
-            max_retries: Number of retries on failure
-
-        Returns:
-            SearchResult
         """
         import asyncio
 
@@ -231,11 +464,11 @@ class GeminiResearcher:
 
         for attempt in range(max_retries + 1):
             try:
-                return await self.search(query, context)
+                return await self.search(query, context, search_type)
             except Exception as e:
                 last_error = e
                 if attempt < max_retries:
-                    wait_time = 2 ** attempt  # Exponential backoff
+                    wait_time = 2 ** attempt
                     logger.warning(
                         f"Gemini search failed (attempt {attempt + 1}), "
                         f"retrying in {wait_time}s: {e}"
@@ -243,3 +476,55 @@ class GeminiResearcher:
                     await asyncio.sleep(wait_time)
 
         raise last_error
+
+    async def search_venue(self, venue_name: str, specific_topic: str | None = None) -> SearchResult:
+        """
+        Convenience method for venue-specific searches.
+
+        Args:
+            venue_name: Name of the venue (e.g., "Crypto.com Arena", "Madison Square Garden")
+            specific_topic: Optional specific topic (e.g., "parking", "bag policy", "food")
+
+        Returns:
+            SearchResult focused on venue information
+        """
+        if specific_topic:
+            query = f"{venue_name} {specific_topic}"
+        else:
+            query = f"{venue_name} visitor guide tips"
+
+        return await self.search(
+            query=query,
+            search_type=SearchType.VENUE_INFO,
+            context=f"User is attending an event at {venue_name}",
+        )
+
+    async def search_restaurants(
+        self,
+        location: str,
+        venue_name: str | None = None,
+        meal_type: str = "dinner",
+    ) -> SearchResult:
+        """
+        Convenience method for restaurant searches near venues.
+
+        Args:
+            location: City or neighborhood
+            venue_name: Optional venue to search near
+            meal_type: Type of meal (dinner, lunch, drinks, etc.)
+
+        Returns:
+            SearchResult with restaurant recommendations
+        """
+        if venue_name:
+            query = f"best {meal_type} restaurants near {venue_name}"
+            context = f"User is looking for {meal_type} before/after an event at {venue_name}"
+        else:
+            query = f"best {meal_type} restaurants {location}"
+            context = f"User is visiting {location} for a live event"
+
+        return await self.search(
+            query=query,
+            search_type=SearchType.RESTAURANT,
+            context=context,
+        )

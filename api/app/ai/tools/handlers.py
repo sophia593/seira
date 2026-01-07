@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from app.ai.tools.registry import register_tool
-from app.ai.clients.gemini import GeminiResearcher
+from app.ai.clients.gemini import GeminiResearcher, SearchType
 from app.integrations.ticketmaster import TicketmasterClient, Event
 from app.services import trip as trip_service
 from app.services import user as user_service
@@ -242,16 +242,19 @@ async def search_events(
                 f"Focus on events the user can actually attend and buy tickets for. "
                 f"If the user asks about 'tonight' or 'this weekend', use today's date as reference."
             ),
+            search_type=SearchType.EVENT_DETAILS,
         )
 
         logger.info(f"Gemini rescue returned {len(gemini_result.answer)} chars")
 
-        # Format sources with more detail
+        # Format sources with quality indicators
         sources = [
             {
                 "title": s.title or "Source",
                 "url": s.url,
+                "domain": s.domain,
                 "snippet": s.snippet,
+                "is_official": s.is_official,
             }
             for s in gemini_result.sources
         ]
@@ -667,12 +670,14 @@ async def research_web(
         researcher = GeminiResearcher()
         result = await researcher.search(query, context=context)
 
-        # Format sources for response
+        # Format sources for response with quality indicators
         sources = [
             {
                 "title": s.title,
                 "url": s.url,
+                "domain": s.domain,
                 "snippet": s.snippet,
+                "is_official": s.is_official,
             }
             for s in result.sources
         ]
@@ -680,9 +685,13 @@ async def research_web(
         return {
             "success": True,
             "query": query,
+            "enhanced_query": result.enhanced_query,
+            "search_type": result.search_type.value,
             "answer": result.answer,
             "sources": sources,
             "source_count": len(sources),
+            "official_source_count": len(result.official_sources),
+            "has_official_sources": result.has_official_sources,
         }
 
     except Exception as e:
