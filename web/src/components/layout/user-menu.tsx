@@ -30,13 +30,13 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
     const { error } = await supabase.auth.signOut()
 
     if (error) {
-      toast.error("Failed to log out")
+      toast.error("couldn't log out")
       return
     }
 
     reset()
     router.push("/login")
-    toast.success("Logged out")
+    toast.success("logged out")
   }
 
   if (!user) return null
@@ -79,12 +79,12 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/settings")}>
           <Settings className="mr-2 h-4 w-4" />
-          Preferences
+          settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          Log out
+          log out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

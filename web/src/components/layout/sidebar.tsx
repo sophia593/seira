@@ -72,7 +72,7 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
         setConversations(data)
       } catch (error) {
         if (error instanceof ApiError && error.status !== 401) {
-          toast.error("Failed to load conversations")
+          toast.error("couldn't load conversations")
         }
       } finally {
         setIsLoading(false)
@@ -92,7 +92,7 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
       setConversations((prev) => [conversation, ...prev])
       router.push(`/chat/${conversation.id}`)
     } catch {
-      toast.error("Failed to create conversation")
+      toast.error("couldn't create conversation")
     } finally {
       setIsCreating(false)
     }
@@ -121,10 +121,10 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
       setConversations((prev) =>
         prev.map((c) => (c.id === updated.id ? updated : c))
       )
-      toast.success("Conversation renamed")
+      toast.success("conversation renamed")
       setRenameDialogOpen(false)
     } catch {
-      toast.error("Failed to rename conversation")
+      toast.error("couldn't rename conversation")
     } finally {
       setIsRenaming(false)
     }
@@ -154,7 +154,7 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
     } catch {
       // Rollback on failure
       setConversations(previousConversations)
-      toast.error("Failed to delete conversation")
+      toast.error("couldn't delete conversation")
     }
   }
 
@@ -200,7 +200,7 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
-                {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                {isCollapsed ? "expand sidebar" : "collapse sidebar"}
               </TooltipContent>
             </Tooltip>
           )}
@@ -218,12 +218,12 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
               >
                 {!isCreating && <Plus className="h-4 w-4" />}
                 {!isCollapsed && (
-                  <span>{isCreating ? "Creating..." : "New Chat"}</span>
+                  <span>{isCreating ? "creating..." : "new chat"}</span>
                 )}
               </Button>
             </TooltipTrigger>
             {isCollapsed && (
-              <TooltipContent side="right">New Chat</TooltipContent>
+              <TooltipContent side="right">new chat</TooltipContent>
             )}
           </Tooltip>
         </div>
@@ -278,11 +278,11 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
                 )}
               >
                 <Plane className="h-4 w-4" />
-                {!isCollapsed && <span>My Trips</span>}
+                {!isCollapsed && <span>my trips</span>}
               </Link>
             </TooltipTrigger>
             {isCollapsed && (
-              <TooltipContent side="right">My Trips</TooltipContent>
+              <TooltipContent side="right">my trips</TooltipContent>
             )}
           </Tooltip>
 
@@ -307,7 +307,7 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
               ref={renameInputRef}
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
-              placeholder="Conversation name"
+              placeholder="conversation name"
               className="mb-4"
               autoFocus
             />
@@ -318,10 +318,10 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
                 onClick={() => setRenameDialogOpen(false)}
                 disabled={isRenaming}
               >
-                Cancel
+                cancel
               </Button>
               <Button type="submit" disabled={isRenaming || !renameValue.trim()}>
-                {isRenaming ? "Saving..." : "Save"}
+                {isRenaming ? "saving..." : "save"}
               </Button>
             </DialogFooter>
           </form>
