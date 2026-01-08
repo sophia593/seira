@@ -13,7 +13,7 @@ export interface Event {
   price_min?: number | null
   price_max?: number | null
   currency?: string // Default "USD"
-  purchase_url: string
+  purchase_url?: string | null
 }
 
 /**

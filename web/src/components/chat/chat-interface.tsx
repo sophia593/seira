@@ -1,8 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useStreaming } from "@/hooks/use-streaming"
 import { getApi, type Message } from "@/lib/api"
+import { useUserStore } from "@/stores/user-store"
 import {
   useConversationStore,
   selectMessages,
@@ -69,6 +71,9 @@ function mergeToolResults(messages: Message[]): Message[] {
 }
 
 export function ChatInterface({ conversationId, initialPrompt }: ChatInterfaceProps) {
+  const router = useRouter()
+  const resetUser = useUserStore((state) => state.reset)
+
   const [isLoading, setIsLoading] = useState(false)
   const [scrollTrigger, setScrollTrigger] = useState(0)
   const lastMessageRef = useRef<string | null>(null)
@@ -183,10 +188,16 @@ export function ChatInterface({ conversationId, initialPrompt }: ChatInterfacePr
   // Streaming hook with callbacks
   const { sendMessage, abort } = useStreaming({
     onStart: ({ conversation_id }) => {
-      if (!conversationId && conversation_id) {
+      if (conversation_id && !conversationId) {
         setConversationId(conversation_id)
-        // Don't update URL - it can cause issues. User can navigate to conversation later.
-        // window.history.replaceState(null, "", `/chat/${conversation_id}`)
+        // Update URL without navigation so refresh/share works
+        window.history.replaceState(
+          { ...window.history.state },
+          '',
+          `/chat/${conversation_id}`
+        )
+        // Update ref so we don't try to reload this conversation
+        loadedConversationId.current = conversation_id
       }
     },
     onText: ({ text }) => {
@@ -207,6 +218,10 @@ export function ChatInterface({ conversationId, initialPrompt }: ChatInterfacePr
     onError: ({ message }) => {
       setError(message)
       finalizeStream()
+    },
+    onAuthError: () => {
+      resetUser()
+      router.push("/login")
     },
   })
 
@@ -256,7 +271,7 @@ export function ChatInterface({ conversationId, initialPrompt }: ChatInterfacePr
   // Handle event selection - auto-send follow-up message
   const handleSelectEvent = useCallback(
     (event: typeof selectedEvent) => {
-      if (event) {
+      if (event && event.name && event.date) {
         // Store already updated by EventResultsGrid, but we send the auto-message
         const message = `I'd like to go to ${event.name} on ${event.date}${event.venue ? ` at ${event.venue}` : ''}${event.city ? ` in ${event.city}` : ''}`
         handleSendMessage(message)

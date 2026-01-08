@@ -57,6 +57,8 @@ export interface StreamCallbacks {
   onToolResult?: (data: ToolResultEventData) => void;
   onDone?: (data: DoneEventData) => void;
   onError?: (data: ErrorEventData) => void;
+  /** Called when authentication fails (401 or missing session) */
+  onAuthError?: () => void;
 }
 
 export interface SendMessageOptions {
@@ -222,6 +224,17 @@ export function useStreaming(
         }
 
         const errorMessage = err instanceof Error ? err.message : "Unknown error";
+
+        // Check for auth errors
+        const isAuthError =
+          errorMessage === "Not authenticated" ||
+          errorMessage.includes("401") ||
+          errorMessage.toLowerCase().includes("unauthorized");
+
+        if (isAuthError) {
+          callbacksRef.current.onAuthError?.();
+        }
+
         setError(errorMessage);
         callbacksRef.current.onError?.({ message: errorMessage });
       } finally {

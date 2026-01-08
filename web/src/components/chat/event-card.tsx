@@ -134,19 +134,23 @@ export const EventCard = memo(function EventCard({
             <span className="text-sm text-muted-foreground">price varies</span>
           )}
 
-          <a
-            href={purchase_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleTicketsClick}
-            className={cn(
-              'inline-flex items-center gap-1 text-sm font-medium lowercase',
-              'text-primary hover:text-primary/80 transition-colors'
-            )}
-          >
-            view tickets
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          {purchase_url ? (
+            <a
+              href={purchase_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleTicketsClick}
+              className={cn(
+                'inline-flex items-center gap-1 text-sm font-medium lowercase',
+                'text-primary hover:text-primary/80 transition-colors'
+              )}
+            >
+              view tickets
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          ) : (
+            <span className="text-sm text-muted-foreground">no link available</span>
+          )}
         </div>
       </div>
     </div>

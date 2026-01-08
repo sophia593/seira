@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -96,6 +97,7 @@ async def search_events(
     Search for live events using Ticketmaster API.
     Falls back to Gemini web search if no results found.
     """
+    tool_start = time.time()
     query = input.get("query", "")
     city_raw = input.get("city")
     city = normalize_city(city_raw)  # Normalize "NYC" -> "New York" etc.
@@ -104,10 +106,9 @@ async def search_events(
     category = input.get("category")
 
     logger.info(
-        f"search_events CALLED: query={query!r}, city_raw={city_raw!r}, city={city!r}, "
+        f"[TIMING] search_events STARTED: query={query!r}, city={city!r}, "
         f"dates={date_from} to {date_to}, category={category!r}"
     )
-    logger.info(f"search_events raw input: {input}")
 
     # Map category to Ticketmaster segment
     segment = CATEGORY_TO_SEGMENT.get(category) if category else None
@@ -127,12 +128,8 @@ async def search_events(
     result = None
 
     try:
-        logger.info(f"Creating TicketmasterClient...")
+        t0 = time.time()
         async with TicketmasterClient() as client:
-            logger.info(
-                f"Calling Ticketmaster API: keyword={search_query!r}, city={city!r}, "
-                f"start_date={date_from}, end_date={date_to}, segment={segment!r}"
-            )
             result = await client.search_events(
                 keyword=search_query if search_query else None,
                 city=city,
@@ -141,10 +138,10 @@ async def search_events(
                 segment=segment,
                 size=100,  # Fetch more to get variety after deduping
             )
-            logger.info(f"Ticketmaster returned {result.total_count} events")
+            logger.info(f"[TIMING] Ticketmaster API: {(time.time() - t0) * 1000:.1f}ms, returned {result.total_count} events")
 
     except Exception as e:
-        logger.exception(f"Ticketmaster search failed: {e}")
+        logger.exception(f"[TIMING] Ticketmaster FAILED after {(time.time() - t0) * 1000:.1f}ms: {e}")
         ticketmaster_failed = True
         ticketmaster_error = str(e)
 
@@ -179,6 +176,7 @@ async def search_events(
         # VERIFIED TICKETMASTER RESULTS
         # These are real, bookable events from Ticketmaster's database
         # =====================================================================
+        logger.info(f"[TIMING] search_events COMPLETED (VERIFIED_EVENTS): {(time.time() - tool_start) * 1000:.1f}ms total, {len(unique_events)} events")
         return {
             "success": True,
             "result_type": "VERIFIED_EVENTS",
@@ -212,11 +210,12 @@ async def search_events(
     # =========================================================================
     trigger_reason = "api_failed" if ticketmaster_failed else "no_results"
     logger.info(
-        f"GEMINI_RESCUE_TRIGGERED: reason={trigger_reason}, query={query!r}, "
-        f"city={city!r}, category={category!r}, dates={date_from} to {date_to}"
+        f"[TIMING] GEMINI_RESCUE_TRIGGERED: reason={trigger_reason}, query={query!r}, "
+        f"city={city!r}, after {(time.time() - tool_start) * 1000:.1f}ms"
     )
 
     try:
+        t0 = time.time()
         researcher = GeminiResearcher()
 
         # Get current date for context
@@ -249,6 +248,7 @@ async def search_events(
             ),
             search_type=SearchType.EVENT_DETAILS,
         )
+        logger.info(f"[TIMING] Gemini search: {(time.time() - t0) * 1000:.1f}ms")
 
         answer_length = len(gemini_result.answer)
         source_count = len(gemini_result.sources)
@@ -284,6 +284,7 @@ async def search_events(
         # WEB RESEARCH RESULTS (UNVERIFIED)
         # These are from web search and should be verified by the user
         # =====================================================================
+        logger.info(f"[TIMING] search_events COMPLETED (WEB_RESEARCH): {(time.time() - tool_start) * 1000:.1f}ms total")
         return {
             "success": True,
             "result_type": "WEB_RESEARCH",
@@ -323,7 +324,7 @@ async def search_events(
         }
 
     except Exception as e:
-        logger.exception(f"Gemini rescue search also failed: {e}")
+        logger.exception(f"[TIMING] Gemini FAILED after {(time.time() - t0) * 1000:.1f}ms: {e}")
 
         # Record failed rescue
         gemini_rescue_metrics.record_rescue(

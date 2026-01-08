@@ -30,20 +30,22 @@ export default function TripsPage() {
   const [error, setError] = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState<FilterType>('all')
 
-  useEffect(() => {
-    async function fetchTrips() {
-      try {
-        const api = getApi()
-        const data = await api.getTrips()
-        setTrips(data)
-      } catch (err) {
-        console.error('Failed to fetch trips:', err)
-        setError('failed to load trips')
-      } finally {
-        setIsLoading(false)
-      }
+  async function fetchTrips() {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const api = getApi()
+      const data = await api.getTrips()
+      setTrips(data)
+    } catch (err) {
+      console.error('Failed to fetch trips:', err)
+      setError('failed to load trips')
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchTrips()
   }, [])
 
@@ -125,6 +127,7 @@ export default function TripsPage() {
               ? `no ${activeFilter} trips yet`
               : undefined
           }
+          onRetry={fetchTrips}
         />
       </div>
     </div>

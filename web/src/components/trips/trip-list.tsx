@@ -18,19 +18,21 @@ interface TripListProps {
   showGrouping?: boolean
   /** When filtering, show a lighter empty state */
   emptyMessage?: string
+  /** Callback for retry button in error state */
+  onRetry?: () => void
 }
 
 // =============================================================================
 // Main Component
 // =============================================================================
 
-export function TripList({ trips, isLoading, error, showGrouping = true, emptyMessage }: TripListProps) {
+export function TripList({ trips, isLoading, error, showGrouping = true, emptyMessage, onRetry }: TripListProps) {
   if (isLoading) {
     return <TripListSkeleton count={4} />
   }
 
   if (error) {
-    return <ErrorState message={error} />
+    return <ErrorState message={error} onRetry={onRetry} />
   }
 
   if (trips.length === 0) {
@@ -137,13 +139,13 @@ function FilteredEmptyState({ message }: { message: string }) {
 // Error State
 // =============================================================================
 
-function ErrorState({ message }: { message: string }) {
+function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <p className="text-destructive mb-4">{message}</p>
       <Button
         variant="outline"
-        onClick={() => window.location.reload()}
+        onClick={onRetry ?? (() => window.location.reload())}
         className="lowercase"
       >
         try again

@@ -75,7 +75,7 @@ export const EventResultsGrid = memo(function EventResultsGrid({
         city: event.venue_city,
         imageUrl: event.image_url ?? undefined,
         priceRange: event.price_min ? `from $${event.price_min}` : undefined,
-        url: event.purchase_url,
+        url: event.purchase_url ?? undefined,
       }
       selectEvent(selected)
       // Call parent callback for auto-message
@@ -132,6 +132,6 @@ function normalizeEvent(apiEvent: EventFromApi): Event {
     price_min: apiEvent.price_min ?? null,
     price_max: null,
     currency: 'USD',
-    purchase_url: apiEvent.ticket_url ?? apiEvent.purchase_url ?? apiEvent.url ?? '#',
+    purchase_url: apiEvent.ticket_url ?? apiEvent.purchase_url ?? apiEvent.url ?? null,
   }
 }

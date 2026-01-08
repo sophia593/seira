@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -229,11 +230,15 @@ async def chat(
     - `done`: Stream complete
     - `error`: An error occurred
     """
+    request_start = time.time()
     settings = get_settings()
     conversation_id = body.conversation_id
     user_message = body.message
 
+    logger.info(f"[TIMING] Chat request started: conv_id={conversation_id}, msg_len={len(user_message)}")
+
     # Get or create conversation
+    t0 = time.time()
     if conversation_id:
         conversation = await conversation_service.get_conversation(conversation_id)
         if not conversation:
@@ -247,14 +252,18 @@ async def chat(
             title=title,
         )
         conversation_id = conversation["id"]
+    logger.info(f"[TIMING] Get/create conversation: {(time.time() - t0) * 1000:.1f}ms")
 
     # Save user message
+    t0 = time.time()
     user_msg = await message_service.save_user_message(
         conversation_id=conversation_id,
         content=user_message,
     )
+    logger.info(f"[TIMING] Save user message: {(time.time() - t0) * 1000:.1f}ms")
 
     # Get user info for personalization
+    t0 = time.time()
     user_row = await user_service.get_user_row(current.id)
     prefs_row = await user_service.get_preferences_row(current.id)
 
@@ -269,11 +278,13 @@ async def chat(
             "budget_default": prefs_row.get("budget_default"),
             "preferred_airlines": prefs_row.get("preferred_airlines"),
         }
+    logger.info(f"[TIMING] Get user info: {(time.time() - t0) * 1000:.1f}ms")
 
     # Get conversation context
     conv_context = conversation.get("context") or {}
 
     # Get conversation history for context
+    t0 = time.time()
     history_messages = await message_service.get_messages_for_context(
         conversation_id=conversation_id,
         max_messages=20,
@@ -283,6 +294,8 @@ async def chat(
 
     # Convert to Claude format (exclude the message we just saved)
     claude_history = _db_messages_to_claude_format(history_messages[:-1])
+    logger.info(f"[TIMING] Get conversation history ({len(history_messages)} msgs): {(time.time() - t0) * 1000:.1f}ms")
+    logger.info(f"[TIMING] Total setup time: {(time.time() - request_start) * 1000:.1f}ms")
 
     async def generate_stream():
         """Generate SSE stream from AI response."""
