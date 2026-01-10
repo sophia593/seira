@@ -38,9 +38,9 @@ export function AppShellProvider({
         const data = await api.getMe()
         setUser(data.user)
         setPreferences(data.preferences)
-      } catch (error) {
-        // User data from session is still valid, just preferences missing
-        console.error("Failed to fetch user data:", error)
+      } catch {
+        // Silent fail - session user data is still valid, preferences are optional
+        // The app continues to work, user just won't have saved preferences loaded
       } finally {
         setLoading(false)
       }

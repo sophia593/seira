@@ -13,10 +13,17 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { type TripDetail, type RefreshQuotesResponse } from '@/lib/api'
+import { type TripDetail } from '@/lib/api'
 import { EventDetailCard } from './event-detail-card'
 import { FlightsSection } from './flights-section'
 import { type TripEventFlat, type TripFlightFlat } from '@/types/trip'
+
+// Price refresh response (if backend implements this later)
+interface RefreshQuotesResponse {
+  price_change: number | null
+  previous_price: number | null
+  new_price: number | null
+}
 
 // =============================================================================
 // Types

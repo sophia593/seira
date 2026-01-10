@@ -1,7 +1,16 @@
+/**
+ * Next.js Middleware - Route Protection & Auth Session Management
+ *
+ * This middleware runs on every request (except static assets) and:
+ * 1. Refreshes the Supabase auth session (keeps cookies fresh)
+ * 2. Redirects logged-in users away from /login and /signup to /chat
+ * 3. Redirects logged-out users away from /chat and /trips to /login
+ */
+
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -29,7 +38,7 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refresh session
+  // Refresh session (important: keeps auth cookies fresh)
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -45,7 +54,7 @@ export async function proxy(request: NextRequest) {
 
   // Logged-out user visiting protected pages -> redirect to /login
   if (!user) {
-    if (pathname.startsWith("/chat") || pathname.startsWith("/trips")) {
+    if (pathname.startsWith("/chat") || pathname.startsWith("/trips") || pathname.startsWith("/settings")) {
       return NextResponse.redirect(new URL("/login", request.url))
     }
   }

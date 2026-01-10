@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { getApi, type TripDetail, type RefreshQuotesResponse } from '@/lib/api'
+import { getApi, type TripDetail } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { TripDetailComponent } from '@/components/trips/trip-detail'
 
@@ -19,8 +19,6 @@ export default function TripDetailPage() {
   const [trip, setTrip] = useState<TripDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [refreshResult, setRefreshResult] = useState<RefreshQuotesResponse | null>(null)
 
   useEffect(() => {
     async function fetchTrip() {
@@ -28,8 +26,7 @@ export default function TripDetailPage() {
         const api = getApi()
         const data = await api.getTrip(tripId)
         setTrip(data)
-      } catch (err) {
-        console.error('Failed to fetch trip:', err)
+      } catch {
         setError('failed to load trip')
       } finally {
         setIsLoading(false)
@@ -37,27 +34,6 @@ export default function TripDetailPage() {
     }
 
     fetchTrip()
-  }, [tripId])
-
-  const handleRefreshQuotes = useCallback(async () => {
-    setIsRefreshing(true)
-    setRefreshResult(null)
-
-    try {
-      const api = getApi()
-      const result = await api.refreshTripQuotes(tripId)
-      setTrip(result.trip)
-      setRefreshResult(result)
-
-      // Clear the result message after 5 seconds
-      setTimeout(() => setRefreshResult(null), 5000)
-    } catch (err) {
-      console.error('Failed to refresh quotes:', err)
-      setError('failed to refresh prices')
-      setTimeout(() => setError(null), 3000)
-    } finally {
-      setIsRefreshing(false)
-    }
   }, [tripId])
 
   if (isLoading) {
@@ -81,12 +57,7 @@ export default function TripDetailPage() {
         </Link>
 
         {/* Trip Detail Component */}
-        <TripDetailComponent
-          trip={trip}
-          onRefreshQuotes={handleRefreshQuotes}
-          isRefreshing={isRefreshing}
-          refreshResult={refreshResult}
-        />
+        <TripDetailComponent trip={trip} />
       </div>
     </div>
   )

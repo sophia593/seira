@@ -37,8 +37,7 @@ export default function TripsPage() {
       const api = getApi()
       const data = await api.getTrips()
       setTrips(data)
-    } catch (err) {
-      console.error('Failed to fetch trips:', err)
+    } catch {
       setError('failed to load trips')
     } finally {
       setIsLoading(false)
@@ -121,7 +120,6 @@ export default function TripsPage() {
           trips={filteredTrips}
           isLoading={isLoading}
           error={error}
-          showGrouping={activeFilter === 'all'}
           emptyMessage={
             activeFilter !== 'all' && trips.length > 0
               ? `no ${activeFilter} trips yet`

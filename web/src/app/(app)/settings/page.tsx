@@ -150,8 +150,7 @@ export default function SettingsPage() {
 
       // Reset success icon after delay
       setTimeout(() => setProfileSaved(false), 3000)
-    } catch (err) {
-      console.error('Failed to update profile:', err)
+    } catch {
       toast.error('couldn\'t update profile')
     } finally {
       setIsSavingProfile(false)
@@ -186,8 +185,7 @@ export default function SettingsPage() {
 
       // Reset success icon after delay
       setTimeout(() => setPrefsSaved(false), 3000)
-    } catch (err) {
-      console.error('Failed to update preferences:', err)
+    } catch {
       toast.error('couldn\'t save preferences')
     } finally {
       setIsSavingPrefs(false)
