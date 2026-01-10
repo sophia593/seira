@@ -79,23 +79,12 @@ export function ChatInterface({ conversationId, initialPrompt }: ChatInterfacePr
   const lastMessageRef = useRef<string | null>(null)
   const [showDebug, setShowDebug] = useState(false)
 
-  // Debug: Log when component mounts/unmounts
-  useEffect(() => {
-    console.log('[ChatInterface] MOUNTED', { conversationId })
-    return () => {
-      console.log('[ChatInterface] UNMOUNTED', { conversationId })
-    }
-  }, [])
 
   // Store state
   const messages = useConversationStore(selectMessages)
   const isStreaming = useConversationStore(selectIsStreaming)
   const storeConversationId = useConversationStore(selectConversationId)
 
-  // Debug: Log when messages change
-  useEffect(() => {
-    console.log('[ChatInterface] Messages changed:', messages.length, messages.map(m => ({ id: m.id, role: m.role })))
-  }, [messages])
   const streamingContent = useConversationStore(selectStreamingContent)
   const pendingToolCalls = useConversationStore(selectStreamingToolCalls)
   const selectedEvent = useConversationStore(selectSelectedEvent)
@@ -167,7 +156,6 @@ export function ChatInterface({ conversationId, initialPrompt }: ChatInterfacePr
         setMessages(processedMessages)
       } catch (err) {
         if (cancelled) return
-        console.error("Failed to load conversation:", err)
         setError("Failed to load conversation")
         // Reset loaded ID so user can retry
         loadedConversationId.current = null
@@ -322,32 +310,36 @@ export function ChatInterface({ conversationId, initialPrompt }: ChatInterfacePr
 
   return (
     <div className="flex flex-col h-full">
-      {/* Debug Panel - Toggle with keyboard shortcut or button */}
-      <button
-        onClick={() => setShowDebug(!showDebug)}
-        className="fixed bottom-20 right-4 z-50 p-2 rounded-full bg-muted hover:bg-muted/80 opacity-50 hover:opacity-100 transition-opacity"
-        title="Toggle debug panel"
-      >
-        <Bug className="w-4 h-4" />
-      </button>
-      {showDebug && (
-        <div className="fixed bottom-32 right-4 z-50 p-3 rounded-lg bg-black/90 text-white text-xs font-mono max-w-sm">
-          <div className="space-y-1">
-            <div>prop conversationId: {conversationId || "(none)"}</div>
-            <div>store conversationId: {storeConversationId || "(none)"}</div>
-            <div>messages: {messages.length}</div>
-            <div>isStreaming: {isStreaming ? "true" : "false"}</div>
-            <div>streamingContent: {streamingContent.length} chars</div>
-            <div>toolCalls: {pendingToolCalls.length}</div>
-            <div className="pt-1 border-t border-white/20 mt-1">
-              {messages.map((m, i) => (
-                <div key={m.id} className="truncate">
-                  {i + 1}. {m.role}: {m.content?.slice(0, 30) || "(tool)"}...
+      {/* Debug Panel - Development only */}
+      {process.env.NODE_ENV === 'development' && (
+        <>
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className="fixed bottom-20 right-4 z-50 p-2 rounded-full bg-muted hover:bg-muted/80 opacity-50 hover:opacity-100 transition-opacity"
+            title="Toggle debug panel"
+          >
+            <Bug className="w-4 h-4" />
+          </button>
+          {showDebug && (
+            <div className="fixed bottom-32 right-4 z-50 p-3 rounded-lg bg-black/90 text-white text-xs font-mono max-w-sm">
+              <div className="space-y-1">
+                <div>prop conversationId: {conversationId || "(none)"}</div>
+                <div>store conversationId: {storeConversationId || "(none)"}</div>
+                <div>messages: {messages.length}</div>
+                <div>isStreaming: {isStreaming ? "true" : "false"}</div>
+                <div>streamingContent: {streamingContent.length} chars</div>
+                <div>toolCalls: {pendingToolCalls.length}</div>
+                <div className="pt-1 border-t border-white/20 mt-1">
+                  {messages.map((m, i) => (
+                    <div key={m.id} className="truncate">
+                      {i + 1}. {m.role}: {m.content?.slice(0, 30) || "(tool)"}...
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
       {/* Messages area */}

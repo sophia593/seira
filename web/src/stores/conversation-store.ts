@@ -112,9 +112,6 @@ const initialState = {
   returnFlight: null,
 }
 
-// Track current conversation ID to prevent cross-conversation state issues
-let currentLoadedConversationId: string | null = null
-
 // -----------------------------------------------------------------------------
 // Store
 // -----------------------------------------------------------------------------
@@ -131,37 +128,24 @@ export const useConversationStore = create<ConversationState>((set) => ({
 
   setConversationId: (conversationId) => set({ conversationId }),
 
-  setMessages: (messages) =>
-    set(() => {
-      console.log('[Store] setMessages called', { newCount: messages.length })
-      return { messages }
-    }),
+  setMessages: (messages) => set({ messages }),
 
   addMessage: (message) =>
-    set((state) => {
-      console.log('[Store] addMessage', { role: message.role, id: message.id })
-      return {
-        messages: [...state.messages, message],
-      }
-    }),
+    set((state) => ({
+      messages: [...state.messages, message],
+    })),
 
   // Streaming actions
-  startStream: () => {
-    console.log('[Store] startStream')
-    return set({
+  startStream: () =>
+    set({
       isStreaming: true,
       streamingMessage: { ...initialStreamingMessage },
       error: null,
-    })
-  },
+    }),
 
   appendDelta: (text) =>
     set((state) => {
       if (!state.streamingMessage) return state
-      // Only log occasionally to avoid spam
-      if (state.streamingMessage.content.length % 100 === 0) {
-        console.log('[Store] appendDelta', { contentLength: state.streamingMessage.content.length + text.length })
-      }
       return {
         streamingMessage: {
           ...state.streamingMessage,
@@ -219,11 +203,6 @@ export const useConversationStore = create<ConversationState>((set) => ({
 
   finalizeStream: (assistantMessage) =>
     set((state) => {
-      console.log('[Store] finalizeStream called', {
-        hasAssistantMessage: !!assistantMessage,
-        hasStreamingMessage: !!state.streamingMessage,
-      })
-
       // If no assistant message provided, create one from streaming content
       let finalMessage = assistantMessage
       if (!finalMessage && state.streamingMessage) {
@@ -283,26 +262,16 @@ export const useConversationStore = create<ConversationState>((set) => ({
       returnFlight: null,
     }),
 
-  reset: () => {
-    console.log('[Store] reset called')
-    currentLoadedConversationId = null
-    return set(initialState)
-  },
+  reset: () => set(initialState),
 }))
 
 // Export a function to start fresh for a new conversation (called when user clicks "New Chat")
 export function startNewConversation() {
-  console.log('[Store] startNewConversation')
-  currentLoadedConversationId = null
-  useConversationStore.setState({
-    ...initialState,
-  })
+  useConversationStore.setState(initialState)
 }
 
 // Export a function to load an existing conversation
 export function loadExistingConversation(conversationId: string) {
-  console.log('[Store] loadExistingConversation:', conversationId)
-  currentLoadedConversationId = conversationId
   useConversationStore.setState({
     ...initialState,
     conversationId,

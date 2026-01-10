@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, Loader2, Check } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { ArrowLeft, Save, Loader2, Check, AlertTriangle, Sun, Moon, Monitor } from 'lucide-react'
 import Link from 'next/link'
 import { getApi } from '@/lib/api'
 import { useUserStore } from '@/stores/user-store'
@@ -17,6 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 // =============================================================================
 // Constants
@@ -46,6 +56,13 @@ export default function SettingsPage() {
   const preferences = useUserStore((state) => state.preferences)
   const setUser = useUserStore((state) => state.setUser)
   const setPreferences = useUserStore((state) => state.setPreferences)
+  const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch for theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Form state
   const [name, setName] = useState('')
@@ -68,6 +85,10 @@ export default function SettingsPage() {
   // Success states (for inline feedback)
   const [profileSaved, setProfileSaved] = useState(false)
   const [prefsSaved, setPrefsSaved] = useState(false)
+
+  // Delete account dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
 
   // Dirty checking
   const isProfileDirty = useMemo(() => {
@@ -192,6 +213,15 @@ export default function SettingsPage() {
     }
   }
 
+  function handleDeleteAccount() {
+    // TODO: Implement actual account deletion when backend supports it
+    toast.info('contact support to delete your account', {
+      description: 'email privacy@seira.app to request account deletion',
+    })
+    setDeleteDialogOpen(false)
+    setDeleteConfirmText('')
+  }
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -264,6 +294,52 @@ export default function SettingsPage() {
               label="save profile"
               savedLabel="saved"
             />
+          </div>
+        </section>
+
+        {/* Theme Section */}
+        <section className="mb-8 sm:mb-10">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">
+            appearance
+          </h2>
+          <div className="p-4 sm:p-6 bg-card rounded-xl border">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label className="text-sm">theme</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant={mounted && theme === 'light' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTheme('light')}
+                  className="flex-1 gap-2"
+                >
+                  <Sun className="h-4 w-4" />
+                  <span className="hidden sm:inline">light</span>
+                </Button>
+                <Button
+                  variant={mounted && theme === 'dark' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTheme('dark')}
+                  className="flex-1 gap-2"
+                >
+                  <Moon className="h-4 w-4" />
+                  <span className="hidden sm:inline">dark</span>
+                </Button>
+                <Button
+                  variant={mounted && theme === 'system' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTheme('system')}
+                  className="flex-1 gap-2"
+                >
+                  <Monitor className="h-4 w-4" />
+                  <span className="hidden sm:inline">system</span>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {mounted && theme === 'system'
+                  ? `using ${resolvedTheme} mode based on your system`
+                  : 'choose your preferred color scheme'}
+              </p>
+            </div>
           </div>
         </section>
 
@@ -355,6 +431,80 @@ export default function SettingsPage() {
               label="save preferences"
               savedLabel="saved"
             />
+          </div>
+        </section>
+
+        {/* Danger Zone */}
+        <section className="mb-8 sm:mb-10">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase text-destructive">
+            danger zone
+          </h2>
+          <div className="p-4 sm:p-6 bg-card rounded-xl border border-destructive/50">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="font-medium text-sm sm:text-base">delete account</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  permanently delete your account and all associated data.
+                  this action cannot be undone.
+                </p>
+              </div>
+              <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+                setDeleteDialogOpen(open)
+                if (!open) setDeleteConfirmText('')
+              }}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground w-full sm:w-auto"
+                  >
+                    delete account
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      delete account
+                    </DialogTitle>
+                    <DialogDescription>
+                      this will permanently delete your account, including all your
+                      conversations, trips, and preferences. this action cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-2 py-4">
+                    <Label htmlFor="confirm" className="text-sm">
+                      type <span className="font-mono font-semibold">DELETE</span> to confirm
+                    </Label>
+                    <Input
+                      id="confirm"
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="DELETE"
+                      className="font-mono"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setDeleteDialogOpen(false)
+                        setDeleteConfirmText('')
+                      }}
+                    >
+                      cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmText !== 'DELETE'}
+                    >
+                      delete my account
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </section>
       </div>

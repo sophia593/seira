@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Plus, Plane, Search, X } from 'lucide-react'
+import { Plus, Plane, Search, X, Music, Ticket, MapPin, Sparkles } from 'lucide-react'
 import { type Trip } from '@/lib/api'
 import { TripCard } from './trip-card'
 import { TripListSkeleton } from './trip-card-skeleton'
@@ -257,25 +257,66 @@ function GroupedTripList({ trips }: { trips: Trip[] }) {
 }
 
 // =============================================================================
+// Empty State Suggestions
+// =============================================================================
+
+const tripSuggestions = [
+  { icon: Ticket, text: "Lakers game in LA", prompt: "Find me Lakers games in Los Angeles" },
+  { icon: Music, text: "Taylor Swift concert", prompt: "Taylor Swift concerts near me" },
+  { icon: MapPin, text: "Festival this summer", prompt: "Music festivals this summer" },
+]
+
+// =============================================================================
 // Empty States
 // =============================================================================
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-center px-4">
-      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
-        <Plane className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
+    <div className="flex flex-col items-center justify-center py-16 sm:py-24 text-center px-4">
+      {/* Large friendly icon */}
+      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center mb-5 sm:mb-6">
+        <Plane className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
       </div>
-      <h3 className="text-base sm:text-lg font-medium mb-2 lowercase">no trips yet</h3>
-      <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-sm">
-        start planning your first trip by chatting with seira about an event you want to attend.
+
+      {/* Heading */}
+      <h3 className="text-xl sm:text-2xl font-semibold mb-2 lowercase">no trips yet</h3>
+
+      {/* Subheading */}
+      <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-md">
+        tell seira about an event you want to attend, and we&apos;ll help you plan the perfect trip.
       </p>
-      <Button asChild className="lowercase w-full sm:w-auto">
-        <Link href="/chat?prompt=help%20me%20plan%20a%20trip%20to">
-          <Plus className="w-4 h-4 mr-2" />
-          plan your first trip
+
+      {/* Suggestion chips */}
+      <div className="flex flex-wrap gap-2 justify-center max-w-md mb-6 sm:mb-8">
+        {tripSuggestions.map((suggestion) => (
+          <Link
+            key={suggestion.text}
+            href={`/chat?prompt=${encodeURIComponent(suggestion.prompt)}`}
+            className={cn(
+              "inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm",
+              "bg-secondary hover:bg-secondary/80 rounded-full",
+              "transition-colors cursor-pointer",
+              "border border-transparent hover:border-primary/20"
+            )}
+          >
+            <suggestion.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+            <span>{suggestion.text}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* Prominent CTA button */}
+      <Button asChild size="lg" className="lowercase gap-2 px-6 sm:px-8">
+        <Link href="/chat">
+          <Sparkles className="w-4 h-4" />
+          start planning
         </Link>
       </Button>
+
+      {/* Helper text */}
+      <p className="text-xs text-muted-foreground mt-4">
+        or click a suggestion above to get started
+      </p>
     </div>
   )
 }

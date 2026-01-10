@@ -95,7 +95,6 @@ function parseSSEEvent(chunk: string): StreamEvent | null {
       const data = JSON.parse(eventData);
       return { type: eventType as StreamEvent["type"], data };
     } catch {
-      console.warn("Failed to parse SSE data:", eventData);
       return null;
     }
   }

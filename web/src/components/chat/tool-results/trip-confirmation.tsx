@@ -53,8 +53,8 @@ export const TripConfirmation = memo(function TripConfirmation({
     try {
       await onConfirm()
       clearSelections()
-    } catch (error) {
-      console.error("Failed to save trip:", error)
+    } catch {
+      // Error handling is done by the parent component
     } finally {
       setIsConfirming(false)
     }

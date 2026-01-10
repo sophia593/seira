@@ -27,9 +27,6 @@ function getBaseUrl(): string {
 
   // Only allow localhost fallback in development
   if (process.env.NODE_ENV === "development") {
-    console.warn(
-      "[API] NEXT_PUBLIC_API_URL not set, falling back to http://localhost:8000"
-    )
     return "http://localhost:8000"
   }
 
@@ -76,7 +73,6 @@ export type {
   Conversation,
   ConversationWithMessages,
   Message,
-  RefreshQuotesResponse,
   Trip,
   TripDetail,
   UserProfile,

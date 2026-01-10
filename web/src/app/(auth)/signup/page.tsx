@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { MessageSquare, Plane, Calendar, Sparkles } from "lucide-react"
+import { MessageSquare, Plane, Calendar, Sparkles, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { getApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { toast } from "@/components/ui/sonner"
 
 // =============================================================================
 // Feature Item
@@ -63,6 +64,45 @@ function GoogleIcon({ className }: { className?: string }) {
 // =============================================================================
 
 function CheckEmailState({ email }: { email: string }) {
+  const [isResending, setIsResending] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+
+  // Cooldown timer
+  useEffect(() => {
+    if (cooldown <= 0) return
+
+    const timer = setInterval(() => {
+      setCooldown((prev) => prev - 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [cooldown])
+
+  async function handleResend() {
+    if (cooldown > 0 || isResending) return
+
+    setIsResending(true)
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+      })
+
+      if (error) {
+        toast.error(error.message)
+      } else {
+        toast.success("verification email sent")
+        setCooldown(60) // 60 second cooldown
+      }
+    } catch {
+      toast.error("couldn't send email")
+    } finally {
+      setIsResending(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
@@ -73,19 +113,43 @@ function CheckEmailState({ email }: { email: string }) {
           </div>
 
           <h1 className="text-2xl font-semibold mb-2 lowercase">check your email</h1>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground mb-4">
             we sent a confirmation link to{" "}
             <strong className="text-foreground">{email}</strong>
             <br />
             click the link to activate your account.
           </p>
 
-          <Link
-            href="/login"
-            className="text-sm text-primary hover:underline"
-          >
-            back to login
-          </Link>
+          <p className="text-sm text-muted-foreground mb-6">
+            didn't receive it? check your spam folder or resend below.
+          </p>
+
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              onClick={handleResend}
+              disabled={isResending || cooldown > 0}
+              className="w-full"
+            >
+              {isResending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  sending...
+                </>
+              ) : cooldown > 0 ? (
+                `resend in ${cooldown}s`
+              ) : (
+                "resend verification email"
+              )}
+            </Button>
+
+            <Link
+              href="/login"
+              className="block text-sm text-muted-foreground hover:text-primary"
+            >
+              back to login
+            </Link>
+          </div>
         </div>
       </div>
     </div>
