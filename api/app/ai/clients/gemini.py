@@ -7,15 +7,21 @@ up-to-date information with source citations.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import Any
 
 from app.core.config import get_settings
+from app.core.redis import cache_get, cache_set
 
 logger = logging.getLogger(__name__)
+
+# Cache TTL for Gemini search results (5 minutes)
+GEMINI_CACHE_TTL = 5 * 60
 
 
 # -----------------------------------------------------------------------------
@@ -249,25 +255,44 @@ class GroundedSource:
         """Check if this is likely an official/authoritative source."""
         official_patterns = [
             # Government & education
-            r"\.gov$", r"\.edu$",
+            r"\.gov$", r"\.edu$", r"\.gov\.uk$", r"\.gc\.ca$",
             # Ticketing platforms
             r"ticketmaster\.", r"axs\.com", r"livenation\.",
             r"stubhub\.com", r"seatgeek\.com", r"vividseats\.com",
-            # Sports leagues
+            r"viagogo\.com", r"eventbrite\.com",
+            # US Sports leagues
             r"\.mlb\.com", r"\.nba\.com", r"\.nfl\.com", r"\.nhl\.com", r"\.mls\.com",
-            # Major venues
+            # International sports
+            r"premierleague\.com", r"laliga\.com", r"bundesliga\.com", r"seriea\.com",
+            r"uefa\.com", r"fifa\.com", r"olympics\.com",
+            r"\.afl\.com\.au", r"\.nrl\.com", r"\.icc-cricket\.com",
+            # US Major venues
             r"msg\.com", r"thegarden\.", r"crypto\.com",
-            r"chasecenter\.com", r"barclayscenter\.com", r"staples-center\.",
+            r"chasecenter\.com", r"barclayscenter\.com",
             r"sofi.*stadium", r"climate.*pledge", r"tdgarden\.com",
+            r"unitedcenter\.com", r"wellsfargocenter\.com",
+            # International venues
+            r"theo2\.co\.uk", r"o2world\.", r"accorhotelsarena\.",
+            r"wembley.*stadium", r"emiratesstadium\.com", r"etihad.*stadium",
+            r"allianz.*arena", r"bernabeu", r"campnou", r"santiagobernabeu",
+            r"olympiastadion", r"parc.*princes", r"velodrome",
+            r"mcg\.org\.au", r"scg\.nsw\.gov", r"edenpark\.co\.nz",
+            r"tokyodome\.co\.jp", r"ajinomotostadium",
+            # AEG venues
+            r"aegworldwide\.", r"aegpresents\.",
             # Restaurant/booking platforms
             r"opentable\.com", r"resy\.com", r"yelp\.com",
             r"tripadvisor\.com", r"google\.com/maps",
+            r"thefork\.com", r"zomato\.com",
             # Hotel booking
             r"booking\.com", r"hotels\.com", r"expedia\.com",
             r"marriott\.com", r"hilton\.com", r"hyatt\.com",
+            r"ihg\.com", r"accor\.com", r"airbnb\.com",
             # Travel
             r"visitacity", r"timeout\.com", r"frommers\.com",
             r"lonelyplanet\.com", r"fodors\.com",
+            r"visitlondon\.com", r"parisinfo\.com", r"nycgo\.com",
+            r"australia\.com", r"japan\.travel",
         ]
         domain = self.domain.lower()
         return any(re.search(p, domain) for p in official_patterns)
@@ -325,7 +350,7 @@ class GeminiResearcher:
 
         Args:
             model: Gemini model to use. Defaults to config GEMINI_MODEL.
-                   Recommended: gemini-2.0-flash for speed, gemini-1.5-pro for depth
+                   Using: gemini-3-flash-preview
         """
         settings = get_settings()
         self.model = model or settings.GEMINI_MODEL
@@ -376,6 +401,17 @@ class GeminiResearcher:
 
         return "\n\n".join(parts)
 
+    def _make_cache_key(self, query: str, context: str | None, search_type: SearchType | None) -> str:
+        """Generate a cache key for the search query."""
+        key_data = {
+            "q": query.lower().strip(),
+            "c": (context or "")[:100],  # Truncate context for key
+            "t": search_type.value if search_type else "auto",
+        }
+        key_str = json.dumps(key_data, sort_keys=True)
+        hash_digest = hashlib.md5(key_str.encode()).hexdigest()[:12]
+        return f"gemini:search:{hash_digest}"
+
     async def search(
         self,
         query: str,
@@ -383,6 +419,7 @@ class GeminiResearcher:
         search_type: SearchType | None = None,
         should_enhance_query: bool = True,
         max_tokens: int | None = None,
+        use_cache: bool = True,
     ) -> SearchResult:
         """
         Perform a grounded search query using Gemini.
@@ -393,13 +430,13 @@ class GeminiResearcher:
             search_type: Override auto-detected search type
             should_enhance_query: Whether to add search-type-specific terms to query
             max_tokens: Maximum tokens in the response
+            use_cache: Whether to use Redis cache (default True)
 
         Returns:
             SearchResult with answer text, source citations, and metadata
         """
         from google.genai import types
 
-        client = self._get_client()
         settings = get_settings()
 
         if max_tokens is None:
@@ -410,6 +447,29 @@ class GeminiResearcher:
 
         # Optionally enhance the query
         final_query = enhance_query(query, detected_type) if should_enhance_query else query
+
+        # Check cache first
+        cache_key = self._make_cache_key(query, context, detected_type)
+        if use_cache:
+            cached = await cache_get(cache_key)
+            if cached:
+                logger.debug(f"Gemini cache hit: {cache_key}")
+                try:
+                    if isinstance(cached, str):
+                        cached = json.loads(cached)
+                    # Reconstruct SearchResult from cached data
+                    return SearchResult(
+                        answer=cached["answer"],
+                        sources=[GroundedSource(**s) for s in cached["sources"]],
+                        query=cached["query"],
+                        enhanced_query=cached["enhanced_query"],
+                        search_type=SearchType(cached["search_type"]),
+                        model=cached["model"],
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to parse cached Gemini result: {e}")
+
+        client = self._get_client()
 
         # Build the full prompt
         prompt = self._build_prompt(final_query, detected_type, context)
@@ -452,7 +512,7 @@ class GeminiResearcher:
                 f"{len(sources)} sources ({len([s for s in sources if s.is_official])} official)"
             )
 
-            return SearchResult(
+            result = SearchResult(
                 answer=answer.strip(),
                 sources=sources,
                 query=query,
@@ -460,6 +520,24 @@ class GeminiResearcher:
                 search_type=detected_type,
                 model=self.model,
             )
+
+            # Cache successful result
+            if use_cache and sources:  # Only cache if we got actual sources
+                try:
+                    cache_data = {
+                        "answer": result.answer,
+                        "sources": [asdict(s) for s in result.sources],
+                        "query": result.query,
+                        "enhanced_query": result.enhanced_query,
+                        "search_type": result.search_type.value,
+                        "model": result.model,
+                    }
+                    await cache_set(cache_key, cache_data, ex=GEMINI_CACHE_TTL)
+                    logger.debug(f"Cached Gemini result: {cache_key} (TTL: {GEMINI_CACHE_TTL}s)")
+                except Exception as e:
+                    logger.warning(f"Failed to cache Gemini result: {e}")
+
+            return result
 
         except asyncio.TimeoutError:
             logger.warning(f"Gemini search timed out after {timeout_seconds}s: {query[:50]}...")

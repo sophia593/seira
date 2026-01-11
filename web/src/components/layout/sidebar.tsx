@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react"
+import { useEffect, useState, useMemo, useCallback, useRef, memo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -39,7 +39,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ConversationListSkeleton } from "@/components/chat/conversation-list-skeleton"
 import { UserMenu } from "./user-menu"
 
 // =============================================================================
@@ -47,7 +46,6 @@ import { UserMenu } from "./user-menu"
 // =============================================================================
 
 interface SidebarProps {
-  /** When true, hides the collapse toggle (used in mobile drawer) */
   isMobile?: boolean
 }
 
@@ -68,8 +66,23 @@ interface ConversationGroups {
 // Constants
 // =============================================================================
 
-const MAX_CONVERSATIONS = 50
 const PINNED_STORAGE_KEY = "seira-pinned-conversations"
+const SEARCH_DEBOUNCE_MS = 150
+
+// =============================================================================
+// Hooks
+// =============================================================================
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+
+  return debouncedValue
+}
 
 // =============================================================================
 // Date Helpers
@@ -176,6 +189,30 @@ function savePinnedIds(ids: Set<string>): void {
 }
 
 // =============================================================================
+// Loading Skeleton
+// =============================================================================
+
+function ConversationSkeleton() {
+  return (
+    <div className="space-y-1 px-1">
+      {[...Array(5)].map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-2 px-2 py-2 animate-pulse"
+          style={{ animationDelay: `${i * 50}ms` }}
+        >
+          <div className="h-4 w-4 rounded bg-muted" />
+          <div
+            className="h-3 rounded bg-muted"
+            style={{ width: `${60 + Math.random() * 30}%` }}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// =============================================================================
 // Search Component
 // =============================================================================
 
@@ -185,10 +222,14 @@ interface ConversationSearchProps {
   isCollapsed: boolean
 }
 
-function ConversationSearch({ value, onChange, isCollapsed }: ConversationSearchProps) {
+const ConversationSearch = memo(function ConversationSearch({
+  value,
+  onChange,
+  isCollapsed
+}: ConversationSearchProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [isFocused, setIsFocused] = useState(false)
 
-  // Keyboard shortcut: Cmd/Ctrl + K to focus search
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -204,12 +245,7 @@ function ConversationSearch({ value, onChange, isCollapsed }: ConversationSearch
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="w-full"
-            onClick={() => inputRef.current?.focus()}
-          >
+          <Button variant="ghost" size="icon-sm" className="w-full">
             <Search className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
@@ -219,30 +255,54 @@ function ConversationSearch({ value, onChange, isCollapsed }: ConversationSearch
   }
 
   return (
-    <div className="relative">
-      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+    <div
+      className={cn(
+        "relative rounded-lg transition-all duration-200",
+        isFocused && "ring-2 ring-primary/20"
+      )}
+    >
+      <Search
+        className={cn(
+          "absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 transition-colors duration-150",
+          isFocused ? "text-primary" : "text-muted-foreground"
+        )}
+      />
       <input
         ref={inputRef}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         placeholder="search..."
-        className="w-full h-8 pl-8 pr-8 text-sm bg-muted/50 border-0 rounded-md placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-primary/30"
+        className={cn(
+          "w-full h-8 pl-8 pr-8 text-sm rounded-lg",
+          "bg-muted/50 border-0",
+          "placeholder:text-muted-foreground/60",
+          "focus:outline-none focus:bg-muted/80",
+          "transition-colors duration-150"
+        )}
       />
-      {value && (
+      <div
+        className={cn(
+          "absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1",
+          "transition-opacity duration-150",
+          value ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+      >
         <button
           onClick={() => onChange("")}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          className="p-0.5 rounded hover:bg-background/80 text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="h-3.5 w-3.5" />
         </button>
-      )}
+      </div>
     </div>
   )
-}
+})
 
 // =============================================================================
-// Conversation Group Header
+// Group Header
 // =============================================================================
 
 interface GroupHeaderProps {
@@ -251,21 +311,21 @@ interface GroupHeaderProps {
   isCollapsed: boolean
 }
 
-function GroupHeader({ title, count, isCollapsed }: GroupHeaderProps) {
+const GroupHeader = memo(function GroupHeader({ title, count, isCollapsed }: GroupHeaderProps) {
   if (isCollapsed) return null
 
   return (
-    <div className="flex items-center justify-between px-2 py-1.5 mt-2 first:mt-0">
-      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+    <div className="flex items-center justify-between px-2 py-1.5 mt-3 first:mt-0">
+      <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">
         {title}
       </span>
-      <span className="text-xs text-muted-foreground/60">{count}</span>
+      <span className="text-[11px] text-muted-foreground/50 tabular-nums">{count}</span>
     </div>
   )
-}
+})
 
 // =============================================================================
-// Sidebar Item with Context Menu
+// Sidebar Item
 // =============================================================================
 
 interface SidebarItemProps {
@@ -276,9 +336,10 @@ interface SidebarItemProps {
   onDelete: (id: string) => void
   onRename: (id: string, title: string) => void
   onTogglePin: (id: string) => void
+  style?: React.CSSProperties
 }
 
-function SidebarItem({
+const SidebarItem = memo(function SidebarItem({
   conversation,
   isActive,
   isCollapsed,
@@ -286,46 +347,43 @@ function SidebarItem({
   onDelete,
   onRename,
   onTogglePin,
+  style,
 }: SidebarItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState("")
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const title = conversation.title || "new conversation"
 
-  // Focus input when editing starts
   useEffect(() => {
     if (isEditing) {
       setEditValue(title)
-      setTimeout(() => inputRef.current?.focus(), 0)
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      })
     }
   }, [isEditing, title])
 
-  function handleStartEdit() {
-    setIsEditing(true)
-  }
-
-  function handleSaveEdit() {
-    if (editValue.trim() && editValue !== title) {
-      onRename(conversation.id, editValue.trim())
+  const handleSaveEdit = useCallback(() => {
+    const trimmed = editValue.trim()
+    if (trimmed && trimmed !== title) {
+      onRename(conversation.id, trimmed)
     }
     setIsEditing(false)
-  }
+  }, [editValue, title, conversation.id, onRename])
 
-  function handleCancelEdit() {
-    setIsEditing(false)
-    setEditValue("")
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
+      e.preventDefault()
       handleSaveEdit()
     } else if (e.key === "Escape") {
-      handleCancelEdit()
+      setIsEditing(false)
     }
-  }
+  }, [handleSaveEdit])
 
-  // Collapsed view - just icon with tooltip
+  // Collapsed view
   if (isCollapsed) {
     return (
       <Tooltip>
@@ -333,36 +391,40 @@ function SidebarItem({
           <Link
             href={`/chat/${conversation.id}`}
             className={cn(
-              "flex items-center justify-center rounded-md p-2 transition-all duration-150",
-              "hover:bg-accent",
-              isActive && "bg-accent",
-              isDeleting && "opacity-40 scale-[0.97] bg-destructive/10"
+              "relative flex items-center justify-center rounded-lg p-2",
+              "transition-all duration-150 ease-out",
+              "hover:bg-accent active:scale-95",
+              isActive && "bg-accent shadow-sm",
+              isDeleting && "opacity-0 scale-90 pointer-events-none"
             )}
+            style={style}
           >
-            <MessageSquare className="h-4 w-4 shrink-0" />
+            <MessageSquare className="h-4 w-4" />
             {conversation.isPinned && (
-              <Pin className="h-2 w-2 absolute top-1 right-1 text-primary" />
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
             )}
           </Link>
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-[200px]">
-          <p className="truncate">{title}</p>
+          <p className="truncate font-medium">{title}</p>
           {conversation.isPinned && (
-            <p className="text-xs text-muted-foreground">pinned</p>
+            <p className="text-xs text-muted-foreground mt-0.5">pinned</p>
           )}
         </TooltipContent>
       </Tooltip>
     )
   }
 
-  // Expanded view with inline editing
+  // Editing mode
   if (isEditing) {
     return (
       <div
         className={cn(
-          "flex items-center gap-2 rounded-md px-2 py-1.5",
-          "bg-accent ring-1 ring-primary/30"
+          "flex items-center gap-2 rounded-lg px-2 py-1.5",
+          "bg-accent ring-2 ring-primary/30",
+          "animate-in fade-in-0 duration-150"
         )}
+        style={style}
       >
         <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
@@ -372,62 +434,79 @@ function SidebarItem({
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSaveEdit}
-          className="flex-1 bg-transparent text-sm outline-none"
+          className="flex-1 min-w-0 bg-transparent text-sm outline-none"
           maxLength={100}
         />
-        <button
-          onClick={handleSaveEdit}
-          className="p-1 hover:bg-muted rounded"
-        >
-          <Check className="w-3.5 h-3.5 text-primary" />
-        </button>
-        <button
-          onClick={handleCancelEdit}
-          className="p-1 hover:bg-muted rounded"
-        >
-          <X className="w-3.5 h-3.5 text-muted-foreground" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={handleSaveEdit}
+            className="p-1 rounded hover:bg-background/50 transition-colors"
+          >
+            <Check className="w-3.5 h-3.5 text-primary" />
+          </button>
+          <button
+            onClick={() => setIsEditing(false)}
+            className="p-1 rounded hover:bg-background/50 transition-colors"
+          >
+            <X className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
+        </div>
       </div>
     )
   }
 
-  // Normal expanded view with context menu
+  // Normal view
   return (
     <div
       className={cn(
-        "group relative flex items-center rounded-md transition-all duration-150",
+        "group relative flex items-center rounded-lg",
+        "transition-all duration-150 ease-out",
         "hover:bg-accent",
-        isActive && "bg-accent",
-        isDeleting && "opacity-40 scale-[0.97] bg-destructive/10"
+        isActive && "bg-accent shadow-sm",
+        isDeleting && "opacity-0 scale-95 -translate-x-2 pointer-events-none",
+        isMenuOpen && "bg-accent"
       )}
+      style={style}
     >
       <Link
         href={`/chat/${conversation.id}`}
         className="flex-1 flex items-center gap-2 px-2 py-1.5 min-w-0"
       >
-        <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <MessageSquare
+          className={cn(
+            "h-4 w-4 shrink-0 transition-colors duration-150",
+            isActive ? "text-foreground" : "text-muted-foreground"
+          )}
+        />
         <span className="flex-1 truncate text-sm">{title}</span>
         {conversation.isPinned && (
-          <Pin className="h-3 w-3 shrink-0 text-primary/70" />
+          <Pin className="h-3 w-3 shrink-0 text-primary/60" />
         )}
       </Link>
 
-      {/* Context Menu */}
-      <DropdownMenu>
+      {/* Context Menu Trigger */}
+      <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <DropdownMenuTrigger asChild>
           <button
             className={cn(
-              "absolute right-1 p-1.5 rounded opacity-0 group-hover:opacity-100",
-              "hover:bg-muted transition-opacity",
-              "focus:opacity-100"
+              "absolute right-1 p-1.5 rounded-md",
+              "text-muted-foreground hover:text-foreground",
+              "opacity-0 group-hover:opacity-100 focus:opacity-100",
+              "hover:bg-background/50",
+              "transition-all duration-150",
+              isMenuOpen && "opacity-100 bg-background/50"
             )}
             onClick={(e) => e.stopPropagation()}
           >
-            <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+            <MoreHorizontal className="w-4 h-4" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={handleStartEdit}>
+        <DropdownMenuContent
+          align="end"
+          className="w-36"
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
+          <DropdownMenuItem onClick={() => setIsEditing(true)}>
             <Pencil className="w-4 h-4 mr-2" />
             rename
           </DropdownMenuItem>
@@ -447,7 +526,7 @@ function SidebarItem({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => onDelete(conversation.id)}
-            className="text-destructive focus:text-destructive"
+            className="text-destructive focus:text-destructive focus:bg-destructive/10"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             delete
@@ -456,7 +535,7 @@ function SidebarItem({
       </DropdownMenu>
     </div>
   )
-}
+})
 
 // =============================================================================
 // Conversation Group
@@ -473,7 +552,7 @@ interface ConversationGroupProps {
   onTogglePin: (id: string) => void
 }
 
-function ConversationGroup({
+const ConversationGroup = memo(function ConversationGroup({
   title,
   conversations,
   currentId,
@@ -486,10 +565,10 @@ function ConversationGroup({
   if (conversations.length === 0) return null
 
   return (
-    <div>
+    <div className="animate-in fade-in-0 slide-in-from-top-1 duration-200">
       <GroupHeader title={title} count={conversations.length} isCollapsed={isCollapsed} />
       <div className="space-y-0.5">
-        {conversations.map((conv) => (
+        {conversations.map((conv, index) => (
           <SidebarItem
             key={conv.id}
             conversation={conv}
@@ -499,55 +578,60 @@ function ConversationGroup({
             onDelete={onDelete}
             onRename={onRename}
             onTogglePin={onTogglePin}
+            style={{
+              animationDelay: `${index * 20}ms`,
+              animationFillMode: 'backwards'
+            }}
           />
         ))}
       </div>
     </div>
   )
-}
+})
 
 // =============================================================================
-// Empty State
+// Empty States
 // =============================================================================
 
 function EmptyState({ isCollapsed }: { isCollapsed: boolean }) {
   if (isCollapsed) {
     return (
-      <div className="py-4 text-center">
-        <span className="text-muted-foreground">—</span>
+      <div className="py-4 flex justify-center">
+        <div className="w-1 h-8 bg-muted rounded-full" />
       </div>
     )
   }
 
   return (
-    <div className="py-8 px-4 text-center">
-      <MessageSquare className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
-      <p className="text-sm text-muted-foreground">no conversations yet</p>
-      <p className="text-xs text-muted-foreground/70 mt-1">
-        click "new chat" to start
+    <div className="py-12 px-4 text-center animate-in fade-in-0 duration-300">
+      <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-muted/50 flex items-center justify-center">
+        <MessageSquare className="h-6 w-6 text-muted-foreground/50" />
+      </div>
+      <p className="text-sm font-medium text-muted-foreground">no conversations yet</p>
+      <p className="text-xs text-muted-foreground/60 mt-1">
+        start a new chat to begin planning
       </p>
     </div>
   )
 }
 
-// =============================================================================
-// Search Empty State
-// =============================================================================
-
 function SearchEmptyState({ query, isCollapsed }: { query: string; isCollapsed: boolean }) {
   if (isCollapsed) {
     return (
-      <div className="py-4 text-center">
-        <Search className="h-4 w-4 mx-auto text-muted-foreground/50" />
+      <div className="py-4 flex justify-center">
+        <Search className="h-4 w-4 text-muted-foreground/30" />
       </div>
     )
   }
 
   return (
-    <div className="py-8 px-4 text-center">
-      <Search className="h-6 w-6 mx-auto mb-2 text-muted-foreground/50" />
+    <div className="py-12 px-4 text-center animate-in fade-in-0 duration-200">
+      <Search className="h-5 w-5 mx-auto mb-3 text-muted-foreground/40" />
       <p className="text-sm text-muted-foreground">
-        no results for "{query}"
+        no results for "<span className="font-medium">{query}</span>"
+      </p>
+      <p className="text-xs text-muted-foreground/60 mt-1">
+        try a different search term
       </p>
     </div>
   )
@@ -563,7 +647,6 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
   const currentConversationId = params?.id as string | undefined
 
   const { isCollapsed: storedCollapsed, toggle } = useSidebar()
-  // In mobile mode, always show expanded sidebar
   const isCollapsed = isMobile ? false : storedCollapsed
 
   // State
@@ -574,13 +657,24 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Load pinned IDs from localStorage
+  // Debounced search for smoother filtering
+  const debouncedSearch = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS)
+
+  // Track if we've done initial load to prevent refetching
+  const hasLoadedRef = useRef(false)
+  const conversationsRef = useRef(conversations)
+  conversationsRef.current = conversations
+
+  // Load pinned IDs
   useEffect(() => {
     setPinnedIds(loadPinnedIds())
   }, [])
 
-  // Fetch conversations on mount and when route changes
+  // Fetch conversations once on mount
   useEffect(() => {
+    if (hasLoadedRef.current) return
+    hasLoadedRef.current = true
+
     async function fetchConversations() {
       try {
         const api = getApi()
@@ -596,17 +690,17 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
     }
 
     fetchConversations()
-  }, [currentConversationId])
+  }, [])
 
-  // Filter conversations by search
+  // Filter with debounced search
   const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations
+    if (!debouncedSearch.trim()) return conversations
 
-    const query = searchQuery.toLowerCase()
+    const query = debouncedSearch.toLowerCase()
     return conversations.filter((conv) =>
       conv.title?.toLowerCase().includes(query)
     )
-  }, [conversations, searchQuery])
+  }, [conversations, debouncedSearch])
 
   // Group conversations
   const groups = useMemo(
@@ -631,14 +725,18 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
   }, [router])
 
   const handleDelete = useCallback(async (id: string) => {
+    // Start delete animation
     setDeletingId(id)
+
+    // Wait for animation
     await new Promise((r) => setTimeout(r, 200))
 
-    const previousConversations = conversations
+    // Optimistic update
+    const previousConversations = conversationsRef.current
     setConversations((prev) => prev.filter((c) => c.id !== id))
     setDeletingId(null)
 
-    // Remove from pinned if needed
+    // Remove from pinned
     if (pinnedIds.has(id)) {
       const newPinned = new Set(pinnedIds)
       newPinned.delete(id)
@@ -646,19 +744,22 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
       savePinnedIds(newPinned)
     }
 
+    // Navigate away if deleting current
     if (currentConversationId === id) {
       startNewConversation()
       router.push("/chat")
     }
 
+    // API call
     try {
       const api = getApi()
       await api.deleteConversation(id)
+      toast.success("conversation deleted")
     } catch {
       setConversations(previousConversations)
       toast.error("couldn't delete conversation")
     }
-  }, [conversations, currentConversationId, pinnedIds, router])
+  }, [currentConversationId, pinnedIds, router])
 
   const handleRename = useCallback(async (id: string, title: string) => {
     // Optimistic update
@@ -671,7 +772,6 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
       await api.updateConversation(id, { title })
     } catch {
       toast.error("couldn't rename conversation")
-      // Refetch to restore correct state
       const api = getApi()
       const data = await api.getConversations()
       setConversations(data)
@@ -680,18 +780,22 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
 
   const handleTogglePin = useCallback((id: string) => {
     const newPinned = new Set(pinnedIds)
-    if (newPinned.has(id)) {
+    const wasPinned = newPinned.has(id)
+
+    if (wasPinned) {
       newPinned.delete(id)
     } else {
       newPinned.add(id)
     }
+
     setPinnedIds(newPinned)
     savePinnedIds(newPinned)
+    toast.success(wasPinned ? "unpinned" : "pinned")
   }, [pinnedIds])
 
   // Computed
   const totalCount = conversations.length
-  const hasSearch = searchQuery.trim().length > 0
+  const hasSearch = debouncedSearch.trim().length > 0
   const hasNoResults = hasSearch && filteredConversations.length === 0
   const hasNoConversations = !hasSearch && conversations.length === 0
 
@@ -699,31 +803,39 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          "flex h-full flex-col border-r bg-background transition-[width] duration-200",
+          "flex h-full flex-col border-r bg-background/95 backdrop-blur-sm",
+          "transition-[width] duration-300 ease-out",
           isCollapsed ? "w-16" : "w-64"
         )}
       >
         {/* Header */}
         <div
           className={cn(
-            "flex h-14 items-center border-b px-3",
+            "flex h-14 items-center border-b px-3 shrink-0",
             isCollapsed ? "justify-center" : "justify-between"
           )}
         >
-          {!isCollapsed && (
-            <Link
-              href="/chat"
-              className="flex items-center gap-2 font-semibold lowercase"
-            >
-              <MessageSquare className="h-5 w-5" />
-              <span>seira</span>
-              {totalCount > 0 && (
-                <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                  {totalCount}
-                </span>
-              )}
-            </Link>
+          <Link
+            href="/chat"
+            className={cn(
+              "flex items-center gap-2 font-semibold lowercase",
+              "transition-opacity duration-200",
+              isCollapsed && "opacity-0 w-0 overflow-hidden"
+            )}
+          >
+            <MessageSquare className="h-5 w-5 shrink-0" />
+            <span className="truncate">seira</span>
+            {totalCount > 0 && (
+              <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md tabular-nums">
+                {totalCount}
+              </span>
+            )}
+          </Link>
+
+          {isCollapsed && (
+            <MessageSquare className="h-5 w-5 shrink-0" />
           )}
+
           {!isMobile && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -731,36 +843,48 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
                   variant="ghost"
                   size="icon-sm"
                   onClick={toggle}
-                  className="shrink-0"
-                >
-                  {isCollapsed ? (
-                    <ChevronRight className="h-4 w-4" />
-                  ) : (
-                    <ChevronLeft className="h-4 w-4" />
+                  className={cn(
+                    "shrink-0 transition-transform duration-200",
+                    isCollapsed && "absolute right-1"
                   )}
+                >
+                  <ChevronLeft
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-300",
+                      isCollapsed && "rotate-180"
+                    )}
+                  />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
-                {isCollapsed ? "expand sidebar" : "collapse sidebar"}
+                {isCollapsed ? "expand" : "collapse"}
               </TooltipContent>
             </Tooltip>
           )}
         </div>
 
         {/* New Chat Button */}
-        <div className="p-2">
+        <div className="p-2 shrink-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 onClick={handleNewChat}
                 disabled={isCreating}
-                className={cn("w-full", isCollapsed && "px-0")}
+                className={cn(
+                  "w-full gap-2 transition-all duration-200",
+                  isCollapsed && "px-0"
+                )}
                 isLoading={isCreating}
               >
-                {!isCreating && <Plus className="h-4 w-4" />}
-                {!isCollapsed && (
-                  <span>{isCreating ? "creating..." : "new chat"}</span>
-                )}
+                {!isCreating && <Plus className="h-4 w-4 shrink-0" />}
+                <span
+                  className={cn(
+                    "transition-all duration-200",
+                    isCollapsed && "opacity-0 w-0 overflow-hidden"
+                  )}
+                >
+                  {isCreating ? "creating..." : "new chat"}
+                </span>
               </Button>
             </TooltipTrigger>
             {isCollapsed && (
@@ -769,29 +893,31 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
           </Tooltip>
         </div>
 
-        {/* Search */}
-        {totalCount > 3 && (
-          <div className="px-2 pb-2">
-            <ConversationSearch
-              value={searchQuery}
-              onChange={setSearchQuery}
-              isCollapsed={isCollapsed}
-            />
-          </div>
-        )}
+        {/* Search - show when more than 3 conversations */}
+        <div
+          className={cn(
+            "px-2 overflow-hidden transition-all duration-200 shrink-0",
+            totalCount > 3 ? "pb-2 max-h-12 opacity-100" : "pb-0 max-h-0 opacity-0"
+          )}
+        >
+          <ConversationSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            isCollapsed={isCollapsed}
+          />
+        </div>
 
         {/* Conversations List */}
         <ScrollArea className="flex-1 px-2">
           <div className="py-2">
             {isLoading ? (
-              <ConversationListSkeleton count={5} />
+              <ConversationSkeleton />
             ) : hasNoConversations ? (
               <EmptyState isCollapsed={isCollapsed} />
             ) : hasNoResults ? (
-              <SearchEmptyState query={searchQuery} isCollapsed={isCollapsed} />
+              <SearchEmptyState query={debouncedSearch} isCollapsed={isCollapsed} />
             ) : (
-              <div className="space-y-2">
-                {/* Pinned */}
+              <div className="space-y-1">
                 <ConversationGroup
                   title="pinned"
                   conversations={groups.pinned}
@@ -802,8 +928,6 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
                   onRename={handleRename}
                   onTogglePin={handleTogglePin}
                 />
-
-                {/* Today */}
                 <ConversationGroup
                   title="today"
                   conversations={groups.today}
@@ -814,8 +938,6 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
                   onRename={handleRename}
                   onTogglePin={handleTogglePin}
                 />
-
-                {/* Yesterday */}
                 <ConversationGroup
                   title="yesterday"
                   conversations={groups.yesterday}
@@ -826,8 +948,6 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
                   onRename={handleRename}
                   onTogglePin={handleTogglePin}
                 />
-
-                {/* This Week */}
                 <ConversationGroup
                   title="this week"
                   conversations={groups.thisWeek}
@@ -838,8 +958,6 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
                   onRename={handleRename}
                   onTogglePin={handleTogglePin}
                 />
-
-                {/* This Month */}
                 <ConversationGroup
                   title="this month"
                   conversations={groups.thisMonth}
@@ -850,8 +968,6 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
                   onRename={handleRename}
                   onTogglePin={handleTogglePin}
                 />
-
-                {/* Older */}
                 <ConversationGroup
                   title="older"
                   conversations={groups.older}
@@ -868,19 +984,27 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
         </ScrollArea>
 
         {/* Bottom Section */}
-        <div className="border-t p-2 space-y-1">
-          {/* My Trips Link */}
+        <div className="border-t p-2 space-y-1 shrink-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
                 href="/trips"
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent",
+                  "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm",
+                  "transition-all duration-150",
+                  "hover:bg-accent active:scale-[0.98]",
                   isCollapsed && "justify-center"
                 )}
               >
-                <Plane className="h-4 w-4" />
-                {!isCollapsed && <span>my trips</span>}
+                <Plane className="h-4 w-4 shrink-0" />
+                <span
+                  className={cn(
+                    "transition-all duration-200",
+                    isCollapsed && "opacity-0 w-0 overflow-hidden"
+                  )}
+                >
+                  my trips
+                </span>
               </Link>
             </TooltipTrigger>
             {isCollapsed && (
@@ -888,7 +1012,6 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
             )}
           </Tooltip>
 
-          {/* User Menu */}
           <UserMenu isCollapsed={isCollapsed} />
         </div>
       </aside>

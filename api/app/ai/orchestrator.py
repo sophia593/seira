@@ -13,21 +13,24 @@ Flow:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
-from typing import Any, AsyncGenerator, Callable, Awaitable
+import uuid
+from typing import Any, AsyncGenerator
 
 from pydantic import BaseModel
 
-from app.ai.client import (
-    StreamEvent,
-    create_stream,
-    get_tool_calls_from_response,
-)
+from app.ai.client import StreamEvent, create_stream
 from app.ai.prompts import build_system_prompt
+from app.ai.tokens import truncate_messages, estimate_tokens
 from app.ai.tools.registry import get_tool_definitions, execute_tool
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+# Maximum size for tool result content (characters)
+MAX_TOOL_RESULT_SIZE = 50_000
 
 
 # -----------------------------------------------------------------------------
@@ -38,8 +41,20 @@ logger = logging.getLogger(__name__)
 class OrchestratorConfig(BaseModel):
     """Configuration for the orchestrator."""
 
-    max_tool_rounds: int = 5  # Prevent infinite loops
+    max_tool_rounds: int = 6  # Prevent infinite loops (configurable via MAX_TOOL_ROUNDS)
+    max_context_tokens: int = 180_000  # Token limit (configurable via MAX_CONTEXT_TOKENS)
+    stream_timeout: int = 120  # Timeout for each stream in seconds
     include_date: bool = True
+
+    @classmethod
+    def from_settings(cls) -> "OrchestratorConfig":
+        """Create config from environment settings."""
+        settings = get_settings()
+        return cls(
+            max_tool_rounds=settings.MAX_TOOL_ROUNDS,
+            max_context_tokens=settings.MAX_CONTEXT_TOKENS,
+            stream_timeout=settings.CLAUDE_TIMEOUT,
+        )
 
 
 class ConversationContext(BaseModel):
@@ -59,6 +74,45 @@ class UserContext(BaseModel):
     name: str | None = None
     email: str | None = None
     preferences: dict[str, Any] | None = None
+
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+
+
+def _truncate_tool_result(result: Any, max_size: int = MAX_TOOL_RESULT_SIZE) -> str:
+    """
+    Truncate tool result to prevent context overflow.
+
+    Large results (like 100 events) can blow up the context window.
+    This truncates while preserving structure.
+    """
+    if isinstance(result, dict):
+        result_str = json.dumps(result, ensure_ascii=False)
+    else:
+        result_str = str(result)
+
+    if len(result_str) <= max_size:
+        return result_str
+
+    # Try to truncate intelligently for known result types
+    if isinstance(result, dict):
+        # Truncate list fields (events, flights, sources, etc.)
+        truncated = dict(result)
+        for key in ["events", "flights", "sources", "results", "items", "data"]:
+            if key in truncated and isinstance(truncated[key], list):
+                original_len = len(truncated[key])
+                if original_len > 10:
+                    truncated[key] = truncated[key][:10]
+                    truncated[f"_{key}_truncated"] = f"Showing 10 of {original_len}"
+
+        result_str = json.dumps(truncated, ensure_ascii=False)
+        if len(result_str) <= max_size:
+            return result_str
+
+    # Hard truncate if still too large
+    return result_str[:max_size - 50] + f"... [truncated, {len(result_str)} chars total]"
 
 
 # -----------------------------------------------------------------------------
@@ -97,7 +151,12 @@ async def run_conversation(
         - done: Conversation turn complete
     """
     if config is None:
-        config = OrchestratorConfig()
+        config = OrchestratorConfig.from_settings()
+
+    # Generate request ID for log correlation
+    request_id = uuid.uuid4().hex[:8]
+
+    logger.info(f"[{request_id}] Starting conversation turn")
 
     # Build system prompt with context
     system_prompt = build_system_prompt(
@@ -111,14 +170,32 @@ async def run_conversation(
     # Get tool definitions
     tools = get_tool_definitions()
 
+    # Truncate messages if needed to fit context window
+    truncated_messages = truncate_messages(
+        messages,
+        max_tokens=config.max_context_tokens,
+        system=system_prompt,
+        preserve_recent=4,
+        preserve_first=1,
+    )
+
+    if len(truncated_messages) < len(messages):
+        logger.info(
+            f"[{request_id}] Context truncated: {len(messages)} -> {len(truncated_messages)} messages"
+        )
+
+    # Log token estimate
+    token_estimate = estimate_tokens(truncated_messages, system_prompt)
+    logger.debug(f"[{request_id}] Token estimate: {token_estimate}")
+
     # Track conversation for this turn
-    turn_messages = list(messages)  # Copy to avoid mutation
+    turn_messages = list(truncated_messages)  # Copy to avoid mutation
     tool_rounds = 0
 
     while tool_rounds < config.max_tool_rounds:
         tool_rounds += 1
 
-        logger.debug(f"Starting tool round {tool_rounds}/{config.max_tool_rounds}")
+        logger.debug(f"[{request_id}] Tool round {tool_rounds}/{config.max_tool_rounds}")
 
         # Collect the response and tool calls
         assistant_content: list[dict[str, Any]] = []
@@ -126,81 +203,94 @@ async def run_conversation(
         stop_reason: str | None = None
 
         try:
-            async with create_stream(
-                messages=turn_messages,
-                system=system_prompt,
-                tools=tools,
-            ) as stream:
-                async for event in stream:
-                    event_type = getattr(event, "type", None)
+            async with asyncio.timeout(config.stream_timeout):
+                async with create_stream(
+                    messages=turn_messages,
+                    system=system_prompt,
+                    tools=tools,
+                ) as stream:
+                    async for event in stream:
+                        event_type = getattr(event, "type", None)
 
-                    # Content block started
-                    if event_type == "content_block_start":
-                        block = event.content_block
-                        if block.type == "text":
-                            assistant_content.append({
-                                "type": "text",
-                                "text": "",
-                            })
-                        elif block.type == "tool_use":
-                            tool_calls.append({
-                                "id": block.id,
-                                "name": block.name,
-                                "input": "",  # Will accumulate
-                            })
-                            yield StreamEvent(
-                                type="tool_start",
-                                data={"id": block.id, "name": block.name},
-                            )
-
-                    # Content block delta
-                    elif event_type == "content_block_delta":
-                        delta = event.delta
-                        if delta.type == "text_delta":
-                            # Append to last text block
-                            if assistant_content and assistant_content[-1]["type"] == "text":
-                                assistant_content[-1]["text"] += delta.text
-                            yield StreamEvent(
-                                type="text",
-                                data={"text": delta.text},
-                            )
-                        elif delta.type == "input_json_delta":
-                            # Accumulate tool input
-                            if tool_calls:
-                                tool_calls[-1]["input"] += delta.partial_json
-
-                    # Content block stopped
-                    elif event_type == "content_block_stop":
-                        # Parse tool input if we just finished a tool block
-                        if tool_calls and isinstance(tool_calls[-1]["input"], str):
-                            try:
-                                tool_calls[-1]["input"] = json.loads(
-                                    tool_calls[-1]["input"] or "{}"
-                                )
-                            except json.JSONDecodeError:
-                                tool_calls[-1]["input"] = {}
-                                logger.warning(
-                                    f"Failed to parse tool input for {tool_calls[-1]['id']}"
+                        # Content block started
+                        if event_type == "content_block_start":
+                            block = event.content_block
+                            if block.type == "text":
+                                assistant_content.append({
+                                    "type": "text",
+                                    "text": "",
+                                })
+                            elif block.type == "tool_use":
+                                tool_calls.append({
+                                    "id": block.id,
+                                    "name": block.name,
+                                    "input": "",  # Will accumulate
+                                })
+                                yield StreamEvent(
+                                    type="tool_start",
+                                    data={"id": block.id, "name": block.name},
                                 )
 
-                            # Yield the complete tool input
-                            yield StreamEvent(
-                                type="tool_input",
-                                data={
-                                    "id": tool_calls[-1]["id"],
-                                    "name": tool_calls[-1]["name"],
-                                    "input": tool_calls[-1]["input"],
-                                },
+                        # Content block delta
+                        elif event_type == "content_block_delta":
+                            delta = event.delta
+                            if delta.type == "text_delta":
+                                # Append to last text block
+                                if assistant_content and assistant_content[-1]["type"] == "text":
+                                    assistant_content[-1]["text"] += delta.text
+                                yield StreamEvent(
+                                    type="text",
+                                    data={"text": delta.text},
+                                )
+                            elif delta.type == "input_json_delta":
+                                # Accumulate tool input
+                                if tool_calls:
+                                    tool_calls[-1]["input"] += delta.partial_json
+
+                        # Content block stopped
+                        elif event_type == "content_block_stop":
+                            # Parse tool input if we just finished a tool block
+                            if tool_calls and isinstance(tool_calls[-1]["input"], str):
+                                try:
+                                    tool_calls[-1]["input"] = json.loads(
+                                        tool_calls[-1]["input"] or "{}"
+                                    )
+                                except json.JSONDecodeError:
+                                    tool_calls[-1]["input"] = {}
+                                    logger.warning(
+                                        f"[{request_id}] Failed to parse tool input for {tool_calls[-1]['id']}"
+                                    )
+
+                                # Yield the complete tool input
+                                yield StreamEvent(
+                                    type="tool_input",
+                                    data={
+                                        "id": tool_calls[-1]["id"],
+                                        "name": tool_calls[-1]["name"],
+                                        "input": tool_calls[-1]["input"],
+                                    },
+                                )
+
+                        # Message complete
+                        elif event_type == "message_stop":
+                            final_message = await stream.get_final_message()
+                            stop_reason = final_message.stop_reason
+                            logger.debug(
+                                f"[{request_id}] Stream complete: "
+                                f"in={final_message.usage.input_tokens}, "
+                                f"out={final_message.usage.output_tokens}"
                             )
 
-                    # Message complete
-                    elif event_type == "message_stop":
-                        final_message = await stream.get_final_message()
-                        stop_reason = final_message.stop_reason
+        except asyncio.TimeoutError:
+            logger.error(f"[{request_id}] Stream timeout after {config.stream_timeout}s")
+            yield StreamEvent(
+                type="error",
+                data={"message": "AI response timed out. Please try again."},
+            )
+            return
 
         except Exception as e:
-            logger.exception(f"Error in orchestrator stream: {e}")
-            # Include error type in message for debugging
+            logger.exception(f"[{request_id}] Stream error: {e}")
             error_type = type(e).__name__
             yield StreamEvent(
                 type="error",
@@ -231,7 +321,7 @@ async def run_conversation(
 
         # If no tool calls, we're done
         if stop_reason != "tool_use" or not tool_calls:
-            logger.debug(f"Conversation complete (stop_reason: {stop_reason})")
+            logger.info(f"[{request_id}] Complete (stop_reason: {stop_reason}, rounds: {tool_rounds})")
             yield StreamEvent(
                 type="done",
                 data={"stop_reason": stop_reason or "end_turn"},
@@ -246,7 +336,7 @@ async def run_conversation(
             tool_name = tool_call["name"]
             tool_input = tool_call["input"]
 
-            logger.info(f"Executing tool: {tool_name}")
+            logger.info(f"[{request_id}] Executing: {tool_name}")
 
             try:
                 result = await execute_tool(
@@ -255,10 +345,13 @@ async def run_conversation(
                     user_id=user_context.user_id if user_context else None,
                 )
 
+                # Truncate large results to prevent context overflow
+                result_content = _truncate_tool_result(result)
+
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": tool_id,
-                    "content": json.dumps(result) if isinstance(result, dict) else str(result),
+                    "content": result_content,
                 })
 
                 yield StreamEvent(
@@ -272,7 +365,7 @@ async def run_conversation(
                 )
 
             except Exception as e:
-                logger.exception(f"Tool execution error for {tool_name}: {e}")
+                logger.exception(f"[{request_id}] Tool error ({tool_name}): {e}")
 
                 error_message = f"Error executing {tool_name}: {str(e)}"
                 tool_results.append({
@@ -301,7 +394,7 @@ async def run_conversation(
         # Continue the loop for Claude to process tool results
 
     # If we hit max rounds, end gracefully
-    logger.warning(f"Hit max tool rounds ({config.max_tool_rounds})")
+    logger.warning(f"[{request_id}] Max tool rounds reached ({config.max_tool_rounds})")
     yield StreamEvent(
         type="done",
         data={"stop_reason": "max_tool_rounds"},

@@ -32,22 +32,22 @@ class Settings(BaseSettings):
 
     # LLM keys
     ANTHROPIC_API_KEY: str | None = None
-    OPENAI_API_KEY: str | None = None
     GEMINI_API_KEY: str | None = None
 
     # External APIs
     TICKETMASTER_API_KEY: str | None = None
-    TICKETMASTER_API_SECRET: str | None = None
-    AMADEUS_API_KEY: str | None = None
-    AMADEUS_API_SECRET: str | None = None
 
     # Claude settings
-    CLAUDE_MODEL: str = "claude-haiku-4-5-20251001"
+    CLAUDE_MODEL: str = "claude-haiku-4-5-20251101"
     CLAUDE_MAX_TOKENS: int = 4096
     CLAUDE_TIMEOUT: int = 60  # seconds
 
+    # Orchestrator settings
+    MAX_TOOL_ROUNDS: int = 6
+    MAX_CONTEXT_TOKENS: int = 180_000  # Leave headroom from 200k limit
+
     # Gemini settings
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MODEL: str = "gemini-3-flash-preview"
     GEMINI_MAX_TOKENS: int = 1024
     GEMINI_TIMEOUT: int = 10  # seconds (max for web search)
 

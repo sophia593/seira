@@ -57,6 +57,8 @@ CATEGORY_TO_SEGMENT = {
     "music": "Music",
     "theater": "Arts & Theatre",
     "comedy": None,  # Don't filter by segment - use keyword search instead
+    "family": "Miscellaneous",  # Family events are under Miscellaneous or Film
+    "arts": "Arts & Theatre",
     "concert": "Music",
     "basketball": "Sports",
     "football": "Sports",
@@ -68,6 +70,27 @@ CATEGORY_TO_SEGMENT = {
 CATEGORY_KEYWORDS = {
     "comedy": "comedy",
     "standup": "comedy",
+    "family": "family",
+}
+
+# Genre to classification name mapping for music
+GENRE_MAP = {
+    "rock": "Rock",
+    "hip-hop": "Hip-Hop/Rap",
+    "hip hop": "Hip-Hop/Rap",
+    "rap": "Hip-Hop/Rap",
+    "country": "Country",
+    "pop": "Pop",
+    "edm": "Electronic",
+    "electronic": "Electronic",
+    "jazz": "Jazz",
+    "classical": "Classical",
+    "r&b": "R&B",
+    "rnb": "R&B",
+    "latin": "Latin",
+    "metal": "Metal",
+    "alternative": "Alternative",
+    "indie": "Alternative",
 }
 
 
@@ -101,17 +124,28 @@ async def search_events(
     query = input.get("query", "")
     city_raw = input.get("city")
     city = normalize_city(city_raw)  # Normalize "NYC" -> "New York" etc.
+    state_code = input.get("state_code")  # Two-letter state code (OR, ME, etc.)
     date_from = input.get("date_from")
     date_to = input.get("date_to")
     category = input.get("category")
+    genre = input.get("genre")  # Music genre filter
+
+    # Normalize state_code
+    if state_code:
+        state_code = state_code.strip().upper()
+        if len(state_code) != 2:
+            state_code = None  # Invalid, ignore
 
     logger.info(
-        f"[TIMING] search_events STARTED: query={query!r}, city={city!r}, "
-        f"dates={date_from} to {date_to}, category={category!r}"
+        f"[TIMING] search_events STARTED: query={query!r}, city={city!r}, state={state_code!r}, "
+        f"dates={date_from} to {date_to}, category={category!r}, genre={genre!r}"
     )
 
     # Map category to Ticketmaster segment
     segment = CATEGORY_TO_SEGMENT.get(category) if category else None
+
+    # Map genre to Ticketmaster classification name
+    genre_name = GENRE_MAP.get(genre.lower()) if genre else None
 
     # For certain categories, enhance keyword search
     search_query = query
@@ -133,9 +167,11 @@ async def search_events(
             result = await client.search_events(
                 keyword=search_query if search_query else None,
                 city=city,
+                state_code=state_code,
                 start_date=date_from,
                 end_date=date_to,
                 segment=segment,
+                genre=genre_name,
                 size=100,  # Fetch more to get variety after deduping
             )
             logger.info(f"[TIMING] Ticketmaster API: {(time.time() - t0) * 1000:.1f}ms, returned {result.total_count} events")
@@ -188,9 +224,11 @@ async def search_events(
             "query": query,
             "filters": {
                 "city": city,
+                "state_code": state_code,
                 "date_from": date_from,
                 "date_to": date_to,
                 "category": category,
+                "genre": genre,
             },
             "summary": {
                 "total_found": result.total_count,
@@ -237,7 +275,7 @@ async def search_events(
 
         gemini_query = f"{' '.join(gemini_query_parts)} tickets events schedule"
 
-        gemini_result = await researcher.search(
+        gemini_result = await researcher.search_with_retry(
             query=gemini_query,
             context=(
                 f"Today's date is {today_str}. "
@@ -247,6 +285,7 @@ async def search_events(
                 f"If the user asks about 'tonight' or 'this weekend', use today's date as reference."
             ),
             search_type=SearchType.EVENT_DETAILS,
+            max_retries=2,
         )
         logger.info(f"[TIMING] Gemini search: {(time.time() - t0) * 1000:.1f}ms")
 
@@ -296,9 +335,11 @@ async def search_events(
             "query": query,
             "filters": {
                 "city": city,
+                "state_code": state_code,
                 "date_from": date_from,
                 "date_to": date_to,
                 "category": category,
+                "genre": genre,
             },
             "summary": {
                 "total_found": 0,
@@ -351,9 +392,11 @@ async def search_events(
             "query": query,
             "filters": {
                 "city": city,
+                "state_code": state_code,
                 "date_from": date_from,
                 "date_to": date_to,
                 "category": category,
+                "genre": genre,
             },
             "summary": {
                 "total_found": 0,
@@ -713,7 +756,7 @@ async def research_web(
 
     try:
         researcher = GeminiResearcher()
-        result = await researcher.search(query, context=context, search_type=search_type)
+        result = await researcher.search_with_retry(query, context=context, search_type=search_type, max_retries=2)
 
         source_count = len(result.sources)
         official_count = len(result.official_sources)

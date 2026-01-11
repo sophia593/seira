@@ -156,7 +156,7 @@ async def save_assistant_message(
         content: The assistant's response text
         tool_calls: Optional list of tool calls made by the assistant
         tokens_used: Optional token count for this response
-        model_version: Optional model identifier (e.g., "claude-3-opus")
+        model_version: Optional model identifier (e.g., "claude-haiku-4-5")
     """
     return await create_message(
         conversation_id=conversation_id,

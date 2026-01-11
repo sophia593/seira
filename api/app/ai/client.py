@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import uuid
 from typing import Any, AsyncGenerator, Literal
 
 from pydantic import BaseModel
@@ -53,9 +54,20 @@ class MessageParams(BaseModel):
 ANTHROPIC_ERROR_MESSAGES = {
     "APITimeoutError": "AI service timed out. Please try again.",
     "RateLimitError": "AI service is busy. Please wait a moment.",
+    "OverloadedError": "AI service is overloaded. Please try again shortly.",
     "AuthenticationError": "AI service authentication failed.",
     "BadRequestError": "Invalid request to AI service.",
     "APIConnectionError": "Could not connect to AI service.",
+    "InternalServerError": "AI service error. Please try again.",
+}
+
+# Errors that should trigger retry
+RETRYABLE_ERRORS = {
+    "APITimeoutError",
+    "RateLimitError",
+    "OverloadedError",
+    "APIConnectionError",
+    "InternalServerError",
 }
 
 
@@ -66,6 +78,11 @@ def _get_user_friendly_error(error: Exception) -> str:
         error_type,
         "An error occurred with the AI service. Please try again.",
     )
+
+
+def _is_retryable(error: Exception) -> bool:
+    """Check if error should trigger retry."""
+    return type(error).__name__ in RETRYABLE_ERRORS
 
 
 # -----------------------------------------------------------------------------
@@ -98,6 +115,33 @@ def get_client():
 
 
 # -----------------------------------------------------------------------------
+# Request building (shared logic)
+# -----------------------------------------------------------------------------
+
+
+def _build_request_kwargs(
+    messages: list[dict[str, Any]],
+    system: str | None = None,
+    tools: list[dict[str, Any]] | None = None,
+    max_tokens: int | None = None,
+) -> dict[str, Any]:
+    """Build kwargs for Claude API request."""
+    settings = get_settings()
+
+    kwargs: dict[str, Any] = {
+        "model": settings.CLAUDE_MODEL,
+        "max_tokens": max_tokens or settings.CLAUDE_MAX_TOKENS,
+        "messages": messages,
+    }
+    if system:
+        kwargs["system"] = system
+    if tools:
+        kwargs["tools"] = tools
+
+    return kwargs
+
+
+# -----------------------------------------------------------------------------
 # Main streaming function
 # -----------------------------------------------------------------------------
 
@@ -127,23 +171,11 @@ async def stream_message(
     """
     settings = get_settings()
     client = get_client()
-
-    if max_tokens is None:
-        max_tokens = settings.CLAUDE_MAX_TOKENS
-
-    # Build request kwargs
-    kwargs: dict[str, Any] = {
-        "model": settings.CLAUDE_MODEL,
-        "max_tokens": max_tokens,
-        "messages": messages,
-    }
-    if system:
-        kwargs["system"] = system
-    if tools:
-        kwargs["tools"] = tools
+    kwargs = _build_request_kwargs(messages, system, tools, max_tokens)
+    request_id = uuid.uuid4().hex[:8]
 
     logger.debug(
-        f"Streaming message: model={settings.CLAUDE_MODEL}, "
+        f"[{request_id}] Streaming: model={settings.CLAUDE_MODEL}, "
         f"messages={len(messages)}, tools={len(tools) if tools else 0}"
     )
 
@@ -194,7 +226,7 @@ async def stream_message(
                             except json.JSONDecodeError:
                                 parsed_input = {}
                                 logger.warning(
-                                    f"Failed to parse tool input for {current_block_id}"
+                                    f"[{request_id}] Failed to parse tool input for {current_block_id}"
                                 )
 
                             yield StreamEvent(
@@ -211,6 +243,11 @@ async def stream_message(
                     elif event_type == "message_stop":
                         # Get final message for stop reason
                         final_message = await stream.get_final_message()
+                        logger.debug(
+                            f"[{request_id}] Complete: "
+                            f"in={final_message.usage.input_tokens}, "
+                            f"out={final_message.usage.output_tokens}"
+                        )
                         yield StreamEvent(
                             type="done",
                             data={
@@ -223,13 +260,13 @@ async def stream_message(
                         )
 
     except asyncio.TimeoutError:
-        logger.error(f"Claude API timeout after {settings.CLAUDE_TIMEOUT}s")
+        logger.error(f"[{request_id}] Timeout after {settings.CLAUDE_TIMEOUT}s")
         yield StreamEvent(
             type="error",
             data={"message": "AI service timed out. Please try again."},
         )
     except Exception as e:
-        logger.exception(f"Claude API error: {e}")
+        logger.exception(f"[{request_id}] Error: {e}")
         yield StreamEvent(
             type="error",
             data={"message": _get_user_friendly_error(e)},
@@ -258,28 +295,91 @@ def create_stream(
             async for event in stream:
                 # Handle events directly
     """
-    settings = get_settings()
     client = get_client()
-
-    if max_tokens is None:
-        max_tokens = settings.CLAUDE_MAX_TOKENS
-
-    kwargs: dict[str, Any] = {
-        "model": settings.CLAUDE_MODEL,
-        "max_tokens": max_tokens,
-        "messages": messages,
-    }
-    if system:
-        kwargs["system"] = system
-    if tools:
-        kwargs["tools"] = tools
+    kwargs = _build_request_kwargs(messages, system, tools, max_tokens)
 
     logger.debug(
-        f"Creating raw stream: model={settings.CLAUDE_MODEL}, "
+        f"Creating raw stream: model={kwargs['model']}, "
         f"messages={len(messages)}, tools={len(tools) if tools else 0}"
     )
 
     return client.messages.stream(**kwargs)
+
+
+# -----------------------------------------------------------------------------
+# Non-streaming message
+# -----------------------------------------------------------------------------
+
+
+async def send_message(
+    messages: list[dict[str, Any]],
+    system: str | None = None,
+    tools: list[dict[str, Any]] | None = None,
+    max_tokens: int | None = None,
+    max_retries: int = 2,
+) -> dict[str, Any]:
+    """
+    Send a non-streaming message to Claude with retry support.
+
+    Returns the full response as a dict.
+    Useful for simple queries where streaming isn't needed.
+    """
+    settings = get_settings()
+    client = get_client()
+    kwargs = _build_request_kwargs(messages, system, tools, max_tokens)
+    request_id = uuid.uuid4().hex[:8]
+
+    logger.debug(
+        f"[{request_id}] Sending: model={settings.CLAUDE_MODEL}, "
+        f"messages={len(messages)}, tools={len(tools) if tools else 0}"
+    )
+
+    last_error: Exception | None = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            async with asyncio.timeout(settings.CLAUDE_TIMEOUT):
+                response = await client.messages.create(**kwargs)
+
+                logger.debug(
+                    f"[{request_id}] Complete: "
+                    f"in={response.usage.input_tokens}, "
+                    f"out={response.usage.output_tokens}"
+                )
+
+                return {
+                    "id": response.id,
+                    "content": [
+                        {"type": block.type, "text": getattr(block, "text", None)}
+                        if block.type == "text"
+                        else {
+                            "type": block.type,
+                            "id": block.id,
+                            "name": block.name,
+                            "input": block.input,
+                        }
+                        for block in response.content
+                    ],
+                    "stop_reason": response.stop_reason,
+                    "usage": {
+                        "input_tokens": response.usage.input_tokens,
+                        "output_tokens": response.usage.output_tokens,
+                    },
+                }
+
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries and _is_retryable(e):
+                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s
+                logger.warning(
+                    f"[{request_id}] Retry {attempt + 1}/{max_retries} after {wait_time}s: {e}"
+                )
+                await asyncio.sleep(wait_time)
+            else:
+                break
+
+    logger.exception(f"[{request_id}] Failed after {max_retries + 1} attempts: {last_error}")
+    raise last_error
 
 
 # -----------------------------------------------------------------------------
@@ -310,68 +410,3 @@ def get_tool_calls_from_response(response) -> list[ToolCall]:
             )
 
     return tool_calls
-
-
-async def send_message(
-    messages: list[dict[str, Any]],
-    system: str | None = None,
-    tools: list[dict[str, Any]] | None = None,
-    max_tokens: int | None = None,
-) -> dict[str, Any]:
-    """
-    Send a non-streaming message to Claude.
-
-    Returns the full response as a dict.
-    Useful for simple queries where streaming isn't needed.
-    """
-    settings = get_settings()
-    client = get_client()
-
-    if max_tokens is None:
-        max_tokens = settings.CLAUDE_MAX_TOKENS
-
-    kwargs: dict[str, Any] = {
-        "model": settings.CLAUDE_MODEL,
-        "max_tokens": max_tokens,
-        "messages": messages,
-    }
-    if system:
-        kwargs["system"] = system
-    if tools:
-        kwargs["tools"] = tools
-
-    logger.debug(
-        f"Sending message: model={settings.CLAUDE_MODEL}, "
-        f"messages={len(messages)}, tools={len(tools) if tools else 0}"
-    )
-
-    try:
-        async with asyncio.timeout(settings.CLAUDE_TIMEOUT):
-            response = await client.messages.create(**kwargs)
-
-            return {
-                "id": response.id,
-                "content": [
-                    {"type": block.type, "text": getattr(block, "text", None)}
-                    if block.type == "text"
-                    else {
-                        "type": block.type,
-                        "id": block.id,
-                        "name": block.name,
-                        "input": block.input,
-                    }
-                    for block in response.content
-                ],
-                "stop_reason": response.stop_reason,
-                "usage": {
-                    "input_tokens": response.usage.input_tokens,
-                    "output_tokens": response.usage.output_tokens,
-                },
-            }
-
-    except asyncio.TimeoutError:
-        logger.error(f"Claude API timeout after {settings.CLAUDE_TIMEOUT}s")
-        raise
-    except Exception as e:
-        logger.exception(f"Claude API error: {e}")
-        raise

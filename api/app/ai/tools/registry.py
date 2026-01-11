@@ -20,17 +20,21 @@ logger = logging.getLogger(__name__)
 TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "search_events",
-        "description": "Search for live events (sports, concerts, theater, comedy) by query, location, and date range.",
+        "description": "Search for live events (sports, concerts, theater, comedy, family) by query, location, and date range.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Search query - team name, artist, event name, or genre (e.g., 'Lakers', 'Taylor Swift', 'comedy shows')",
+                    "description": "Search query - team name, artist, event name (e.g., 'Lakers', 'Taylor Swift', 'Hamilton'). Keep it simple.",
                 },
                 "city": {
                     "type": "string",
-                    "description": "City to search in (e.g., 'Los Angeles', 'New York')",
+                    "description": "City to search in (e.g., 'Los Angeles', 'New York', 'Portland')",
+                },
+                "state_code": {
+                    "type": "string",
+                    "description": "Two-letter US state code to disambiguate cities (e.g., 'OR' for Portland, Oregon; 'ME' for Portland, Maine). Optional.",
                 },
                 "date_from": {
                     "type": "string",
@@ -42,8 +46,12 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 },
                 "category": {
                     "type": "string",
-                    "enum": ["sports", "music", "theater", "comedy"],
-                    "description": "Event category to filter by",
+                    "enum": ["sports", "music", "theater", "comedy", "family", "arts"],
+                    "description": "Event category: sports (teams/leagues), music (concerts/festivals), theater (Broadway/plays), comedy (stand-up), family (kids shows), arts (dance/opera)",
+                },
+                "genre": {
+                    "type": "string",
+                    "description": "Music genre filter (rock, hip-hop, country, pop, edm, jazz, classical, r&b). Only applies when category is 'music'.",
                 },
             },
             "required": ["query"],
