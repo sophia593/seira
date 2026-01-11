@@ -126,3 +126,51 @@ async def ensure_preferences_exists(user_id: str) -> Dict[str, Any]:
     if prefs:
         return prefs
     return await upsert_preferences_row(user_id, {})
+
+
+# -----------------------------------------------------------------------------
+# Account deletion
+# -----------------------------------------------------------------------------
+
+
+async def delete_all_user_data(user_id: str) -> Dict[str, int]:
+    """
+    Delete all user data from application tables.
+    Returns count of deleted items per table.
+
+    Note: This does NOT delete the Supabase auth.users record.
+    The frontend should call supabase.auth.admin.deleteUser() separately
+    or the user can be deleted via Supabase dashboard.
+    """
+    sb = get_supabase()
+    deleted = {"conversations": 0, "trips": 0, "preferences": 0, "user": 0}
+
+    # Delete conversations (messages cascade via FK)
+    try:
+        res = sb.table("conversations").delete().eq("user_id", user_id).execute()
+        deleted["conversations"] = len(res.data) if res.data else 0
+    except Exception:
+        pass
+
+    # Delete trips
+    try:
+        res = sb.table("trips").delete().eq("user_id", user_id).execute()
+        deleted["trips"] = len(res.data) if res.data else 0
+    except Exception:
+        pass
+
+    # Delete user preferences
+    try:
+        res = sb.table("user_preferences").delete().eq("user_id", user_id).execute()
+        deleted["preferences"] = len(res.data) if res.data else 0
+    except Exception:
+        pass
+
+    # Delete user row
+    try:
+        res = sb.table("users").delete().eq("id", user_id).execute()
+        deleted["user"] = len(res.data) if res.data else 0
+    except Exception:
+        pass
+
+    return deleted

@@ -196,3 +196,27 @@ async def put_my_preferences(
 
     prefs = await user_service.upsert_preferences_row(current.id, updates)
     return prefs
+
+
+class DeleteAccountResponse(BaseModel):
+    success: bool
+    deleted: Dict[str, int]
+    message: str
+
+
+@router.delete("/me", response_model=DeleteAccountResponse)
+async def delete_my_account(current: User = Depends(get_current_user)):
+    """
+    Delete all user data from application tables.
+    This removes conversations, messages, trips, preferences, and user profile.
+
+    Note: This does NOT delete the Supabase auth.users record.
+    Call supabase.auth.signOut() after this to complete account removal.
+    """
+    deleted = await user_service.delete_all_user_data(current.id)
+
+    return {
+        "success": True,
+        "deleted": deleted,
+        "message": "Account data deleted successfully. Please sign out to complete.",
+    }
