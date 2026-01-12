@@ -315,7 +315,7 @@ export function HowItWorks() {
               {/* Chat Demo */}
               {activeStep === 0 && (
                 <ChatDemo
-                  messages={STEPS[0].demo.messages}
+                  messages={STEPS[0].demo.messages!}
                   isActive={activeStep === 0}
                 />
               )}
@@ -323,7 +323,7 @@ export function HowItWorks() {
               {/* Results Demo */}
               {activeStep === 1 && (
                 <ResultsDemo
-                  items={STEPS[1].demo.items}
+                  items={STEPS[1].demo.items as ResultsDemoProps['items']}
                   isActive={activeStep === 1}
                 />
               )}
@@ -331,7 +331,7 @@ export function HowItWorks() {
               {/* Summary Demo */}
               {activeStep === 2 && (
                 <SummaryDemo
-                  trip={STEPS[2].demo.trip}
+                  trip={STEPS[2].demo.trip!}
                   isActive={activeStep === 2}
                 />
               )}
