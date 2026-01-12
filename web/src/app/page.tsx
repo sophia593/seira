@@ -1,8 +1,9 @@
 import Link from "next/link"
-import { MessageSquare, Sparkles, Search, CheckCircle, Plane, MapPin, Ticket } from "lucide-react"
+import { MessageSquare, Sparkles, Search, CheckCircle } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { LandingHeader } from "@/components/landing-header"
 import { LandingCTA } from "@/components/landing-cta"
+import { DemoPreview } from "@/components/demo-preview"
 
 export default function Home() {
   return (
@@ -32,70 +33,9 @@ export default function Home() {
           <LandingCTA />
         </div>
 
-        {/* Chat Preview */}
+        {/* Demo Preview */}
         <div className="mb-16 sm:mb-24">
-          <div className="max-w-2xl mx-auto">
-            <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
-              {/* Chat header */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <MessageSquare className="h-4 w-4" />
-                </div>
-                <span className="text-sm font-medium lowercase">seira</span>
-                <div className="ml-auto flex gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/20" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/20" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/20" />
-                </div>
-              </div>
-
-              {/* Chat messages */}
-              <div className="p-4 sm:p-6 space-y-4">
-                {/* User message */}
-                <div className="flex justify-end">
-                  <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-br-md bg-primary text-primary-foreground px-4 py-2.5 text-sm">
-                    I want to see Taylor Swift in LA this summer
-                  </div>
-                </div>
-
-                {/* AI response */}
-                <div className="flex justify-start">
-                  <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-bl-md bg-muted px-4 py-3 text-sm space-y-3">
-                    <p>Found the Eras Tour at SoFi Stadium on Aug 7! Here&apos;s what I put together:</p>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <Ticket className="h-3.5 w-3.5 text-primary" />
-                        <span>Floor seats available from $450</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <Plane className="h-3.5 w-3.5 text-primary" />
-                        <span>Direct flights from $289 roundtrip</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <MapPin className="h-3.5 w-3.5 text-primary" />
-                        <span>Hotels near venue from $180/night</span>
-                      </div>
-                    </div>
-
-                    <p className="text-muted-foreground">Want me to show you the full trip breakdown?</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Input preview */}
-              <div className="px-4 pb-4">
-                <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5">
-                  <span className="text-sm text-muted-foreground">Ask about any event...</span>
-                  <div className="ml-auto w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <svg className="w-3.5 h-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <DemoPreview />
         </div>
 
         {/* How it works */}
