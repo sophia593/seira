@@ -25,6 +25,57 @@ logger = logging.getLogger(__name__)
 
 
 # -----------------------------------------------------------------------------
+# Airport code normalization (Amadeus needs 3-letter IATA codes)
+# -----------------------------------------------------------------------------
+
+AIRPORT_CODES = {
+    "nyc": "JFK",
+    "new york": "JFK",
+    "la": "LAX",
+    "los angeles": "LAX",
+    "sf": "SFO",
+    "san francisco": "SFO",
+    "chicago": "ORD",
+    "boston": "BOS",
+    "miami": "MIA",
+    "seattle": "SEA",
+    "denver": "DEN",
+    "atlanta": "ATL",
+    "dallas": "DFW",
+    "houston": "IAH",
+    "phoenix": "PHX",
+    "las vegas": "LAS",
+    "vegas": "LAS",
+    "orlando": "MCO",
+    "dc": "DCA",
+    "washington": "DCA",
+    "philly": "PHL",
+    "philadelphia": "PHL",
+    "san diego": "SAN",
+    "portland": "PDX",
+    "minneapolis": "MSP",
+    "detroit": "DTW",
+    "tampa": "TPA",
+    "austin": "AUS",
+    "nashville": "BNA",
+    "new orleans": "MSY",
+    "nola": "MSY",
+}
+
+
+def normalize_airport(code: str) -> str:
+    """Normalize airport code or city name to IATA code."""
+    if not code:
+        return code
+    code_lower = code.lower().strip()
+    # Check if it's a city name alias
+    if code_lower in AIRPORT_CODES:
+        return AIRPORT_CODES[code_lower]
+    # Already a code, uppercase it
+    return code.upper().strip()
+
+
+# -----------------------------------------------------------------------------
 # City name normalization (Ticketmaster needs full city names)
 # -----------------------------------------------------------------------------
 
@@ -466,8 +517,8 @@ async def search_flights(
     Search for flights using Amadeus API.
     Falls back to mock data if API key not configured.
     """
-    origin = input.get("origin", "")
-    destination = input.get("destination", "")
+    origin = normalize_airport(input.get("origin", ""))
+    destination = normalize_airport(input.get("destination", ""))
     departure_date = input.get("departure_date", "")
     return_date = input.get("return_date")
     cabin_class = input.get("cabin_class", "economy")
