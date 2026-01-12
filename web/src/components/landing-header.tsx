@@ -25,15 +25,10 @@ export function LandingHeader() {
             </Link>
           </Button>
         ) : (
-          // Not logged in - show login/signup
-          <>
-            <Button asChild variant="ghost">
-              <Link href="/login">log in</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/signup">sign up</Link>
-            </Button>
-          </>
+          // Not logged in - show subtle login link
+          <Button asChild variant="ghost">
+            <Link href="/login">log in</Link>
+          </Button>
         )}
       </div>
     </header>
