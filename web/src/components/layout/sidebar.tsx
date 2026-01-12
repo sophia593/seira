@@ -505,7 +505,9 @@ const SidebarItem = memo(function SidebarItem({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          align="end"
+          side="right"
+          align="start"
+          sideOffset={8}
           className="w-36"
           onCloseAutoFocus={(e) => e.preventDefault()}
         >
@@ -987,35 +989,41 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
         </ScrollArea>
 
         {/* Bottom Section */}
-        <div className="border-t p-2 space-y-1 shrink-0">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                href="/trips"
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm",
-                  "transition-all duration-150",
-                  "hover:bg-accent active:scale-[0.98]",
-                  isCollapsed && "justify-center"
-                )}
-              >
-                <Plane className="h-4 w-4 shrink-0" />
-                <span
+        <div className="shrink-0">
+          {/* My Trips - styled like header */}
+          <div className="border-t px-2 py-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/trips"
                   className={cn(
-                    "transition-all duration-200",
-                    isCollapsed && "opacity-0 w-0 overflow-hidden"
+                    "flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium",
+                    "transition-all duration-150",
+                    "hover:bg-accent active:scale-[0.98]",
+                    isCollapsed && "justify-center"
                   )}
                 >
-                  my trips
-                </span>
-              </Link>
-            </TooltipTrigger>
-            {isCollapsed && (
-              <TooltipContent side="right">my trips</TooltipContent>
-            )}
-          </Tooltip>
+                  <Plane className="h-4 w-4 shrink-0" />
+                  <span
+                    className={cn(
+                      "transition-all duration-200",
+                      isCollapsed && "opacity-0 w-0 overflow-hidden"
+                    )}
+                  >
+                    my trips
+                  </span>
+                </Link>
+              </TooltipTrigger>
+              {isCollapsed && (
+                <TooltipContent side="right">my trips</TooltipContent>
+              )}
+            </Tooltip>
+          </div>
 
-          <UserMenu isCollapsed={isCollapsed} />
+          {/* User Menu - bottom with border */}
+          <div className="border-t px-2 py-2">
+            <UserMenu isCollapsed={isCollapsed} />
+          </div>
         </div>
       </aside>
     </TooltipProvider>
