@@ -12,13 +12,25 @@ export function LandingHeader() {
   return (
     <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 max-w-6xl mx-auto w-full">
       <Logo className="text-lg sm:text-xl" linkToHome={false} />
-      <div className="flex items-center gap-2 sm:gap-3">
+      <nav className="flex items-center gap-1 sm:gap-2">
+        <Link
+          href="/pricing"
+          className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-accent transition-all active:scale-[0.97] hidden sm:block"
+        >
+          pricing
+        </Link>
+        <Link
+          href="/about"
+          className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-accent transition-all active:scale-[0.97] hidden sm:block"
+        >
+          about
+        </Link>
         {loading ? (
           // Loading state - show placeholder
-          <div className="h-9 w-24 bg-muted rounded-xl animate-pulse" />
+          <div className="h-9 w-20 bg-muted rounded-lg animate-pulse" />
         ) : user ? (
           // Logged in - show "go to chat" button
-          <Button asChild>
+          <Button asChild className="active:scale-[0.97] transition-transform">
             <Link href="/chat">
               go to chat
               <ArrowRight className="h-4 w-4" />
@@ -26,11 +38,11 @@ export function LandingHeader() {
           </Button>
         ) : (
           // Not logged in - show subtle login link
-          <Button asChild variant="ghost">
+          <Button asChild variant="ghost" className="active:scale-[0.97] transition-transform">
             <Link href="/login">log in</Link>
           </Button>
         )}
-      </div>
+      </nav>
     </header>
   )
 }
