@@ -464,16 +464,17 @@ const SidebarItem = memo(function SidebarItem({
       className={cn(
         "group relative flex items-center rounded-lg",
         "transition-all duration-150 ease-out",
-        "hover:bg-accent",
+        "hover:bg-accent hover:shadow-sm",
+        "active:scale-[0.97] active:shadow-none",
         isActive && "bg-accent shadow-sm",
-        isDeleting && "opacity-0 scale-95 -translate-x-2 pointer-events-none",
-        isMenuOpen && "bg-accent"
+        isDeleting && "opacity-0 scale-90 -translate-x-4 pointer-events-none transition-all duration-300",
+        isMenuOpen && "bg-accent shadow-sm"
       )}
       style={style}
     >
       <Link
         href={`/chat/${conversation.id}`}
-        className="flex-1 flex items-center gap-2 px-2 py-1.5 min-w-0"
+        className="flex-1 flex items-center gap-2 px-2 py-1.5 min-w-0 active:scale-[0.99]"
       >
         <MessageSquare
           className={cn(
@@ -733,8 +734,8 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
     // Start delete animation
     setDeletingId(id)
 
-    // Wait for animation
-    await new Promise((r) => setTimeout(r, 200))
+    // Wait for animation to complete
+    await new Promise((r) => setTimeout(r, 300))
 
     // Optimistic update
     const previousConversations = conversationsRef.current
