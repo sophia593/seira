@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { MessageSquare, ArrowLeft, Loader2, CheckCircle } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
+import { Logo } from "@/components/logo"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
@@ -52,17 +53,13 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
       {/* Logo */}
-      <Link
-        href="/"
-        className="flex items-center gap-2 mb-8 text-foreground hover:opacity-80 transition-opacity"
-      >
-        <MessageSquare className="h-6 w-6" />
-        <span className="text-xl font-semibold lowercase">seira</span>
-      </Link>
+      <div className="mb-8 animate-in fade-in duration-500">
+        <Logo />
+      </div>
 
       {/* Card */}
-      <div className="w-full max-w-md">
-        <div className="rounded-2xl border bg-card p-8 shadow-sm">
+      <div className="w-full max-w-md animate-in fade-in duration-500">
+        <div className="rounded-3xl border bg-card p-10 shadow-lg">
           {isSuccess ? (
             // Success State
             <div className="text-center">
@@ -89,7 +86,7 @@ export default function ForgotPasswordPage() {
                 href="/login"
                 className={cn(
                   "inline-flex items-center justify-center gap-2",
-                  "h-12 px-6 rounded-xl",
+                  "h-12 px-6 rounded-2xl",
                   "bg-primary text-primary-foreground",
                   "text-sm font-medium",
                   "hover:bg-primary/90 transition-colors"
@@ -143,7 +140,7 @@ export default function ForgotPasswordPage() {
                     autoFocus
                     disabled={isLoading}
                     className={cn(
-                      "w-full h-12 px-4 rounded-xl",
+                      "w-full h-12 px-5 rounded-2xl",
                       "bg-background border",
                       "text-sm placeholder:text-muted-foreground/50",
                       "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
@@ -162,7 +159,7 @@ export default function ForgotPasswordPage() {
                   type="submit"
                   disabled={isLoading}
                   className={cn(
-                    "w-full h-12 rounded-xl",
+                    "w-full h-12 rounded-2xl",
                     "bg-primary text-primary-foreground",
                     "text-sm font-medium",
                     "hover:bg-primary/90",

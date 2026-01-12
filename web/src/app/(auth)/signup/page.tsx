@@ -3,7 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { MessageSquare, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Logo } from "@/components/logo"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
@@ -125,17 +126,13 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
       {/* Logo */}
-      <Link
-        href="/"
-        className="flex items-center gap-2 mb-8 text-foreground hover:opacity-80 transition-opacity"
-      >
-        <MessageSquare className="h-6 w-6" />
-        <span className="text-xl font-semibold lowercase">seira</span>
-      </Link>
+      <div className="mb-8 animate-in fade-in duration-500">
+        <Logo />
+      </div>
 
       {/* Card */}
-      <div className="w-full max-w-md">
-        <div className="rounded-2xl border bg-card p-8 shadow-sm">
+      <div className="w-full max-w-md animate-in fade-in duration-500">
+        <div className="rounded-3xl border bg-card p-10 shadow-lg">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold lowercase mb-2">
@@ -152,7 +149,7 @@ export default function SignupPage() {
             onClick={handleGoogleSignup}
             disabled={isGoogleLoading || isLoading}
             className={cn(
-              "w-full flex items-center justify-center gap-3 h-12 rounded-xl",
+              "w-full flex items-center justify-center gap-3 h-12 rounded-2xl",
               "border bg-background hover:bg-accent",
               "text-sm font-medium",
               "transition-colors duration-150",
@@ -215,7 +212,7 @@ export default function SignupPage() {
                 autoComplete="given-name"
                 disabled={isLoading}
                 className={cn(
-                  "w-full h-12 px-4 rounded-xl",
+                  "w-full h-12 px-5 rounded-2xl",
                   "bg-background border",
                   "text-sm placeholder:text-muted-foreground/50",
                   "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
@@ -246,7 +243,7 @@ export default function SignupPage() {
                 autoComplete="email"
                 disabled={isLoading}
                 className={cn(
-                  "w-full h-12 px-4 rounded-xl",
+                  "w-full h-12 px-5 rounded-2xl",
                   "bg-background border",
                   "text-sm placeholder:text-muted-foreground/50",
                   "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
@@ -278,7 +275,7 @@ export default function SignupPage() {
                   autoComplete="new-password"
                   disabled={isLoading}
                   className={cn(
-                    "w-full h-12 px-4 pr-12 rounded-xl",
+                    "w-full h-12 px-5 pr-12 rounded-2xl",
                     "bg-background border",
                     "text-sm placeholder:text-muted-foreground/50",
                     "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
@@ -312,7 +309,7 @@ export default function SignupPage() {
               type="submit"
               disabled={isLoading || isGoogleLoading}
               className={cn(
-                "w-full h-12 rounded-xl",
+                "w-full h-12 rounded-2xl",
                 "bg-primary text-primary-foreground",
                 "text-sm font-medium",
                 "hover:bg-primary/90",
