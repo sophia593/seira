@@ -1,7 +1,7 @@
 "use client"
 
-import { memo, useMemo } from "react"
-import { Plane, Calendar, Music, Ticket, Star, MapPin } from "lucide-react"
+import { memo } from "react"
+import { Plane, Calendar, Music, Ticket } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface EmptyStateProps {
@@ -9,32 +9,17 @@ interface EmptyStateProps {
   className?: string
 }
 
-// All available suggestions - we'll randomly pick 3
-const allSuggestions = [
+// Fixed suggestions to avoid hydration mismatch (no Math.random())
+const suggestions = [
   { icon: Music, text: "Taylor Swift concerts near me" },
-  { icon: Ticket, text: "Find Lakers games in February" },
-  { icon: Calendar, text: "Comedy shows in NYC this weekend" },
-  { icon: Star, text: "Broadway shows in New York" },
-  { icon: Music, text: "Beyoncé concerts this year" },
   { icon: Ticket, text: "NBA games in Los Angeles" },
-  { icon: Calendar, text: "Jazz festivals in New Orleans" },
-  { icon: MapPin, text: "Concerts in Austin next month" },
-  { icon: Star, text: "Hamilton tickets in Chicago" },
-  { icon: Ticket, text: "NFL games in Miami" },
+  { icon: Calendar, text: "Comedy shows in NYC this weekend" },
 ]
-
-// Shuffle and pick n items
-function pickRandom<T>(arr: T[], n: number): T[] {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, n)
-}
 
 export const EmptyState = memo(function EmptyState({
   onSuggestionClick,
   className,
 }: EmptyStateProps) {
-  // Pick 3 random suggestions on each mount
-  const suggestions = useMemo(() => pickRandom(allSuggestions, 3), [])
 
   return (
     <div
