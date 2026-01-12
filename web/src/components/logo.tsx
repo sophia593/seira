@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type LogoVariant = "full" | "icon"
@@ -10,6 +9,29 @@ interface LogoProps {
   variant?: LogoVariant
 }
 
+// Globe SVG icon (Option A: Simple Globe)
+function GlobeIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {/* Outer circle */}
+      <circle cx="12" cy="12" r="10" />
+      {/* Center vertical ellipse (meridian) */}
+      <ellipse cx="12" cy="12" rx="4" ry="10" />
+      {/* Horizontal line (equator) */}
+      <path d="M2 12h20" />
+    </svg>
+  )
+}
+
 // Icon-only logo (for mobile headers, compact spaces)
 export function LogoIcon({
   className,
@@ -18,27 +40,15 @@ export function LogoIcon({
   className?: string
   size?: "sm" | "default" | "lg"
 }) {
-  const sizeClasses = {
-    sm: "h-7 w-7",
-    default: "h-9 w-9",
-    lg: "h-10 w-10",
-  }
-
-  const iconSizes = {
-    sm: "h-3.5 w-3.5",
-    default: "h-4 w-4",
-    lg: "h-5 w-5",
+  const sizes = {
+    sm: 20,
+    default: 24,
+    lg: 28,
   }
 
   return (
-    <div
-      className={cn(
-        "flex items-center justify-center rounded-xl bg-primary text-primary-foreground",
-        sizeClasses[size],
-        className
-      )}
-    >
-      <MessageSquare className={iconSizes[size]} />
+    <div className={className}>
+      <GlobeIcon size={sizes[size]} />
     </div>
   )
 }
@@ -46,38 +56,22 @@ export function LogoIcon({
 // Full logo with text
 export function LogoFull({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "text-xl font-semibold tracking-tight lowercase",
-        className
-      )}
-    >
-      seira
-    </span>
+    <div className={cn("flex items-center gap-2", className)}>
+      <GlobeIcon size={24} />
+      <span className="font-semibold text-lg lowercase">seira</span>
+    </div>
   )
 }
 
-// Combined logo (icon + text)
+// Combined logo (icon + text) - alias for LogoFull
 export function LogoCombined({
   className,
-  iconSize = "default",
-  gap = "default",
 }: {
   className?: string
   iconSize?: "sm" | "default" | "lg"
   gap?: "sm" | "default"
 }) {
-  const gapClasses = {
-    sm: "gap-2",
-    default: "gap-3",
-  }
-
-  return (
-    <div className={cn("flex items-center", gapClasses[gap], className)}>
-      <LogoIcon size={iconSize} />
-      <LogoFull />
-    </div>
-  )
+  return <LogoFull className={className} />
 }
 
 // Main Logo component with variant support
