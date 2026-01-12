@@ -9,7 +9,11 @@
 export interface ApiClientConfig {
   baseUrl: string
   getToken: () => Promise<string | null>
+  onUnauthorized?: () => void
 }
+
+// Request timeout in milliseconds
+const REQUEST_TIMEOUT_MS = 30000
 
 export class ApiError extends Error {
   status: number
@@ -137,7 +141,7 @@ interface RequestOptions {
 // -----------------------------------------------------------------------------
 
 export function createApiClient(config: ApiClientConfig) {
-  const { baseUrl, getToken } = config
+  const { baseUrl, getToken, onUnauthorized } = config
 
   async function request<T>(
     method: string,
@@ -158,11 +162,17 @@ export function createApiClient(config: ApiClientConfig) {
 
     const url = `${baseUrl}${path}`
 
+    // Use provided signal or create timeout signal
+    const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+    const signal = options.signal
+      ? AbortSignal.any([options.signal, timeoutSignal])
+      : timeoutSignal
+
     const response = await fetch(url, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
-      signal: options.signal,
+      signal,
     })
 
     if (!response.ok) {
@@ -192,8 +202,9 @@ export function createApiClient(config: ApiClientConfig) {
       message = response.statusText || message
     }
 
-    // Handle 401 - could trigger logout in consuming code
+    // Handle 401 - trigger logout and throw
     if (response.status === 401) {
+      onUnauthorized?.()
       throw new ApiError("Unauthorized", 401, "UNAUTHORIZED")
     }
 
@@ -296,6 +307,10 @@ export function createApiClient(config: ApiClientConfig) {
     return put<UserPreferences>("/api/v1/me/preferences", prefs)
   }
 
+  async function deleteAccount(): Promise<{ message: string; deleted: Record<string, number> }> {
+    return del<{ message: string; deleted: Record<string, number> }>("/api/v1/users/me")
+  }
+
   // Conversations
   async function getConversations(): Promise<Conversation[]> {
     return get<Conversation[]>("/api/v1/conversations")
@@ -381,6 +396,7 @@ export function createApiClient(config: ApiClientConfig) {
     updateMe,
     getPreferences,
     updatePreferences,
+    deleteAccount,
 
     // Conversations
     getConversations,

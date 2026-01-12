@@ -36,9 +36,12 @@ class Settings(BaseSettings):
 
     # External APIs
     TICKETMASTER_API_KEY: str | None = None
+    AMADEUS_API_KEY: str | None = None
+    AMADEUS_API_SECRET: str | None = None
+    AMADEUS_BASE_URL: str = "https://api.amadeus.com"
 
     # Claude settings
-    CLAUDE_MODEL: str = "claude-haiku-4-5-20251101"
+    CLAUDE_MODEL: str = "claude-haiku-4-5-20251001"
     CLAUDE_MAX_TOKENS: int = 4096
     CLAUDE_TIMEOUT: int = 60  # seconds
 

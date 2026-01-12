@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes'
 import { ArrowLeft, Save, Loader2, Check, AlertTriangle, Sun, Moon, Monitor } from 'lucide-react'
 import Link from 'next/link'
 import { getApi } from '@/lib/api'
+import { createClient } from '@/lib/supabase/client'
 import { useUserStore } from '@/stores/user-store'
 import { toast } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
@@ -89,6 +90,7 @@ export default function SettingsPage() {
   // Delete account dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Dirty checking
   const isProfileDirty = useMemo(() => {
@@ -213,13 +215,25 @@ export default function SettingsPage() {
     }
   }
 
-  function handleDeleteAccount() {
-    // TODO: Implement actual account deletion when backend supports it
-    toast.info('contact support to delete your account', {
-      description: 'email privacy@seira.app to request account deletion',
-    })
-    setDeleteDialogOpen(false)
-    setDeleteConfirmText('')
+  async function handleDeleteAccount() {
+    setIsDeleting(true)
+    try {
+      const api = getApi()
+      await api.deleteAccount()
+
+      // Sign out and redirect
+      const supabase = createClient()
+      await supabase.auth.signOut()
+
+      toast.success('account deleted')
+      router.push('/login')
+    } catch {
+      toast.error('couldn\'t delete account, please try again')
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+      setDeleteConfirmText('')
+    }
   }
 
   if (!user) {
@@ -497,9 +511,16 @@ export default function SettingsPage() {
                     <Button
                       variant="destructive"
                       onClick={handleDeleteAccount}
-                      disabled={deleteConfirmText !== 'DELETE'}
+                      disabled={deleteConfirmText !== 'DELETE' || isDeleting}
                     >
-                      delete my account
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          deleting...
+                        </>
+                      ) : (
+                        'delete my account'
+                      )}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

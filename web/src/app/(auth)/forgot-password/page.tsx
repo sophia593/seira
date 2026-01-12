@@ -2,112 +2,198 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Mail } from "lucide-react"
+import { MessageSquare, ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { toast } from "@/components/ui/sonner"
+import { cn } from "@/lib/utils"
 
 export default function ForgotPasswordPage() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
   const [email, setEmail] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const supabase = createClient()
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
-    setLoading(true)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/callback?next=/settings`,
-    })
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
+    if (!email.trim()) {
+      setError("email is required")
       return
     }
 
-    setSent(true)
-    setLoading(false)
-  }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("please enter a valid email")
+      return
+    }
 
-  // Success state
-  if (sent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="w-full max-w-sm text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Mail className="h-6 w-6 text-primary" />
-          </div>
-          <h1 className="text-2xl font-semibold mb-2 lowercase">check your email</h1>
-          <p className="text-muted-foreground mb-6">
-            we sent a password reset link to{" "}
-            <strong className="text-foreground">{email}</strong>
-          </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            click the link in the email to reset your password. if you don't see it, check your spam folder.
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            back to login
-          </Link>
-        </div>
-      </div>
-    )
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+
+      setIsSuccess(true)
+    } catch {
+      toast.error("something went wrong, please try again")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold text-center mb-2 lowercase">
-          forgot password?
-        </h1>
-        <p className="text-center text-sm text-muted-foreground mb-6">
-          enter your email and we'll send you a reset link
-        </p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      {/* Logo */}
+      <Link
+        href="/"
+        className="flex items-center gap-2 mb-8 text-foreground hover:opacity-80 transition-opacity"
+      >
+        <MessageSquare className="h-6 w-6" />
+        <span className="text-xl font-semibold lowercase">seira</span>
+      </Link>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="you@example.com"
-              autoFocus
-            />
-          </div>
+      {/* Card */}
+      <div className="w-full max-w-md">
+        <div className="rounded-2xl border bg-card p-8 shadow-sm">
+          {isSuccess ? (
+            // Success State
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-primary" />
+              </div>
+              <h1 className="text-2xl font-semibold lowercase mb-2">
+                check your email
+              </h1>
+              <p className="text-muted-foreground text-sm mb-6">
+                we sent a password reset link to<br />
+                <span className="font-medium text-foreground">{email}</span>
+              </p>
+              <p className="text-xs text-muted-foreground mb-6">
+                didn't receive the email? check your spam folder or{" "}
+                <button
+                  onClick={() => setIsSuccess(false)}
+                  className="underline hover:text-foreground transition-colors"
+                >
+                  try again
+                </button>
+              </p>
+              <Link
+                href="/login"
+                className={cn(
+                  "inline-flex items-center justify-center gap-2",
+                  "h-12 px-6 rounded-xl",
+                  "bg-primary text-primary-foreground",
+                  "text-sm font-medium",
+                  "hover:bg-primary/90 transition-colors"
+                )}
+              >
+                back to login
+              </Link>
+            </div>
+          ) : (
+            // Form State
+            <>
+              {/* Back Link */}
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                back to login
+              </Link>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
+              {/* Header */}
+              <div className="mb-8">
+                <h1 className="text-2xl font-semibold lowercase mb-2">
+                  forgot password?
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  enter your email and we'll send you a reset link
+                </p>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Email */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="email"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (error) setError("")
+                    }}
+                    placeholder="jane@example.com"
+                    autoComplete="email"
+                    autoFocus
+                    disabled={isLoading}
+                    className={cn(
+                      "w-full h-12 px-4 rounded-xl",
+                      "bg-background border",
+                      "text-sm placeholder:text-muted-foreground/50",
+                      "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                      "transition-all duration-150",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      error && "border-destructive focus:ring-destructive/20"
+                    )}
+                  />
+                  {error && (
+                    <p className="text-xs text-destructive">{error}</p>
+                  )}
+                </div>
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className={cn(
+                    "w-full h-12 rounded-xl",
+                    "bg-primary text-primary-foreground",
+                    "text-sm font-medium",
+                    "hover:bg-primary/90",
+                    "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2",
+                    "transition-all duration-150",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                  ) : (
+                    "send reset link"
+                  )}
+                </button>
+              </form>
+            </>
           )}
+        </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full"
-          >
-            {loading ? "sending..." : "send reset link"}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1 text-primary hover:underline"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            back to login
-          </Link>
-        </p>
+        {/* Signup Link */}
+        {!isSuccess && (
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            don't have an account?{" "}
+            <Link
+              href="/signup"
+              className="font-medium text-foreground hover:underline"
+            >
+              sign up
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   )

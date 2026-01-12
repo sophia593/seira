@@ -60,6 +60,12 @@ export function getApi() {
       const { data } = await supabase.auth.getSession()
       return data.session?.access_token ?? null
     },
+    onUnauthorized: () => {
+      // Sign out and redirect to login on 401
+      supabase.auth.signOut().then(() => {
+        window.location.href = '/login'
+      })
+    },
   })
 
   return _api

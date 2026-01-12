@@ -16,6 +16,8 @@ from app.ai.tools.registry import register_tool
 from app.ai.clients.gemini import GeminiResearcher, SearchType
 from app.ai.metrics import gemini_rescue_metrics, research_web_metrics
 from app.integrations.ticketmaster import TicketmasterClient, Event
+from app.integrations.amadeus import AmadeusClient
+from app.core.config import get_settings
 from app.services import trip as trip_service
 from app.services import user as user_service
 
@@ -461,9 +463,8 @@ async def search_flights(
     user_id: str | None = None,
 ) -> dict[str, Any]:
     """
-    Search for flights.
-
-    TODO: Integrate with real flight APIs (Duffel, Amadeus, etc.)
+    Search for flights using Amadeus API.
+    Falls back to mock data if API key not configured.
     """
     origin = input.get("origin", "")
     destination = input.get("destination", "")
@@ -494,7 +495,137 @@ async def search_flights(
         f"cabin={cabin_class}, pax={passengers}"
     )
 
-    # Mock response for MVP
+    settings = get_settings()
+    use_real_api = settings.AMADEUS_API_KEY and settings.AMADEUS_API_SECRET
+
+    if use_real_api:
+        # Try real Amadeus API
+        try:
+            t0 = time.time()
+            async with AmadeusClient() as client:
+                # Map cabin class to Amadeus format
+                amadeus_cabin = cabin_class.upper().replace("_", " ")
+                if amadeus_cabin == "PREMIUM ECONOMY":
+                    amadeus_cabin = "PREMIUM_ECONOMY"
+
+                result = await client.search_flights(
+                    origin=origin.upper(),
+                    destination=destination.upper(),
+                    departure_date=departure_date,
+                    return_date=return_date,
+                    adults=passengers,
+                    cabin_class=amadeus_cabin,
+                    max_offers=10,
+                )
+
+            logger.info(f"[TIMING] Amadeus API: {(time.time() - t0) * 1000:.1f}ms, returned {len(result.offers)} offers")
+
+            if result.offers:
+                # Format real flight offers
+                from app.integrations.amadeus import format_duration
+
+                flights = []
+                for offer in result.offers:
+                    # Get outbound segments
+                    outbound = offer.outbound_segments[0] if offer.outbound_segments else None
+                    if not outbound:
+                        continue
+
+                    # Format departure time for display
+                    dep_time = outbound.departure_time
+                    arr_time = offer.outbound_segments[-1].arrival_time
+                    try:
+                        dep_dt = datetime.fromisoformat(dep_time.replace("Z", "+00:00"))
+                        arr_dt = datetime.fromisoformat(arr_time.replace("Z", "+00:00"))
+                        dep_time = dep_dt.strftime("%-I:%M %p")
+                        arr_time = arr_dt.strftime("%-I:%M %p")
+                    except Exception:
+                        pass  # Keep original format
+
+                    flights.append({
+                        "id": offer.id,
+                        "airline": outbound.carrier_name or outbound.carrier_code,
+                        "airline_code": outbound.carrier_code,
+                        "flight_number": outbound.flight_number,
+                        "origin": outbound.departure_airport,
+                        "destination": offer.outbound_segments[-1].arrival_airport,
+                        "departure_date": departure_date,
+                        "departure_time": dep_time,
+                        "arrival_time": arr_time,
+                        "duration": format_duration(offer.outbound_duration),
+                        "stops": offer.outbound_stops,
+                        "cabin_class": cabin_class,
+                        "price": offer.price,
+                        "currency": offer.currency,
+                        "booking_url": f"https://www.google.com/flights?q={origin}+to+{destination}+{departure_date}",
+                        "seats_available": offer.seats_available,
+                        "is_mock": False,
+                    })
+
+                # Handle return flights if round trip
+                return_flight_list = None
+                if return_date and result.offers:
+                    return_flight_list = []
+                    for offer in result.offers:
+                        if offer.return_segments:
+                            ret = offer.return_segments[0]
+                            # Format times
+                            ret_dep_time = ret.departure_time
+                            ret_arr_time = offer.return_segments[-1].arrival_time
+                            try:
+                                ret_dep_dt = datetime.fromisoformat(ret_dep_time.replace("Z", "+00:00"))
+                                ret_arr_dt = datetime.fromisoformat(ret_arr_time.replace("Z", "+00:00"))
+                                ret_dep_time = ret_dep_dt.strftime("%-I:%M %p")
+                                ret_arr_time = ret_arr_dt.strftime("%-I:%M %p")
+                            except Exception:
+                                pass
+
+                            return_flight_list.append({
+                                "id": f"{offer.id}_return",
+                                "airline": ret.carrier_name or ret.carrier_code,
+                                "airline_code": ret.carrier_code,
+                                "flight_number": ret.flight_number,
+                                "origin": ret.departure_airport,
+                                "destination": offer.return_segments[-1].arrival_airport,
+                                "departure_date": return_date,
+                                "departure_time": ret_dep_time,
+                                "arrival_time": ret_arr_time,
+                                "duration": format_duration(offer.return_duration) if offer.return_duration else "N/A",
+                                "stops": offer.return_stops or 0,
+                                "cabin_class": cabin_class,
+                                "price": 0,  # Price included in total
+                                "currency": offer.currency,
+                                "booking_url": f"https://www.google.com/flights?q={destination}+to+{origin}+{return_date}",
+                                "seats_available": None,
+                                "is_mock": False,
+                            })
+
+                return {
+                    "success": True,
+                    "data_source": "amadeus",
+                    "search": {
+                        "origin": origin,
+                        "destination": destination,
+                        "departure_date": departure_date,
+                        "return_date": return_date,
+                        "cabin_class": cabin_class,
+                        "passengers": passengers,
+                    },
+                    "outbound_flights": flights,
+                    "return_flights": return_flight_list,
+                    "instructions_for_assistant": (
+                        "These are REAL flight prices from Amadeus. Prices are accurate as of now but may change. "
+                        "The booking URLs go to Google Flights for easy comparison and booking."
+                    ),
+                }
+
+        except Exception as e:
+            logger.exception(f"Amadeus API failed, falling back to mock: {e}")
+            # Fall through to mock data
+
+    # Mock response (fallback or when API key not set)
+    logger.info("Using mock flight data" + (" (Amadeus not configured)" if not use_real_api else " (Amadeus failed)"))
+
     outbound_flights = _generate_mock_flights(
         origin, destination, departure_date, cabin_class
     )
@@ -507,6 +638,7 @@ async def search_flights(
 
     return {
         "success": True,
+        "data_source": "mock",
         "search": {
             "origin": origin,
             "destination": destination,
@@ -517,6 +649,11 @@ async def search_flights(
         },
         "outbound_flights": outbound_flights,
         "return_flights": return_flights,
+        "instructions_for_assistant": (
+            "IMPORTANT: These are MOCK/EXAMPLE flights, NOT real prices. "
+            "Tell the user these are example flights to illustrate options. "
+            "Recommend they check Google Flights or airline websites for actual prices."
+        ),
     }
 
 
@@ -597,6 +734,7 @@ def _generate_mock_flights(
             "currency": "USD",
             "booking_url": f"https://www.{airline_name.lower()}.com/book",
             "seats_available": 5 + i,
+            "is_mock": True,
         })
 
     return flights

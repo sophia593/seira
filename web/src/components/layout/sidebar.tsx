@@ -192,10 +192,13 @@ function savePinnedIds(ids: Set<string>): void {
 // Loading Skeleton
 // =============================================================================
 
+// Fixed widths to avoid hydration mismatch from Math.random()
+const SKELETON_WIDTHS = [75, 82, 68, 78, 71]
+
 function ConversationSkeleton() {
   return (
     <div className="space-y-1 px-1">
-      {[...Array(5)].map((_, i) => (
+      {SKELETON_WIDTHS.map((width, i) => (
         <div
           key={i}
           className="flex items-center gap-2 px-2 py-2 animate-pulse"
@@ -204,7 +207,7 @@ function ConversationSkeleton() {
           <div className="h-4 w-4 rounded bg-muted" />
           <div
             className="h-3 rounded bg-muted"
-            style={{ width: `${60 + Math.random() * 30}%` }}
+            style={{ width: `${width}%` }}
           />
         </div>
       ))}
