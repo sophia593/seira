@@ -280,9 +280,10 @@ export const EventResultsGrid = memo(function EventResultsGrid({
   const filteredEvents = useMemo(() => {
     return normalizedEvents.filter((event) => {
       // Price filter
-      if (event.price_min !== null) {
-        if (event.price_min < filters.priceRange[0]) return false
-        if (event.price_min > filters.priceRange[1]) return false
+      const price = event.price_min
+      if (typeof price === 'number') {
+        if (price < filters.priceRange[0]) return false
+        if (price > filters.priceRange[1]) return false
       }
 
       // Date filter
