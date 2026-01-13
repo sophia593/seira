@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ChatInterface } from '@/components/chat'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 
 // =============================================================================
 // Constants
@@ -11,8 +11,21 @@ import { Loader2 } from 'lucide-react'
 
 const PAGE_TITLE = "new chat | seira"
 
+const EXAMPLE_PROMPTS = [
+  "taylor swift eras tour in los angeles",
+  "lakers vs celtics next month",
+  "coachella 2026 weekend 1",
+  "f1 miami grand prix",
+  "hamilton on broadway",
+  "ufc 300 in vegas",
+  "coldplay world tour near me",
+  "super bowl 2027",
+  "wimbledon finals",
+  "comic con san diego",
+]
+
 // =============================================================================
-// Keyboard Hint Component
+// Keyboard Hint Component (auto-dismiss after 10s)
 // =============================================================================
 
 function KeyboardHint() {
@@ -23,12 +36,20 @@ function KeyboardHint() {
     // Detect platform
     setIsMac(navigator.platform.toUpperCase().indexOf("MAC") >= 0)
 
-    // Show hint after a short delay (don't distract from initial load)
-    const timer = setTimeout(() => {
+    // Show hint after 2s delay
+    const showTimer = setTimeout(() => {
       setIsVisible(true)
     }, 2000)
 
-    return () => clearTimeout(timer)
+    // Auto-dismiss after 10s (12s total from mount)
+    const hideTimer = setTimeout(() => {
+      setIsVisible(false)
+    }, 12000)
+
+    return () => {
+      clearTimeout(showTimer)
+      clearTimeout(hideTimer)
+    }
   }, [])
 
   // Hide on mobile (no keyboard shortcuts)
@@ -46,7 +67,7 @@ function KeyboardHint() {
         bg-muted/80 backdrop-blur-sm border
         text-xs text-muted-foreground
         transition-all duration-500
-        ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+        ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}
       `}
     >
       <span className="hidden sm:inline">
@@ -65,12 +86,55 @@ function KeyboardHint() {
 }
 
 // =============================================================================
+// Example Prompts Component
+// =============================================================================
+
+interface ExamplePromptsProps {
+  onSelect: (prompt: string) => void
+}
+
+function ExamplePrompts({ onSelect }: ExamplePromptsProps) {
+  // Randomly select 4 prompts on mount
+  const [prompts, setPrompts] = useState<string[]>([])
+
+  useEffect(() => {
+    const shuffled = [...EXAMPLE_PROMPTS].sort(() => Math.random() - 0.5)
+    setPrompts(shuffled.slice(0, 4))
+  }, [])
+
+  if (prompts.length === 0) return null
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+        <Sparkles className="w-3 h-3" />
+        <span>try asking about</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {prompts.map((prompt) => (
+          <button
+            key={prompt}
+            onClick={() => onSelect(prompt)}
+            className="text-left px-4 py-3 rounded-xl border bg-card hover:bg-muted/50 hover:border-primary/30 transition-all text-sm text-muted-foreground hover:text-foreground lowercase"
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
 // Chat Page Content
 // =============================================================================
 
 function ChatPageContent() {
   const searchParams = useSearchParams()
   const initialPrompt = searchParams.get('prompt') || undefined
+
+  const [selectedPrompt, setSelectedPrompt] = useState<string | undefined>(initialPrompt)
+  const [showExamples, setShowExamples] = useState(!initialPrompt)
 
   // ===========================================================================
   // Set page title
@@ -97,6 +161,23 @@ function ChatPageContent() {
   }, [initialPrompt])
 
   // ===========================================================================
+  // Handle example prompt selection
+  // ===========================================================================
+
+  function handlePromptSelect(prompt: string) {
+    setSelectedPrompt(prompt)
+    setShowExamples(false)
+  }
+
+  // ===========================================================================
+  // Handle when chat becomes active (hide examples)
+  // ===========================================================================
+
+  function handleChatActive() {
+    setShowExamples(false)
+  }
+
+  // ===========================================================================
   // Render
   // ===========================================================================
 
@@ -106,9 +187,17 @@ function ChatPageContent() {
       <h1 className="sr-only">new chat</h1>
 
       {/* Main chat interface */}
-      <ChatInterface initialPrompt={initialPrompt} />
+      <ChatInterface
+        initialPrompt={selectedPrompt}
+        onChatActive={handleChatActive}
+        examplePromptsSlot={
+          showExamples ? (
+            <ExamplePrompts onSelect={handlePromptSelect} />
+          ) : null
+        }
+      />
 
-      {/* Keyboard shortcut hint (desktop only) */}
+      {/* Keyboard shortcut hint (desktop only, auto-dismiss) */}
       <KeyboardHint />
     </div>
   )
