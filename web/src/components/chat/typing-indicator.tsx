@@ -1,81 +1,106 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { AvatarAssistant } from '@/components/ui/avatar'
 
 // =============================================================================
 // Types
 // =============================================================================
 
 interface TypingIndicatorProps {
-  /** Delay before showing - prevents flash for fast responses (default: 400ms) */
-  showDelay?: number
-  /** Show avatar to match assistant message layout */
-  showAvatar?: boolean
   className?: string
+  size?: 'sm' | 'default' | 'lg'
+  label?: string // For screen readers
+}
+
+// =============================================================================
+// Size Config
+// =============================================================================
+
+const sizeConfig = {
+  sm: {
+    dot: 'w-1.5 h-1.5',
+    gap: 'gap-1',
+    container: 'px-3 py-2',
+  },
+  default: {
+    dot: 'w-2 h-2',
+    gap: 'gap-1.5',
+    container: 'px-4 py-3',
+  },
+  lg: {
+    dot: 'w-2.5 h-2.5',
+    gap: 'gap-2',
+    container: 'px-5 py-4',
+  },
 }
 
 // =============================================================================
 // Main Component
 // =============================================================================
 
-/**
- * Typing indicator shown while waiting for assistant response.
- *
- * Usage in message-list:
- *   {isStreaming && !streamingContent && pendingToolCalls.length === 0 && (
- *     <div className="mt-4">
- *       <TypingIndicator />
- *     </div>
- *   )}
- */
 export function TypingIndicator({
-  showDelay = 400,
-  showAvatar = true,
   className,
+  size = 'default',
+  label = 'seira is thinking',
 }: TypingIndicatorProps) {
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), showDelay)
-    return () => clearTimeout(timer)
-  }, [showDelay])
-
-  // Don't render anything until delay passes
-  if (!isVisible) return null
+  const config = sizeConfig[size]
 
   return (
     <div
       className={cn(
-        'flex items-start gap-2 sm:gap-3',
-        'animate-in fade-in-0 duration-200',
+        'inline-flex items-center rounded-2xl bg-muted/50',
+        config.container,
+        config.gap,
         className
       )}
+      role="status"
+      aria-label={label}
     >
-      {showAvatar && (
-        <AvatarAssistant size="default" className="flex-shrink-0" />
-      )}
-
-      <div className="flex items-center gap-1.5 px-4 py-3 rounded-2xl rounded-bl-md bg-muted">
-        <BouncingDot delay={0} />
-        <BouncingDot delay={150} />
-        <BouncingDot delay={300} />
-      </div>
+      <span
+        className={cn(
+          'rounded-full bg-muted-foreground/60 animate-bounce',
+          config.dot
+        )}
+        style={{ animationDelay: '0ms', animationDuration: '1s' }}
+      />
+      <span
+        className={cn(
+          'rounded-full bg-muted-foreground/60 animate-bounce',
+          config.dot
+        )}
+        style={{ animationDelay: '150ms', animationDuration: '1s' }}
+      />
+      <span
+        className={cn(
+          'rounded-full bg-muted-foreground/60 animate-bounce',
+          config.dot
+        )}
+        style={{ animationDelay: '300ms', animationDuration: '1s' }}
+      />
+      <span className="sr-only">{label}</span>
     </div>
   )
 }
 
-function BouncingDot({ delay }: { delay: number }) {
+// =============================================================================
+// Inline Variant (for inside message bubbles)
+// =============================================================================
+
+export function TypingDots({ className }: { className?: string }) {
   return (
-    <span
-      className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce"
-      style={{
-        animationDelay: `${delay}ms`,
-        animationDuration: '1s',
-      }}
-    />
+    <span className={cn('inline-flex items-center gap-1', className)}>
+      <span
+        className="w-1.5 h-1.5 rounded-full bg-current animate-bounce"
+        style={{ animationDelay: '0ms', animationDuration: '1s' }}
+      />
+      <span
+        className="w-1.5 h-1.5 rounded-full bg-current animate-bounce"
+        style={{ animationDelay: '150ms', animationDuration: '1s' }}
+      />
+      <span
+        className="w-1.5 h-1.5 rounded-full bg-current animate-bounce"
+        style={{ animationDelay: '300ms', animationDuration: '1s' }}
+      />
+    </span>
   )
 }
-
-export default TypingIndicator
