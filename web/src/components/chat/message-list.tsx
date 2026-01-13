@@ -31,7 +31,7 @@ interface MessageListProps {
   onSelectFlight?: (flight: SelectedFlight) => void
 
   // Empty state
-  onSuggestionClick: (suggestion: string) => void
+  onSuggestionClick?: (suggestion: string) => void
 
   // External scroll trigger (increment to force scroll to bottom)
   scrollTrigger?: number
@@ -163,7 +163,7 @@ export const MessageList = memo(function MessageList({
       <ScrollArea className="h-full" viewportRef={viewportRef}>
         <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           {isEmpty ? (
-            <EmptyState onSuggestionClick={onSuggestionClick} />
+            <EmptyState />
           ) : (
             <div className="space-y-4 sm:space-y-6">
               {/* Rendered messages */}
