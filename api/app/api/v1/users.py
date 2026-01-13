@@ -207,16 +207,14 @@ class DeleteAccountResponse(BaseModel):
 @router.delete("/me", response_model=DeleteAccountResponse)
 async def delete_my_account(current: User = Depends(get_current_user)):
     """
-    Delete all user data from application tables.
-    This removes conversations, messages, trips, preferences, and user profile.
-
-    Note: This does NOT delete the Supabase auth.users record.
-    Call supabase.auth.signOut() after this to complete account removal.
+    Delete all user data including Supabase Auth account.
+    This removes conversations, messages, trips, preferences, user profile,
+    and the authentication record.
     """
     deleted = await user_service.delete_all_user_data(current.id)
 
     return {
         "success": True,
         "deleted": deleted,
-        "message": "Account data deleted successfully. Please sign out to complete.",
+        "message": "Account deleted successfully.",
     }

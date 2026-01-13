@@ -135,15 +135,11 @@ async def ensure_preferences_exists(user_id: str) -> Dict[str, Any]:
 
 async def delete_all_user_data(user_id: str) -> Dict[str, int]:
     """
-    Delete all user data from application tables.
+    Delete all user data from application tables AND Supabase Auth.
     Returns count of deleted items per table.
-
-    Note: This does NOT delete the Supabase auth.users record.
-    The frontend should call supabase.auth.admin.deleteUser() separately
-    or the user can be deleted via Supabase dashboard.
     """
     sb = get_supabase()
-    deleted = {"conversations": 0, "trips": 0, "preferences": 0, "user": 0}
+    deleted = {"conversations": 0, "trips": 0, "preferences": 0, "user": 0, "auth": 0}
 
     # Delete conversations (messages cascade via FK)
     try:
@@ -170,6 +166,15 @@ async def delete_all_user_data(user_id: str) -> Dict[str, int]:
     try:
         res = sb.table("users").delete().eq("id", user_id).execute()
         deleted["user"] = len(res.data) if res.data else 0
+    except Exception:
+        pass
+
+    # Delete from Supabase Auth (requires service role key)
+    try:
+        await anyio.to_thread.run_sync(
+            lambda: sb.auth.admin.delete_user(user_id)
+        )
+        deleted["auth"] = 1
     except Exception:
         pass
 
