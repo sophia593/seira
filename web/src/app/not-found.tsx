@@ -1,7 +1,21 @@
 import Link from "next/link"
-import { Home, ArrowRight } from "lucide-react"
+import { Home, ArrowRight, CreditCard, Info, Mail } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
+
+// =============================================================================
+// Quick Links Data
+// =============================================================================
+
+const quickLinks = [
+  { label: "pricing", href: "/pricing", icon: CreditCard },
+  { label: "about", href: "/about", icon: Info },
+  { label: "contact", href: "/contact", icon: Mail },
+]
+
+// =============================================================================
+// Main Page
+// =============================================================================
 
 export default function NotFound() {
   return (
@@ -25,8 +39,8 @@ export default function NotFound() {
           the page you&apos;re looking for has wandered off. let&apos;s get you back on track.
         </p>
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        {/* Primary Actions */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
           <Button asChild size="lg" className="lowercase gap-2">
             <Link href="/">
               <Home className="w-4 h-4" />
@@ -41,13 +55,24 @@ export default function NotFound() {
           </Button>
         </div>
 
-        {/* Help text */}
-        <p className="text-xs text-muted-foreground mt-8">
-          need help?{" "}
-          <Link href="/contact" className="text-primary hover:underline">
-            contact us
-          </Link>
-        </p>
+        {/* Quick Links */}
+        <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
+          <span>or try:</span>
+          {quickLinks.map((link, index) => (
+            <span key={link.href} className="flex items-center">
+              <Link
+                href={link.href}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted hover:text-foreground transition-colors lowercase"
+              >
+                <link.icon className="w-3 h-3" />
+                {link.label}
+              </Link>
+              {index < quickLinks.length - 1 && (
+                <span className="text-muted-foreground/50">·</span>
+              )}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   )
