@@ -56,8 +56,8 @@ export default function ChatConversationPage({ params }: ChatPageProps) {
   const [pageTitle, setPageTitle] = useState(DEFAULT_TITLE)
 
   // Get conversation from store (if already loaded)
-  const conversations = useConversationStore((state) => state.conversations)
-  const currentConversation = conversations.find((c) => c.id === id)
+  const conversations = useConversationStore((state) => state.conversation)
+  const currentConversation = Array.isArray(conversations) ? conversations.find((c: { id: string }) => c.id === id) : conversations?.id === id ? conversations : undefined
 
   // ===========================================================================
   // Validate conversation ID format
