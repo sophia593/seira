@@ -1,31 +1,57 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
+import { ArrowLeft, Loader2, Mail, RefreshCw } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+
+const RESEND_COOLDOWN_SECONDS = 60
 
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [email, setEmail] = useState("")
   const [error, setError] = useState("")
+  const [cooldown, setCooldown] = useState(0)
 
   const supabase = createClient()
+
+  // Cooldown timer
+  useEffect(() => {
+    if (cooldown <= 0) return
+
+    const timer = setInterval(() => {
+      setCooldown((prev) => prev - 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [cooldown])
+
+  // Email validation
+  function isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!email.trim()) {
+    const trimmedEmail = email.trim().toLowerCase()
+
+    if (!trimmedEmail) {
       setError("email is required")
       return
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!isValidEmail(trimmedEmail)) {
       setError("please enter a valid email")
+      return
+    }
+
+    if (cooldown > 0) {
+      toast.error(`please wait ${cooldown} seconds before trying again`)
       return
     }
 
@@ -33,7 +59,36 @@ export default function ForgotPasswordPage() {
     setError("")
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (error) {
+        if (error.message.includes("rate limit")) {
+          toast.error("too many requests, please try again later")
+          setCooldown(RESEND_COOLDOWN_SECONDS)
+        } else {
+          toast.error(error.message)
+        }
+        return
+      }
+
+      setIsSuccess(true)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch {
+      toast.error("something went wrong, please try again")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function handleResend() {
+    if (cooldown > 0) return
+
+    setIsLoading(true)
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${window.location.origin}/reset-password`,
       })
 
@@ -42,12 +97,19 @@ export default function ForgotPasswordPage() {
         return
       }
 
-      setIsSuccess(true)
+      toast.success("reset link sent again")
+      setCooldown(RESEND_COOLDOWN_SECONDS)
     } catch {
-      toast.error("something went wrong, please try again")
+      toast.error("couldn't resend, please try again")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  function handleTryDifferentEmail() {
+    setIsSuccess(false)
+    setEmail("")
+    setError("")
   }
 
   return (
@@ -61,32 +123,92 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md animate-in fade-in duration-500">
         <div className="rounded-3xl border bg-card p-10 shadow-lg">
           {isSuccess ? (
-            // Success State
+            // =========== Success State ===========
             <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-primary" />
+              {/* Success Icon */}
+              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center animate-in zoom-in duration-300">
+                <Mail className="h-8 w-8 text-primary" />
               </div>
+
+              {/* Title */}
               <h1 className="text-2xl font-semibold lowercase mb-2">
                 check your email
               </h1>
-              <p className="text-muted-foreground text-sm mb-6">
-                we sent a password reset link to<br />
-                <span className="font-medium text-foreground">{email}</span>
+
+              {/* Description */}
+              <p className="text-muted-foreground text-sm mb-2">
+                we sent a password reset link to
               </p>
-              <p className="text-xs text-muted-foreground mb-6">
-                didn't receive the email? check your spam folder or{" "}
+              <p className="font-medium text-foreground mb-6 break-all">
+                {email}
+              </p>
+
+              {/* Instructions */}
+              <div className="bg-muted/50 rounded-xl p-4 mb-6 text-left">
+                <p className="text-sm text-muted-foreground mb-3">
+                  next steps:
+                </p>
+                <ol className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span>open the email from seira</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span>click the reset password link</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <span>create your new password</span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* Didn't receive */}
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  didn't receive it? check your spam folder
+                </p>
+
+                {/* Resend Button */}
                 <button
-                  onClick={() => setIsSuccess(false)}
-                  className="underline hover:text-foreground transition-colors"
+                  onClick={handleResend}
+                  disabled={isLoading || cooldown > 0}
+                  className={cn(
+                    "inline-flex items-center gap-2 text-sm",
+                    cooldown > 0
+                      ? "text-muted-foreground cursor-not-allowed"
+                      : "text-primary hover:underline"
+                  )}
                 >
-                  try again
+                  {isLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  {cooldown > 0 ? `resend in ${cooldown}s` : "resend email"}
                 </button>
-              </p>
+
+                {/* Try different email */}
+                <div>
+                  <button
+                    onClick={handleTryDifferentEmail}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    try a different email
+                  </button>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t my-6" />
+
+              {/* Back to login */}
               <Link
                 href="/login"
                 className={cn(
                   "inline-flex items-center justify-center gap-2",
-                  "h-12 px-6 rounded-2xl",
+                  "h-11 px-6 rounded-2xl w-full",
                   "bg-primary text-primary-foreground",
                   "text-sm font-medium",
                   "hover:bg-primary/90 transition-colors"
@@ -96,12 +218,12 @@ export default function ForgotPasswordPage() {
               </Link>
             </div>
           ) : (
-            // Form State
+            // =========== Form State ===========
             <>
               {/* Back Link */}
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
               >
                 <ArrowLeft className="h-4 w-4" />
                 back to login
@@ -113,7 +235,7 @@ export default function ForgotPasswordPage() {
                   forgot password?
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  enter your email and we'll send you a reset link
+                  no worries — enter your email and we'll send you a reset link
                 </p>
               </div>
 
@@ -157,7 +279,7 @@ export default function ForgotPasswordPage() {
                 {/* Submit */}
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || cooldown > 0}
                   className={cn(
                     "w-full h-12 rounded-2xl",
                     "bg-primary text-primary-foreground",
@@ -170,11 +292,24 @@ export default function ForgotPasswordPage() {
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                  ) : cooldown > 0 ? (
+                    `wait ${cooldown}s`
                   ) : (
                     "send reset link"
                   )}
                 </button>
               </form>
+
+              {/* Help text */}
+              <p className="mt-6 text-center text-xs text-muted-foreground">
+                remember your password?{" "}
+                <Link
+                  href="/login"
+                  className="text-foreground hover:underline"
+                >
+                  log in
+                </Link>
+              </p>
             </>
           )}
         </div>
