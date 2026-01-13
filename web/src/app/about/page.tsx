@@ -5,7 +5,10 @@ import {
   Layers,
   Clock,
   Shield,
-  ArrowRight
+  ArrowRight,
+  Music,
+  Trophy,
+  Theater,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -68,6 +71,41 @@ const howItWorks = [
 ]
 
 // =============================================================================
+// Event Types Data
+// =============================================================================
+
+const eventTypes = [
+  {
+    icon: Music,
+    title: "concerts",
+    description: "from stadium tours to intimate venues",
+    examples: "taylor swift, coldplay, beyoncé",
+  },
+  {
+    icon: Trophy,
+    title: "sports",
+    description: "games, championships, and tournaments",
+    examples: "nba, nfl, f1, ufc, tennis",
+  },
+  {
+    icon: Theater,
+    title: "theater",
+    description: "broadway, west end, and touring shows",
+    examples: "hamilton, wicked, lion king",
+  },
+]
+
+// =============================================================================
+// Partners Data
+// =============================================================================
+
+const partners = [
+  { name: "ticketmaster", role: "tickets" },
+  { name: "amadeus", role: "flights" },
+  { name: "booking.com", role: "hotels" },
+]
+
+// =============================================================================
 // Main Page
 // =============================================================================
 
@@ -93,11 +131,41 @@ export default function AboutPage() {
           <h1 className="text-2xl sm:text-4xl font-semibold mb-4 lowercase">
             about seira
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed">
+          <p className="text-lg text-muted-foreground leading-relaxed mb-4">
             seira is an ai-powered trip planner built for live events. tell us about a concert,
             game, or show you want to attend, and we'll find the tickets, flights, and hotels —
             all in one conversation.
           </p>
+          <p className="text-muted-foreground leading-relaxed">
+            no more switching between ticketmaster, google flights, and booking.com.
+            just tell seira what you want to see, and we'll handle the rest.
+          </p>
+        </div>
+
+        {/* What Seira Helps With */}
+        <div className="mb-14">
+          <h2 className="text-lg font-semibold mb-6 lowercase">what seira helps with</h2>
+          <div className="grid gap-4">
+            {eventTypes.map((event) => (
+              <div
+                key={event.title}
+                className="flex items-start gap-4 p-5 rounded-2xl bg-card border"
+              >
+                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <event.icon className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium mb-1 lowercase">{event.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-1.5">
+                    {event.description}
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 lowercase">
+                    {event.examples}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Why Seira */}
@@ -144,6 +212,30 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Partners */}
+        <div className="mb-14">
+          <h2 className="text-lg font-semibold mb-6 lowercase text-center">
+            powered by industry leaders
+          </h2>
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+            {partners.map((partner) => (
+              <div key={partner.name} className="flex flex-col items-center gap-1.5">
+                <div className="px-4 py-2 rounded-lg bg-muted/50">
+                  <span className="text-sm font-medium text-muted-foreground lowercase">
+                    {partner.name}
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground/60 lowercase">
+                  {partner.role}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground/70 text-center mt-6">
+            real-time data from trusted sources. you book directly with them — we never handle payments.
+          </p>
         </div>
 
         {/* CTA */}
