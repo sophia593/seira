@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { useStreaming } from "@/hooks/use-streaming"
 import { getApi, type Message } from "@/lib/api"
@@ -26,6 +26,10 @@ interface ChatInterfaceProps {
   conversationId?: string
   /** Initial prompt to pre-fill in the input */
   initialPrompt?: string
+  /** Callback when chat becomes active (user sends a message) */
+  onChatActive?: () => void
+  /** Slot for rendering example prompts above the input */
+  examplePromptsSlot?: ReactNode
 }
 
 /**
@@ -70,7 +74,7 @@ function mergeToolResults(messages: Message[]): Message[] {
   })
 }
 
-export function ChatInterface({ conversationId, initialPrompt }: ChatInterfaceProps) {
+export function ChatInterface({ conversationId, initialPrompt, onChatActive, examplePromptsSlot }: ChatInterfaceProps) {
   const router = useRouter()
   const resetUser = useUserStore((state) => state.reset)
 
@@ -218,6 +222,9 @@ export function ChatInterface({ conversationId, initialPrompt }: ChatInterfacePr
     async (content: string) => {
       if (!content.trim() || isStreaming) return
 
+      // Notify parent that chat is active
+      onChatActive?.()
+
       // Store for retry
       lastMessageRef.current = content.trim()
 
@@ -245,7 +252,7 @@ export function ChatInterface({ conversationId, initialPrompt }: ChatInterfacePr
         conversationId: currentConversationId,
       })
     },
-    [conversationId, isStreaming, addMessage, startStream, sendMessage]
+    [conversationId, isStreaming, addMessage, startStream, sendMessage, onChatActive]
   )
 
   // Handle suggestion click
@@ -375,6 +382,13 @@ export function ChatInterface({ conversationId, initialPrompt }: ChatInterfacePr
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {/* Example prompts slot (shown when no messages) */}
+      {messages.length === 0 && examplePromptsSlot && (
+        <div className="pb-4">
+          {examplePromptsSlot}
         </div>
       )}
 
