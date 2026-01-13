@@ -191,7 +191,7 @@ function LoginForm() {
               <div className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-card px-4 text-muted-foreground">or</span>
+              <span className="bg-white dark:bg-zinc-950 px-4 text-muted-foreground">or</span>
             </div>
           </div>
 

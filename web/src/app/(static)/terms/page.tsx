@@ -201,8 +201,8 @@ export default function TermsPage() {
             <h2 className="text-lg font-medium mb-3 lowercase">contact us</h2>
             <p className="text-muted-foreground">
               Questions about these terms? Email us at{' '}
-              <a href="mailto:hello@seira.app" className="text-primary hover:underline">
-                hello@seira.app
+              <a href="mailto:support@seira.global" className="text-primary hover:underline">
+                support@seira.global
               </a>
             </p>
           </section>
