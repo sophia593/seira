@@ -77,10 +77,15 @@ export default function PricingPage() {
         {/* Pricing Cards */}
         <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 mb-16">
           {/* Free tier */}
-          <div className="rounded-2xl border border-primary bg-card p-6 sm:p-8 relative">
-            <div className="absolute -top-3 left-6 px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full lowercase">
-              current
+          <div className="rounded-2xl border bg-card p-6 sm:p-8">
+            {/* Badge - inside card */}
+            <div className="mb-4">
+              <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full lowercase">
+                current
+              </span>
             </div>
+
+            {/* Plan name & price */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-1 lowercase">free</h2>
               <div className="flex items-baseline gap-1">
@@ -89,6 +94,7 @@ export default function PricingPage() {
               </div>
             </div>
 
+            {/* Features */}
             <ul className="space-y-3 mb-8 text-sm">
               <li className="flex items-start gap-3">
                 <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
@@ -108,6 +114,7 @@ export default function PricingPage() {
               </li>
             </ul>
 
+            {/* CTA */}
             <Link
               href="/login"
               className="inline-flex items-center justify-center w-full px-6 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors lowercase"
@@ -116,11 +123,16 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          {/* Pro tier */}
-          <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 relative">
-            <div className="absolute -top-3 left-6 px-3 py-1 bg-muted text-muted-foreground text-xs font-medium rounded-full lowercase">
-              coming soon
+          {/* Pro tier - disabled/grayed out */}
+          <div className="rounded-2xl border bg-card p-6 sm:p-8 opacity-60 pointer-events-none select-none">
+            {/* Badge - inside card */}
+            <div className="mb-4">
+              <span className="inline-block px-3 py-1 bg-muted text-muted-foreground text-xs font-medium rounded-full lowercase">
+                coming soon
+              </span>
             </div>
+
+            {/* Plan name & price */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-1 lowercase">pro</h2>
               <div className="flex items-baseline gap-1">
@@ -129,6 +141,7 @@ export default function PricingPage() {
               </div>
             </div>
 
+            {/* Features */}
             <ul className="space-y-3 mb-8 text-sm">
               <li className="flex items-start gap-3">
                 <Check className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -148,12 +161,13 @@ export default function PricingPage() {
               </li>
             </ul>
 
-            <Link
-              href="/contact?subject=early-access"
-              className="inline-flex items-center justify-center w-full px-6 py-2.5 text-sm font-medium bg-secondary text-foreground rounded-xl hover:bg-secondary/80 transition-colors lowercase"
+            {/* CTA - disabled */}
+            <button
+              disabled
+              className="inline-flex items-center justify-center w-full px-6 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-xl lowercase cursor-not-allowed"
             >
-              request early access
-            </Link>
+              coming soon
+            </button>
           </div>
         </div>
 
