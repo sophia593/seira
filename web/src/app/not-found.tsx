@@ -1,19 +1,17 @@
 import Link from "next/link"
-import { MessageSquare, Home, ArrowRight } from "lucide-react"
+import { Home, ArrowRight } from "lucide-react"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 
 export default function NotFound() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-      <div className="text-center max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <MessageSquare className="h-5 w-5" />
-          </div>
-          <span className="text-2xl font-semibold">seira</span>
-        </div>
+      {/* Logo */}
+      <div className="mb-8 animate-in fade-in duration-500">
+        <Logo />
+      </div>
 
+      <div className="text-center max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* 404 indicator */}
         <div className="text-6xl sm:text-8xl font-bold text-muted-foreground/20 mb-4">
           404
@@ -46,9 +44,9 @@ export default function NotFound() {
         {/* Help text */}
         <p className="text-xs text-muted-foreground mt-8">
           need help?{" "}
-          <a href="mailto:hello@seira.app" className="text-primary hover:underline">
+          <Link href="/contact" className="text-primary hover:underline">
             contact us
-          </a>
+          </Link>
         </p>
       </div>
     </div>
