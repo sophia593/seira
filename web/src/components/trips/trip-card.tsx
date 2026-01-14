@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Calendar, MapPin, DollarSign } from 'lucide-react'
+import { Calendar, MapPin, DollarSign, Moon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { type Trip } from '@/lib/api'
 
@@ -15,29 +15,101 @@ interface TripCardProps {
 }
 
 // =============================================================================
-// Status Badge
+// Status Configuration
 // =============================================================================
 
-const STATUS_STYLES: Record<Trip['status'], { bg: string; text: string }> = {
-  draft: { bg: 'bg-muted', text: 'text-muted-foreground' },
-  quoted: { bg: 'bg-primary/10', text: 'text-primary' },
-  booked: { bg: 'bg-green-500/10', text: 'text-green-600 dark:text-green-400' },
-  completed: { bg: 'bg-muted', text: 'text-muted-foreground' },
-  cancelled: { bg: 'bg-destructive/10', text: 'text-destructive' },
+interface StatusConfig {
+  bg: string
+  text: string
+  accent: string // Left border accent color
+  cardBg?: string // Subtle background tint
 }
 
+const STATUS_CONFIG: Record<Trip['status'], StatusConfig> = {
+  draft: {
+    bg: 'bg-muted',
+    text: 'text-muted-foreground',
+    accent: 'border-l-muted-foreground/30',
+    cardBg: '',
+  },
+  quoted: {
+    bg: 'bg-primary/10',
+    text: 'text-primary',
+    accent: 'border-l-primary/50',
+    cardBg: 'bg-gradient-to-r from-primary/[0.02] to-transparent',
+  },
+  booked: {
+    bg: 'bg-green-500/10',
+    text: 'text-green-600 dark:text-green-400',
+    accent: 'border-l-green-500/50',
+    cardBg: 'bg-gradient-to-r from-green-500/[0.02] to-transparent',
+  },
+  completed: {
+    bg: 'bg-muted',
+    text: 'text-muted-foreground',
+    accent: 'border-l-muted-foreground/20',
+    cardBg: '',
+  },
+  cancelled: {
+    bg: 'bg-destructive/10',
+    text: 'text-destructive',
+    accent: 'border-l-destructive/30',
+    cardBg: 'bg-gradient-to-r from-destructive/[0.02] to-transparent',
+  },
+}
+
+// =============================================================================
+// Status Badge Component
+// =============================================================================
+
 function StatusBadge({ status }: { status: Trip['status'] }) {
-  const styles = STATUS_STYLES[status]
+  const config = STATUS_CONFIG[status]
   return (
     <span
       className={cn(
         'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium lowercase',
-        styles.bg,
-        styles.text
+        config.bg,
+        config.text
       )}
     >
       {status}
     </span>
+  )
+}
+
+// =============================================================================
+// Duration Badge Component
+// =============================================================================
+
+interface DurationBadgeProps {
+  nights: number | null | undefined
+  checkIn?: string | null
+  checkOut?: string | null
+  className?: string
+}
+
+function DurationBadge({ nights, checkIn, checkOut, className }: DurationBadgeProps) {
+  // Calculate nights from dates if not provided directly
+  let calculatedNights = nights
+
+  if (!calculatedNights && checkIn && checkOut) {
+    const start = new Date(checkIn)
+    const end = new Date(checkOut)
+    const diffTime = end.getTime() - start.getTime()
+    calculatedNights = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  }
+
+  // Don't show if no nights data
+  if (!calculatedNights || calculatedNights <= 0) return null
+
+  // Format the label
+  const label = formatNights(calculatedNights)
+
+  return (
+    <div className={cn('flex items-center gap-1.5 text-sm text-muted-foreground', className)}>
+      <Moon className="w-3.5 h-3.5 flex-shrink-0" />
+      <span>{label}</span>
+    </div>
   )
 }
 
@@ -55,7 +127,21 @@ export function TripCard({ trip, className }: TripCardProps) {
     event_name,
     event_date,
     estimated_total,
-  } = trip
+    // Duration fields (if available in your Trip type)
+    nights,
+    check_in_date,
+    check_out_date,
+    start_date,
+    end_date,
+  } = trip as Trip & {
+    nights?: number | null
+    check_in_date?: string | null
+    check_out_date?: string | null
+    start_date?: string | null
+    end_date?: string | null
+  }
+
+  const config = STATUS_CONFIG[status]
 
   // Format destination
   const destination = [destination_city, destination_country]
@@ -67,7 +153,7 @@ export function TripCard({ trip, className }: TripCardProps) {
 
   // Format price
   const formattedPrice = estimated_total
-    ? `$${estimated_total.toLocaleString()}`
+    ? `${estimated_total.toLocaleString()}`
     : null
 
   return (
@@ -75,7 +161,11 @@ export function TripCard({ trip, className }: TripCardProps) {
       href={`/trips/${id}`}
       className={cn(
         'block rounded-xl border border-border/50 bg-card p-3 sm:p-4 shadow-sm',
-        'hover:border-border hover:shadow-sm transition-colors duration-150',
+        'border-l-[3px]', // Accent border
+        config.accent,
+        config.cardBg,
+        'hover:border-border hover:shadow-md hover:scale-[1.01]',
+        'transition-all duration-200 ease-out',
         className
       )}
     >
@@ -100,7 +190,7 @@ export function TripCard({ trip, className }: TripCardProps) {
         {destination && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="lowercase">{destination}</span>
+            <span className="lowercase truncate">{destination}</span>
           </div>
         )}
 
@@ -111,6 +201,13 @@ export function TripCard({ trip, className }: TripCardProps) {
             <span>{formattedDate}</span>
           </div>
         )}
+
+        {/* Duration */}
+        <DurationBadge
+          nights={nights}
+          checkIn={check_in_date || start_date}
+          checkOut={check_out_date || end_date}
+        />
       </div>
 
       {/* Footer: Price */}
@@ -136,6 +233,86 @@ function formatDate(dateString: string): string {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+    })
+    .toLowerCase()
+}
+
+function formatNights(nights: number): string {
+  if (nights === 1) {
+    return '1 night'
+  }
+
+  if (nights === 7) {
+    return '1 week'
+  }
+
+  if (nights === 14) {
+    return '2 weeks'
+  }
+
+  if (nights > 7 && nights % 7 === 0) {
+    const weeks = nights / 7
+    return `${weeks} week${weeks > 1 ? 's' : ''}`
+  }
+
+  // For trips that span a week + days
+  if (nights > 7) {
+    const weeks = Math.floor(nights / 7)
+    const days = nights % 7
+    if (days === 0) {
+      return `${weeks} week${weeks > 1 ? 's' : ''}`
+    }
+    return `${nights} nights`
+  }
+
+  return `${nights} night${nights > 1 ? 's' : ''}`
+}
+
+// =============================================================================
+// Compact Variant
+// =============================================================================
+
+interface TripCardCompactProps {
+  trip: Trip
+  className?: string
+}
+
+export function TripCardCompact({ trip, className }: TripCardCompactProps) {
+  const { id, title, status, event_name, event_date } = trip
+  const config = STATUS_CONFIG[status]
+
+  const formattedDate = event_date ? formatDateShort(event_date) : null
+
+  return (
+    <Link
+      href={`/trips/${id}`}
+      className={cn(
+        'flex items-center gap-3 p-3 rounded-lg border',
+        'border-l-[3px]',
+        config.accent,
+        'hover:bg-muted/50 transition-colors',
+        className
+      )}
+    >
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium lowercase truncate">
+          {title || event_name || 'untitled trip'}
+        </p>
+        {formattedDate && (
+          <p className="text-xs text-muted-foreground">{formattedDate}</p>
+        )}
+      </div>
+      <StatusBadge status={status} />
+    </Link>
+  )
+}
+
+function formatDateShort(dateString: string): string {
+  const date = new Date(dateString + 'T00:00:00')
+  return date
+    .toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
     })
     .toLowerCase()
 }
