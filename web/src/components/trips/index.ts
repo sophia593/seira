@@ -20,10 +20,10 @@ export { HotelDetailCard, HotelDetailCardCompact } from './hotel-detail-card'
 // =============================================================================
 
 export { FlightsSection } from './flights-section'
-// export { HotelsSection, HotelsSectionEmpty } from './hotels-section'  // TODO: Add file
+export { HotelsSection, HotelsSectionEmpty } from './hotels-section'
 
 // =============================================================================
 // Actions
 // =============================================================================
 
-// export { TripActions, TripDeleteDialog } from './trip-actions'  // TODO: Add file
+export { TripActions, TripDeleteDialog } from './trip-actions'
