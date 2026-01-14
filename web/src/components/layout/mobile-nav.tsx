@@ -1,19 +1,80 @@
-"use client"
+'use client'
 
-import { Menu, MessageSquare, X } from "lucide-react"
-import { useSidebar } from "@/hooks/use-sidebar"
-import { Button } from "@/components/ui/button"
-import { UserMenu } from "./user-menu"
+import { usePathname, useRouter } from 'next/navigation'
+import { Menu, X, Search, Plus } from 'lucide-react'
+import { useSidebar } from '@/hooks/use-sidebar'
+import { Button } from '@/components/ui/button'
+import { Logo, LogoIcon } from '@/components/logo'
+import { UserMenu } from './user-menu'
+import { cn } from '@/lib/utils'
+
+// =============================================================================
+// Page Title Map
+// =============================================================================
+
+const PAGE_TITLES: Record<string, string> = {
+  '/chat': 'chat',
+  '/trips': 'trips',
+  '/settings': 'settings',
+  '/settings/profile': 'profile',
+  '/settings/preferences': 'preferences',
+  '/settings/notifications': 'notifications',
+}
+
+function getPageTitle(pathname: string): string | null {
+  // Exact match
+  if (PAGE_TITLES[pathname]) {
+    return PAGE_TITLES[pathname]
+  }
+
+  // Check for dynamic routes
+  if (pathname.startsWith('/chat/')) {
+    return 'chat'
+  }
+
+  if (pathname.startsWith('/trips/')) {
+    return 'trip details'
+  }
+
+  if (pathname.startsWith('/settings')) {
+    return 'settings'
+  }
+
+  return null
+}
+
+// =============================================================================
+// Main Component
+// =============================================================================
 
 export function MobileNav() {
+  const pathname = usePathname()
+  const router = useRouter()
   const { isMobileOpen, openMobile, closeMobile } = useSidebar()
 
+  const pageTitle = getPageTitle(pathname)
+  const isOnChat = pathname === '/chat' || pathname.startsWith('/chat/')
+
+  // Handle new chat / search
+  function handleNewChat() {
+    router.push('/chat')
+  }
+
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden">
+    <header
+      className={cn(
+        'flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden',
+        // Safe area for iPhone notch
+        'pt-[env(safe-area-inset-top)]'
+      )}
+    >
+      {/* Left: Menu toggle */}
       <Button
         variant="ghost"
-        size="icon-lg"
+        size="icon"
+        className="h-10 w-10 shrink-0"
         onClick={() => (isMobileOpen ? closeMobile() : openMobile())}
+        aria-label={isMobileOpen ? 'close menu' : 'open menu'}
       >
         {isMobileOpen ? (
           <X className="h-5 w-5" />
@@ -22,10 +83,74 @@ export function MobileNav() {
         )}
       </Button>
 
-      <div className="flex items-center gap-2 font-semibold lowercase">
-        <MessageSquare className="h-5 w-5" />
-        <span>seira</span>
+      {/* Center: Logo + Page Title */}
+      <div className="flex items-center gap-2 min-w-0">
+        <LogoIcon size="sm" className="shrink-0 text-foreground" />
+        {pageTitle ? (
+          <>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="font-medium text-sm lowercase truncate">
+              {pageTitle}
+            </span>
+          </>
+        ) : (
+          <span className="font-semibold lowercase">seira</span>
+        )}
       </div>
+
+      {/* Right: Actions + User */}
+      <div className="flex items-center gap-1 shrink-0">
+        {/* New Chat / Search (only show on chat pages or as global action) */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10"
+          onClick={handleNewChat}
+          aria-label="new chat"
+        >
+          {isOnChat ? (
+            <Plus className="h-5 w-5" />
+          ) : (
+            <Search className="h-5 w-5" />
+          )}
+        </Button>
+
+        {/* User Menu */}
+        <UserMenu isCollapsed />
+      </div>
+    </header>
+  )
+}
+
+// =============================================================================
+// Minimal Variant (just logo, no context)
+// =============================================================================
+
+export function MobileNavMinimal() {
+  const { isMobileOpen, openMobile, closeMobile } = useSidebar()
+
+  return (
+    <header
+      className={cn(
+        'flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden',
+        'pt-[env(safe-area-inset-top)]'
+      )}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-10 w-10"
+        onClick={() => (isMobileOpen ? closeMobile() : openMobile())}
+        aria-label={isMobileOpen ? 'close menu' : 'open menu'}
+      >
+        {isMobileOpen ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <Menu className="h-5 w-5" />
+        )}
+      </Button>
+
+      <Logo linkToHome={false} animated={false} />
 
       <UserMenu isCollapsed />
     </header>
