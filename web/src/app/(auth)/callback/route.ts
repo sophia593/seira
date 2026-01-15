@@ -62,6 +62,7 @@ function logAuthAttempt(
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
+  const type = searchParams.get("type") // Supabase auth type: signup, recovery, etc.
 
   // ---------------------------------------------------------------------------
   // No code provided
@@ -95,17 +96,30 @@ export async function GET(request: Request) {
         errorMessage: error.message,
       })
 
+      // For password recovery errors, redirect to forgot-password
+      if (type === "recovery") {
+        return NextResponse.redirect(
+          `${origin}/forgot-password?error=${errorType}`
+        )
+      }
+
       return NextResponse.redirect(
         `${origin}/login?error=${errorType}`
       )
     }
 
     // -------------------------------------------------------------------------
-    // Success - redirect to chat
+    // Success - redirect based on auth type
     // -------------------------------------------------------------------------
 
     logAuthAttempt(true, { hasCode: true })
 
+    // Password recovery → redirect to reset-password page
+    if (type === "recovery") {
+      return NextResponse.redirect(`${origin}/reset-password`)
+    }
+
+    // Default (signup, login) → redirect to chat
     return NextResponse.redirect(`${origin}/chat`)
 
   } catch (err) {
