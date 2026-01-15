@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Eye, EyeOff, Loader2, KeyRound, AlertCircle } from "lucide-react"
@@ -10,12 +10,64 @@ import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 
 type PageState = "loading" | "ready" | "invalid" | "success"
+type PasswordStrength = "weak" | "medium" | "strong"
 
 const MIN_PASSWORD_LENGTH = 8
+
+// =============================================================================
+// Password Strength Calculator
+// =============================================================================
+
+function calculatePasswordStrength(password: string): PasswordStrength {
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return "weak"
+  }
+
+  let score = 0
+
+  // Length bonus
+  if (password.length >= 8) score += 1
+  if (password.length >= 12) score += 1
+  if (password.length >= 16) score += 1
+
+  // Character variety
+  if (/[a-z]/.test(password)) score += 1
+  if (/[A-Z]/.test(password)) score += 1
+  if (/[0-9]/.test(password)) score += 1
+  if (/[^a-zA-Z0-9]/.test(password)) score += 1
+
+  // Determine strength
+  if (score >= 5) return "strong"
+  if (score >= 3) return "medium"
+  return "weak"
+}
+
+const STRENGTH_CONFIG = {
+  weak: {
+    label: "weak",
+    color: "bg-red-500",
+    width: "w-1/3",
+  },
+  medium: {
+    label: "medium",
+    color: "bg-yellow-500",
+    width: "w-2/3",
+  },
+  strong: {
+    label: "strong",
+    color: "bg-green-500",
+    width: "w-full",
+  },
+}
+
+// =============================================================================
+// Main Component
+// =============================================================================
 
 export default function ResetPasswordPage() {
   const router = useRouter()
   const [pageState, setPageState] = useState<PageState>("loading")
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -25,6 +77,13 @@ export default function ResetPasswordPage() {
 
   const supabase = createClient()
 
+  // Calculate password strength
+  const passwordStrength = useMemo(
+    () => calculatePasswordStrength(password),
+    [password]
+  )
+  const strengthConfig = STRENGTH_CONFIG[passwordStrength]
+
   // Listen for PASSWORD_RECOVERY event from Supabase
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -32,12 +91,18 @@ export default function ResetPasswordPage() {
         if (event === "PASSWORD_RECOVERY") {
           // User clicked the reset link and has a valid session
           setPageState("ready")
+          if (session?.user?.email) {
+            setUserEmail(session.user.email)
+          }
         } else if (event === "SIGNED_IN" && pageState === "loading") {
           // Check if this is a password recovery session
           // (user may have refreshed the page after clicking link)
           const { data: { user } } = await supabase.auth.getUser()
           if (user) {
             setPageState("ready")
+            if (user.email) {
+              setUserEmail(user.email)
+            }
           }
         }
       }
@@ -48,6 +113,9 @@ export default function ResetPasswordPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         setPageState("ready")
+        if (session.user?.email) {
+          setUserEmail(session.user.email)
+        }
       } else {
         // Give some time for the auth state to be processed from URL
         setTimeout(() => {
@@ -250,9 +318,16 @@ export default function ResetPasswordPage() {
             <h1 className="text-2xl font-semibold lowercase mb-2">
               create new password
             </h1>
-            <p className="text-muted-foreground text-sm">
-              enter your new password below
-            </p>
+            {userEmail ? (
+              <p className="text-muted-foreground text-sm">
+                you're resetting the password for{" "}
+                <span className="text-foreground font-medium">{userEmail}</span>
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                enter your new password below
+              </p>
+            )}
           </div>
 
           {/* Form */}
@@ -265,7 +340,7 @@ export default function ResetPasswordPage() {
               >
                 new password
               </label>
-              <div className="relative">
+              <div className="relative group">
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -280,12 +355,13 @@ export default function ResetPasswordPage() {
                   disabled={isSubmitting}
                   className={cn(
                     "w-full h-12 px-5 pr-12 rounded-2xl",
-                    "bg-background border",
+                    "bg-background border-2 border-border",
                     "text-sm placeholder:text-muted-foreground/50",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                    "transition-all duration-150",
+                    "focus:outline-none focus:border-foreground focus:shadow-[0_0_0_4px_rgba(0,0,0,0.1)]",
+                    "dark:focus:shadow-[0_0_0_4px_rgba(255,255,255,0.1)]",
+                    "transition-all duration-200",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
-                    error && "border-destructive focus:ring-destructive/20"
+                    error && "border-destructive focus:border-destructive focus:shadow-[0_0_0_4px_rgba(239,68,68,0.1)]"
                   )}
                 />
                 <button
@@ -301,6 +377,29 @@ export default function ResetPasswordPage() {
                   )}
                 </button>
               </div>
+
+              {/* Password Strength Bar */}
+              {password.length > 0 && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-300 ease-out",
+                        strengthConfig.color,
+                        strengthConfig.width
+                      )}
+                    />
+                  </div>
+                  <p className={cn(
+                    "text-xs transition-colors",
+                    passwordStrength === "weak" && "text-red-500",
+                    passwordStrength === "medium" && "text-yellow-600 dark:text-yellow-500",
+                    passwordStrength === "strong" && "text-green-600 dark:text-green-500"
+                  )}>
+                    {strengthConfig.label}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Confirm Password */}
@@ -325,12 +424,13 @@ export default function ResetPasswordPage() {
                   disabled={isSubmitting}
                   className={cn(
                     "w-full h-12 px-5 pr-12 rounded-2xl",
-                    "bg-background border",
+                    "bg-background border-2 border-border",
                     "text-sm placeholder:text-muted-foreground/50",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                    "transition-all duration-150",
+                    "focus:outline-none focus:border-foreground focus:shadow-[0_0_0_4px_rgba(0,0,0,0.1)]",
+                    "dark:focus:shadow-[0_0_0_4px_rgba(255,255,255,0.1)]",
+                    "transition-all duration-200",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
-                    error && error.includes("match") && "border-destructive focus:ring-destructive/20"
+                    error && error.includes("match") && "border-destructive focus:border-destructive focus:shadow-[0_0_0_4px_rgba(239,68,68,0.1)]"
                   )}
                 />
                 <button
@@ -346,12 +446,24 @@ export default function ResetPasswordPage() {
                   )}
                 </button>
               </div>
+
+              {/* Match indicator */}
+              {confirmPassword.length > 0 && password.length > 0 && (
+                <p className={cn(
+                  "text-xs animate-in fade-in duration-200",
+                  password === confirmPassword
+                    ? "text-green-600 dark:text-green-500"
+                    : "text-muted-foreground"
+                )}>
+                  {password === confirmPassword ? "passwords match" : "passwords don't match yet"}
+                </p>
+              )}
             </div>
 
             {/* Error Message */}
             {error && (
-              <p className="text-xs text-destructive flex items-center gap-1.5">
-                <AlertCircle className="h-3.5 w-3.5" />
+              <p className="text-xs text-destructive flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 {error}
               </p>
             )}
@@ -366,6 +478,7 @@ export default function ResetPasswordPage() {
                 "text-sm font-medium",
                 "hover:bg-primary/90",
                 "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2",
+                "active:scale-[0.98]",
                 "transition-all duration-150",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
