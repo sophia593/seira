@@ -115,7 +115,10 @@ function ExamplePrompts({ onSelect }: ExamplePromptsProps) {
           <button
             key={prompt}
             onClick={() => onSelect(prompt)}
-            className="text-left px-4 py-3 rounded-xl border bg-card hover:bg-muted/50 hover:border-primary/30 transition-all text-sm text-muted-foreground hover:text-foreground lowercase"
+            className="text-left px-4 py-3 rounded-xl border bg-card text-sm text-muted-foreground lowercase
+              hover:bg-muted/50 hover:border-primary/30 hover:text-foreground
+              active:scale-[0.98] active:bg-primary/5 active:border-primary/50 active:shadow-inner
+              transition-all duration-150"
           >
             {prompt}
           </button>
