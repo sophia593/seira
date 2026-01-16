@@ -70,14 +70,11 @@ export default function SettingsPage() {
   const [homeAirport, setHomeAirport] = useState('')
   const [cabinClass, setCabinClass] = useState('')
   const [seatPreference, setSeatPreference] = useState('')
-  const [budgetDefault, setBudgetDefault] = useState('')
-
   // Initial values (for dirty checking)
   const [initialName, setInitialName] = useState('')
   const [initialHomeAirport, setInitialHomeAirport] = useState('')
   const [initialCabinClass, setInitialCabinClass] = useState('')
   const [initialSeatPreference, setInitialSeatPreference] = useState('')
-  const [initialBudgetDefault, setInitialBudgetDefault] = useState('')
 
   // Loading states
   const [isSavingProfile, setIsSavingProfile] = useState(false)
@@ -112,8 +109,7 @@ export default function SettingsPage() {
     return (
       homeAirport.trim().toUpperCase() !== initialHomeAirport.trim().toUpperCase() ||
       cabinClass !== initialCabinClass ||
-      seatPreference !== initialSeatPreference ||
-      budgetDefault !== initialBudgetDefault
+      seatPreference !== initialSeatPreference
     )
   }, [
     homeAirport,
@@ -122,8 +118,6 @@ export default function SettingsPage() {
     initialCabinClass,
     seatPreference,
     initialSeatPreference,
-    budgetDefault,
-    initialBudgetDefault,
   ])
 
   // Initialize form from store
@@ -137,17 +131,14 @@ export default function SettingsPage() {
       const airport = preferences.home_airport || ''
       const cabin = preferences.cabin_class || ''
       const seat = preferences.seat_preference || ''
-      const budget = preferences.budget_default?.toString() || ''
 
       setHomeAirport(airport)
       setCabinClass(cabin)
       setSeatPreference(seat)
-      setBudgetDefault(budget)
 
       setInitialHomeAirport(airport)
       setInitialCabinClass(cabin)
       setInitialSeatPreference(seat)
-      setInitialBudgetDefault(budget)
     }
   }, [user, preferences])
 
@@ -203,7 +194,6 @@ export default function SettingsPage() {
         home_airport: homeAirport.trim().toUpperCase() || null,
         cabin_class: cabinClass || null,
         seat_preference: seatPreference || null,
-        budget_default: budgetDefault ? parseInt(budgetDefault, 10) : null,
       })
       setPreferences(updated)
 
@@ -211,7 +201,6 @@ export default function SettingsPage() {
       setInitialHomeAirport(homeAirport.trim().toUpperCase())
       setInitialCabinClass(cabinClass)
       setInitialSeatPreference(seatPreference)
-      setInitialBudgetDefault(budgetDefault)
 
       // Show success
       setPrefsSaved(true)
@@ -502,24 +491,6 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="budget" className="text-sm">
-                default budget (USD)
-              </Label>
-              <Input
-                id="budget"
-                type="number"
-                value={budgetDefault}
-                onChange={(e) => setBudgetDefault(e.target.value)}
-                placeholder="1000"
-                min={0}
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                your typical budget for a trip (flights + events)
-              </p>
             </div>
 
             <SaveButton
@@ -815,22 +786,31 @@ function SaveButton({
 }: SaveButtonProps) {
   const isDisabled = isLoading || !isDirty
 
+  // When saved and not dirty, show a clearly disabled grey state
+  if (isSaved && !isDirty) {
+    return (
+      <Button
+        disabled
+        variant="outline"
+        className="lowercase w-full sm:w-auto text-sm opacity-60 bg-muted border-muted"
+      >
+        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 text-muted-foreground" />
+        <span className="text-muted-foreground">{savedLabel}</span>
+      </Button>
+    )
+  }
+
   return (
     <Button
       onClick={onClick}
       disabled={isDisabled}
       className="lowercase w-full sm:w-auto text-sm"
-      variant={isSaved ? 'outline' : 'default'}
+      variant="default"
     >
       {isLoading ? (
         <>
           <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 animate-spin" />
           saving...
-        </>
-      ) : isSaved ? (
-        <>
-          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
-          {savedLabel}
         </>
       ) : (
         <>
