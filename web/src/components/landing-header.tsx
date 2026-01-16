@@ -29,10 +29,10 @@ export function LandingHeader() {
           // Loading state - show placeholder
           <div className="h-9 w-20 bg-muted rounded-lg animate-pulse" />
         ) : user ? (
-          // Logged in - show "go to chat" button
+          // Logged in - show "start planning" button
           <Button asChild className="active:scale-[0.97] transition-transform">
             <Link href="/chat">
-              go to chat
+              start planning
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>

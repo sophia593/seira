@@ -232,12 +232,17 @@ async def delete_trip(
     current: User = Depends(get_current_user),
 ):
     """Delete a trip."""
-    # First verify the trip exists and belongs to user
+    # First verify the trip exists
     existing = await trip_service.get_trip(trip_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Trip not found")
+
+    # Verify ownership - return 403 if user doesn't own this trip
     if existing["user_id"] != current.id:
-        raise HTTPException(status_code=404, detail="Trip not found")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="you don't have permission to delete this trip"
+        )
 
     await trip_service.delete_trip(trip_id)
 

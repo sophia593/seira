@@ -30,20 +30,20 @@ function FadeInSection({ children, className, delay = 0 }: FadeInSectionProps) {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            // Add delay if specified
+            // Add delay if specified (keep short)
             setTimeout(() => {
               entry.target.classList.add('opacity-100', 'translate-y-0')
-              entry.target.classList.remove('opacity-0', 'translate-y-8')
-            }, delay)
+              entry.target.classList.remove('opacity-90', 'translate-y-3')
+            }, Math.min(delay, 150)) // Cap delay at 150ms for fast scroll
 
-            // Stop observing once animated
+            // Stop observing once animated (play only once)
             observer.unobserve(entry.target)
           }
         })
       },
       {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px', // Trigger slightly before element is fully in view
+        threshold: 0.05, // Trigger early (5% visible)
+        rootMargin: '50px 0px 0px 0px', // Trigger before element enters viewport
       }
     )
 
@@ -52,11 +52,13 @@ function FadeInSection({ children, className, delay = 0 }: FadeInSectionProps) {
     return () => observer.disconnect()
   }, [delay])
 
+  // Start with content nearly visible - animation is just polish
+  // If animation fails, content is still readable at 90% opacity
   return (
     <div
       ref={ref}
       className={cn(
-        'opacity-0 translate-y-8 transition-all duration-700 ease-out',
+        'opacity-90 translate-y-3 transition-all duration-300 ease-out',
         className
       )}
     >

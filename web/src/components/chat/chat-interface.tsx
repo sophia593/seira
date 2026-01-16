@@ -118,18 +118,16 @@ export function ChatInterface({ conversationId, initialPrompt, onChatActive, exa
   // Track if this is the initial mount (to distinguish URL prompt vs clicked suggestion)
   const hasInitialPromptBeenHandled = useRef(false)
 
-  // Auto-send when initialPrompt changes (e.g., user clicked a suggestion)
+  // Auto-send when initialPrompt is provided (from URL or clicked suggestion)
   useEffect(() => {
     // Skip if no prompt or already streaming
     if (!initialPrompt || isStreaming) return
 
-    // Skip the first render if there's an initial prompt from URL
-    // (let user see it in the input and decide to send)
+    // Prevent duplicate sends
     if (!hasInitialPromptBeenHandled.current) {
       hasInitialPromptBeenHandled.current = true
-      // Only auto-send if this is a clicked suggestion (messages array is empty)
-      // vs. coming from URL with ?prompt= (could be a page refresh)
-      if (messages.length === 0 && !window.location.search.includes('prompt=')) {
+      // Auto-send if there are no messages yet (fresh chat)
+      if (messages.length === 0) {
         handleSendMessage(initialPrompt)
       }
       return

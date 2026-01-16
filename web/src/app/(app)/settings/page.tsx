@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { getApi } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { useUserStore } from '@/stores/user-store'
+import { useConversationStore } from '@/stores/conversation-store'
 import { toast } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -88,6 +89,7 @@ export default function SettingsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // Password change
   const [isPasswordFormOpen, setIsPasswordFormOpen] = useState(false)
@@ -217,22 +219,29 @@ export default function SettingsPage() {
 
   async function handleDeleteAccount() {
     setIsDeleting(true)
+    setDeleteError(null)
+
     try {
       const api = getApi()
       await api.deleteAccount()
 
-      // Sign out and redirect
+      // Clear all local stores FIRST
+      useUserStore.getState().clear()
+      useConversationStore.getState().clear()
+
+      // Sign out from Supabase (session already invalid, but clean up cookies)
       const supabase = createClient()
       await supabase.auth.signOut()
 
-      toast.success('account deleted')
-      router.push('/login')
+      // Use replace so back button doesn't return to app
+      router.replace('/')
+
+      // Show toast after redirect
+      toast.success('your account has been deleted')
     } catch {
-      toast.error('couldn\'t delete account, please try again')
-    } finally {
+      // Show error in modal, keep it open so user can retry
+      setDeleteError('something went wrong. please try again.')
       setIsDeleting(false)
-      setDeleteDialogOpen(false)
-      setDeleteConfirmText('')
     }
   }
 
@@ -693,8 +702,12 @@ export default function SettingsPage() {
                 </p>
               </div>
               <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+                if (isDeleting) return // Prevent closing during deletion
                 setDeleteDialogOpen(open)
-                if (!open) setDeleteConfirmText('')
+                if (!open) {
+                  setDeleteConfirmText('')
+                  setDeleteError(null)
+                }
               }}>
                 <DialogTrigger asChild>
                   <Button
@@ -715,18 +728,30 @@ export default function SettingsPage() {
                       conversations, trips, and preferences. this action cannot be undone.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-2 py-4">
-                    <Label htmlFor="confirm" className="text-sm">
-                      type <span className="font-mono font-semibold">DELETE</span> to confirm
-                    </Label>
-                    <Input
-                      id="confirm"
-                      type="text"
-                      value={deleteConfirmText}
-                      onChange={(e) => setDeleteConfirmText(e.target.value)}
-                      placeholder="DELETE"
-                      className="font-mono"
-                    />
+                  <div className="space-y-3 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm" className="text-sm">
+                        type <span className="font-mono font-semibold">DELETE</span> to confirm
+                      </Label>
+                      <Input
+                        id="confirm"
+                        type="text"
+                        value={deleteConfirmText}
+                        onChange={(e) => {
+                          setDeleteConfirmText(e.target.value)
+                          if (deleteError) setDeleteError(null)
+                        }}
+                        placeholder="DELETE"
+                        className="font-mono"
+                        disabled={isDeleting}
+                      />
+                    </div>
+                    {deleteError && (
+                      <p className="text-sm text-destructive flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        {deleteError}
+                      </p>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button
@@ -734,7 +759,9 @@ export default function SettingsPage() {
                       onClick={() => {
                         setDeleteDialogOpen(false)
                         setDeleteConfirmText('')
+                        setDeleteError(null)
                       }}
+                      disabled={isDeleting}
                     >
                       cancel
                     </Button>

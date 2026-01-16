@@ -19,7 +19,7 @@ export function LandingCTA() {
         href="/chat"
         className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all hover:gap-3 lowercase group"
       >
-        go to chat
+        plan a trip
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </Link>
     )
@@ -30,7 +30,7 @@ export function LandingCTA() {
       href="/signup"
       className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all hover:gap-3 lowercase group"
     >
-      get started
+      plan a trip
       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
     </Link>
   )
