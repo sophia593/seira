@@ -28,6 +28,7 @@ interface UserState {
   setLoading: (loading: boolean) => void
   setHydrated: (hydrated: boolean) => void
   reset: () => void
+  clear: () => void  // Alias for reset, used by logout
 }
 
 const initialState = {
@@ -56,6 +57,8 @@ export const useUserStore = create<UserState>((set) => ({
   setHydrated: (isHydrated) => set({ isHydrated }),
 
   reset: () => set(initialState),
+
+  clear: () => set(initialState),  // Alias for reset, used by logout
 }))
 
 // Selectors for common access patterns

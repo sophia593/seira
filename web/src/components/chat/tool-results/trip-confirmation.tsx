@@ -1,7 +1,7 @@
 "use client"
 
 import { memo, useState } from "react"
-import { Calendar, MapPin, Plane, Check, Loader2 } from "lucide-react"
+import { Calendar, MapPin, Plane, Check, Loader2, Mail, RefreshCw, CheckCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,6 +10,7 @@ import {
   selectSelectedFlight,
   selectReturnFlight,
 } from "@/stores/conversation-store"
+import { useAuth } from "@/hooks/use-auth"
 
 // -----------------------------------------------------------------------------
 // Types
@@ -31,11 +32,30 @@ export const TripConfirmation = memo(function TripConfirmation({
   className,
 }: TripConfirmationProps) {
   const [isConfirming, setIsConfirming] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
+
+  const { user, isEmailVerified, resendVerificationEmail } = useAuth()
 
   const selectedEvent = useConversationStore(selectSelectedEvent)
   const selectedFlight = useConversationStore(selectSelectedFlight)
   const returnFlight = useConversationStore(selectReturnFlight)
   const clearSelections = useConversationStore((s) => s.clearSelections)
+
+  // Handle resend verification email
+  const handleResendVerification = async () => {
+    if (isResending || resendSuccess) return
+    setIsResending(true)
+    try {
+      await resendVerificationEmail()
+      setResendSuccess(true)
+      setTimeout(() => setResendSuccess(false), 60000)
+    } catch {
+      // Error handled by hook
+    } finally {
+      setIsResending(false)
+    }
+  }
 
   // Must have at least an event
   if (!selectedEvent) {
@@ -136,33 +156,81 @@ export const TripConfirmation = memo(function TripConfirmation({
       )}
 
       {/* Actions */}
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          onClick={handleCancel}
-          disabled={isConfirming}
-          className="flex-1"
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleConfirm}
-          disabled={isConfirming}
-          className="flex-1"
-        >
-          {isConfirming ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Check className="w-4 h-4 mr-2" />
-              Save Trip
-            </>
-          )}
-        </Button>
-      </div>
+      {!isEmailVerified ? (
+        // Verification required prompt
+        <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium">verify your email to save trips</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            we sent a verification link to {user?.email}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              size="sm"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleResendVerification}
+              disabled={isResending || resendSuccess}
+              size="sm"
+              className="flex-1"
+            >
+              {isResending ? (
+                <>
+                  <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                  Sending...
+                </>
+              ) : resendSuccess ? (
+                <>
+                  <CheckCircle className="w-3 h-3 mr-1.5" />
+                  Sent!
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-3 h-3 mr-1.5" />
+                  Resend email
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        // Normal save actions
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={isConfirming}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={isConfirming}
+            className="flex-1"
+          >
+            {isConfirming ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Save Trip
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   )
 })

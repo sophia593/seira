@@ -89,6 +89,7 @@ interface ConversationState {
 
   // Reset
   reset: () => void
+  clear: () => void  // Alias for reset, used by logout
 }
 
 // -----------------------------------------------------------------------------
@@ -263,6 +264,8 @@ export const useConversationStore = create<ConversationState>((set) => ({
     }),
 
   reset: () => set(initialState),
+
+  clear: () => set(initialState),  // Alias for reset, used by logout
 }))
 
 // Export a function to start fresh for a new conversation (called when user clicks "New Chat")

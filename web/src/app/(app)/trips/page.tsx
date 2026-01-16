@@ -16,6 +16,8 @@ import { getApi, type Trip } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
+import { EmailVerificationPrompt } from '@/components/email-verification-prompt'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -298,6 +300,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 // =============================================================================
 
 export default function TripsPage() {
+  const { isEmailVerified, loading: authLoading } = useAuth()
   const [trips, setTrips] = useState<Trip[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -385,6 +388,44 @@ export default function TripsPage() {
     past: pastTrips.length,
   }
 
+  // Show verification prompt if not verified (and not still loading auth)
+  if (!authLoading && !isEmailVerified) {
+    return (
+      <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-xl sm:text-2xl font-semibold lowercase">trips</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              your upcoming and past travel plans
+            </p>
+          </div>
+
+          {/* Verification Prompt */}
+          <div className="rounded-3xl border bg-card shadow-lg">
+            <EmailVerificationPrompt
+              title="verify your email to view trips"
+              description="once verified, you can save and manage your travel plans"
+            />
+          </div>
+
+          {/* CTA to continue exploring */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground mb-3">
+              in the meantime, you can still explore
+            </p>
+            <Button asChild variant="outline" className="lowercase">
+              <Link href="/chat">
+                <Plus className="w-4 h-4 mr-2" />
+                plan a trip
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
@@ -405,7 +446,7 @@ export default function TripsPage() {
         </div>
 
         {/* Content */}
-        {isLoading ? (
+        {(isLoading || authLoading) ? (
           <LoadingState />
         ) : error ? (
           <ErrorState onRetry={fetchTrips} />

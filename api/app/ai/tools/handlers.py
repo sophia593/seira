@@ -803,12 +803,16 @@ async def save_trip(
 ) -> dict[str, Any]:
     """
     Save a trip to the user's account in Supabase.
+    Requires email verification.
     """
     if not user_id:
         return {
             "success": False,
             "error": "sign in to save this trip to your account",
         }
+
+    # Note: Email verification is enforced on the frontend.
+    # The frontend checks isEmailVerified before allowing the save action.
 
     title = input.get("title", "Untitled Trip")
     event = input.get("event", {})

@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { useUserStore } from '@/stores/user-store'
+import { useConversationStore } from '@/stores/conversation-store'
 
 // =============================================================================
 // Types
@@ -22,11 +24,14 @@ interface UseAuthReturn {
   user: User | null
   loading: boolean
   error: AuthError | null
+  isEmailVerified: boolean
   clearError: () => void
   signIn: (email: string, password: string) => Promise<User>
   signUp: (email: string, password: string) => Promise<SignUpResult>
   signOut: () => Promise<void>
+  logout: () => Promise<void>  // Clears all state + signs out (caller handles redirect)
   updatePassword: (newPassword: string) => Promise<void>
+  resendVerificationEmail: () => Promise<void>
 }
 
 // =============================================================================
@@ -163,7 +168,7 @@ export function useAuth(): UseAuthReturn {
   }, [])
 
   // ---------------------------------------------------------------------------
-  // Sign Out
+  // Sign Out (basic - just calls supabase)
   // ---------------------------------------------------------------------------
 
   const signOut = useCallback(async (): Promise<void> => {
@@ -183,6 +188,32 @@ export function useAuth(): UseAuthReturn {
       setUser(null)
     } finally {
       setLoading(false)
+    }
+  }, [])
+
+  // ---------------------------------------------------------------------------
+  // Logout (bulletproof - clears all state + signs out)
+  // Caller should handle redirect with router.replace('/')
+  // ---------------------------------------------------------------------------
+
+  const logout = useCallback(async (): Promise<void> => {
+    // Clear local state FIRST so UI feels instant
+    // Use getState() to access store without hooks
+    useUserStore.getState().clear()
+    useConversationStore.getState().clear()
+
+    // Clear local user state
+    setUser(null)
+    setError(null)
+
+    // Sign out from Supabase (clears cookies)
+    // Even if this fails, we've already cleared local state
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    } catch {
+      // Ignore errors - local state is already cleared
+      // User will be redirected to landing page anyway
     }
   }, [])
 
@@ -211,6 +242,44 @@ export function useAuth(): UseAuthReturn {
   }, [])
 
   // ---------------------------------------------------------------------------
+  // Resend Verification Email
+  // ---------------------------------------------------------------------------
+
+  const resendVerificationEmail = useCallback(async (): Promise<void> => {
+    if (!user?.email) {
+      throw new Error('No email address found')
+    }
+
+    setError(null)
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user.email,
+      })
+
+      if (error) {
+        const authError = { message: formatAuthError(error.message), code: error.code }
+        setError(authError)
+        throw new Error(authError.message)
+      }
+    } catch (err) {
+      if (err instanceof Error && !error) {
+        setError({ message: err.message })
+      }
+      throw err
+    }
+  }, [user?.email, error])
+
+  // ---------------------------------------------------------------------------
+  // Computed Values
+  // ---------------------------------------------------------------------------
+
+  // User is verified if email_confirmed_at is set
+  const isEmailVerified = Boolean(user?.email_confirmed_at)
+
+  // ---------------------------------------------------------------------------
   // Return
   // ---------------------------------------------------------------------------
 
@@ -218,11 +287,14 @@ export function useAuth(): UseAuthReturn {
     user,
     loading,
     error,
+    isEmailVerified,
     clearError,
     signIn,
     signUp,
     signOut,
+    logout,
     updatePassword,
+    resendVerificationEmail,
   }
 }
 

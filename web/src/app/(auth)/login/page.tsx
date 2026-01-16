@@ -1,13 +1,46 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { createClient } from "@/lib/supabase/client"
-import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+
+// =============================================================================
+// Error Message Mapping
+// =============================================================================
+
+function getAuthErrorMessage(error: string): string {
+  const errorMap: Record<string, string> = {
+    // Supabase error messages
+    'Invalid login credentials': 'incorrect email or password',
+    'Email not confirmed': 'please verify your email first. check your inbox.',
+    'Invalid email or password': 'incorrect email or password',
+    'User not found': 'no account found with this email',
+    'Email rate limit exceeded': 'too many attempts. please wait a few minutes.',
+    'For security purposes, you can only request this once every 60 seconds': 'please wait before trying again',
+    // Network errors
+    'Failed to fetch': 'connection failed. check your internet and try again.',
+    'Network request failed': 'connection failed. check your internet and try again.',
+    'fetch failed': 'connection failed. check your internet and try again.',
+  }
+
+  // Check for partial matches
+  for (const [key, value] of Object.entries(errorMap)) {
+    if (error.toLowerCase().includes(key.toLowerCase())) {
+      return value
+    }
+  }
+
+  // Default fallback
+  return 'something went wrong. please try again.'
+}
+
+// =============================================================================
+// Login Form Component
+// =============================================================================
 
 function LoginForm() {
   const router = useRouter()
@@ -15,11 +48,22 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
+
+  // Load remembered email on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('seira_remembered_email')
+    if (savedEmail) {
+      setFormData(prev => ({ ...prev, email: savedEmail }))
+      setRememberMe(true)
+    }
+  }, [])
 
   const [errors, setErrors] = useState({
     email: "",
@@ -54,6 +98,7 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setFormError('')
 
     if (!validateForm()) return
 
@@ -66,23 +111,21 @@ function LoginForm() {
       })
 
       if (error) {
-        if (error.message.includes("Invalid login")) {
-          setErrors({
-            email: "",
-            password: "invalid email or password"
-          })
-        } else if (error.message.includes("Email not confirmed")) {
-          toast.error("please verify your email first")
-        } else {
-          toast.error(error.message)
-        }
+        setFormError(getAuthErrorMessage(error.message))
         return
+      }
+
+      // Handle remember me
+      if (rememberMe) {
+        localStorage.setItem('seira_remembered_email', formData.email)
+      } else {
+        localStorage.removeItem('seira_remembered_email')
       }
 
       router.push("/chat")
       router.refresh()
     } catch {
-      toast.error("something went wrong, please try again")
+      setFormError('something went wrong. please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -90,6 +133,7 @@ function LoginForm() {
 
   async function handleGoogleLogin() {
     setIsGoogleLoading(true)
+    setFormError('')
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -100,11 +144,11 @@ function LoginForm() {
       })
 
       if (error) {
-        toast.error("couldn't connect to google")
+        setFormError("couldn't connect to google. please try again.")
         setIsGoogleLoading(false)
       }
     } catch {
-      toast.error("something went wrong")
+      setFormError('something went wrong. please try again.')
       setIsGoogleLoading(false)
     }
   }
@@ -113,6 +157,9 @@ function LoginForm() {
     setFormData({ ...formData, [field]: value })
     if (errors[field]) {
       setErrors({ ...errors, [field]: "" })
+    }
+    if (formError) {
+      setFormError('')
     }
   }
 
@@ -280,6 +327,49 @@ function LoginForm() {
                 <p className="text-xs text-destructive">{errors.password}</p>
               )}
             </div>
+
+            {/* Remember Me */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={rememberMe}
+                onClick={() => setRememberMe(!rememberMe)}
+                className={cn(
+                  "h-4 w-4 rounded border flex items-center justify-center",
+                  "transition-colors duration-150",
+                  rememberMe
+                    ? "bg-primary border-primary"
+                    : "bg-background border-muted-foreground/30 hover:border-muted-foreground/50"
+                )}
+              >
+                {rememberMe && (
+                  <svg
+                    className="h-3 w-3 text-primary-foreground"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+              <label
+                className="text-sm text-muted-foreground cursor-pointer select-none"
+                onClick={() => setRememberMe(!rememberMe)}
+              >
+                remember me
+              </label>
+            </div>
+
+            {/* Form Error */}
+            {formError && (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
+                <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <p className="text-sm text-destructive">{formError}</p>
+              </div>
+            )}
 
             {/* Submit */}
             <button

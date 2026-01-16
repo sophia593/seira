@@ -10,9 +10,8 @@ import {
   Loader2,
   Crown
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useUserStore } from '@/stores/user-store'
-import { toast } from '@/components/ui/sonner'
+import { useAuth } from '@/hooks/use-auth'
 import { AvatarUser } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -77,7 +76,7 @@ function MenuItem({
 export function UserMenu({ isCollapsed = false }: UserMenuProps) {
   const router = useRouter()
   const user = useUserStore((state) => state.user)
-  const reset = useUserStore((state) => state.reset)
+  const { logout } = useAuth()
 
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
@@ -97,24 +96,13 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
 
   async function handleLogout() {
     setIsLoggingOut(true)
+    setIsOpen(false)
 
-    try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.signOut()
+    // Bulletproof logout: clear all state + sign out
+    await logout()
 
-      if (error) {
-        toast.error("couldn't log out")
-        setIsLoggingOut(false)
-        return
-      }
-
-      reset()
-      router.push('/login')
-      toast.success('logged out')
-    } catch {
-      toast.error("couldn't log out")
-      setIsLoggingOut(false)
-    }
+    // Use replace so back button doesn't return to app
+    router.replace('/')
   }
 
   function handleProfile() {

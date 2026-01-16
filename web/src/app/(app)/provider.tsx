@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, createContext, useContext } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useUserStore } from "@/stores/user-store"
+import { useConversationStore } from "@/stores/conversation-store"
 import { getApi } from "@/lib/api"
 import { createClient } from "@/lib/supabase/client"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -267,6 +268,31 @@ export function AppShellProvider({
 
     return () => clearInterval(sessionInterval)
   }, [router, sessionExpiresAt])
+
+  // ===========================================================================
+  // Auth State Change Listener (handles logout from other tabs, session expiry)
+  // ===========================================================================
+
+  useEffect(() => {
+    const supabase = createClient()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event) => {
+        if (event === 'SIGNED_OUT') {
+          // Clear all stores
+          useUserStore.getState().clear()
+          useConversationStore.getState().clear()
+
+          // Redirect to landing page
+          router.replace('/')
+        }
+      }
+    )
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [router])
 
   // ===========================================================================
   // Global Keyboard Shortcuts
