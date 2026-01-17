@@ -1160,7 +1160,7 @@ export function HowItWorks() {
   }, [activeStep, isInView, activeCategory])
 
   return (
-    <section ref={sectionRef} className="py-16 sm:py-24">
+    <section ref={sectionRef} id="how-it-works" className="py-16 sm:py-24">
       <div className="max-w-5xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
