@@ -239,7 +239,7 @@ const EXAMPLES_BY_CATEGORY: Record<Category, EventExample[]> = {
 // =============================================================================
 
 const CYCLE_INTERVAL = 8000
-const ANIMATION_STEP_DELAY = 600
+const ANIMATION_STEP_DELAY = 400 // Faster on mobile
 
 // =============================================================================
 // Utility: Get random example from category
@@ -409,13 +409,13 @@ export function DemoPreview() {
     <TooltipProvider>
       <div className="w-full max-w-xl mx-auto">
         {/* Category Filters */}
-        <div className="flex items-center justify-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
               onClick={() => handleCategoryChange(cat.id)}
               className={cn(
-                "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                "flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 min-h-[36px]",
                 activeCategory === cat.id
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -554,7 +554,7 @@ export function DemoPreview() {
               <Link
                 key={tag.label}
                 href={`/chat?prompt=${encodeURIComponent(tag.prompt)}`}
-                className="px-3 py-1.5 text-xs font-medium rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="px-4 py-2.5 text-xs font-medium rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[40px] flex items-center"
               >
                 {tag.label}
               </Link>

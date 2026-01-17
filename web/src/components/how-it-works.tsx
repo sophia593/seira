@@ -1178,7 +1178,7 @@ export function HowItWorks() {
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-1.5 px-3 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 min-h-[36px]",
                   activeCategory === cat.id
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"

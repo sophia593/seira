@@ -17,7 +17,7 @@ export function LandingCTA() {
     return (
       <Link
         href="/chat"
-        className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all hover:gap-3 lowercase group"
+        className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all hover:gap-3 lowercase group min-h-[48px] active:scale-[0.98]"
       >
         plan a trip
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -28,7 +28,7 @@ export function LandingCTA() {
   return (
     <Link
       href="/signup"
-      className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all hover:gap-3 lowercase group"
+      className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all hover:gap-3 lowercase group min-h-[48px] active:scale-[0.98]"
     >
       plan a trip
       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
