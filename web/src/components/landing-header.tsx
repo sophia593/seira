@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Menu, X, User, Settings, Map, LogOut } from "lucide-react"
@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils"
 
 // =============================================================================
-// Navigation Links (cleaner: no "about")
+// Navigation Links
 // =============================================================================
 
 const NAV_LINKS = [
@@ -28,7 +28,29 @@ const NAV_LINKS = [
 ]
 
 // =============================================================================
-// Beta Badge (neutral, accents only on hover)
+// Skip to Content Link (Accessibility)
+// =============================================================================
+
+function SkipToContent() {
+  return (
+    <a
+      href="#main"
+      className={cn(
+        "absolute left-4 top-4 z-[100]",
+        "px-4 py-2 rounded-lg",
+        "bg-primary text-primary-foreground text-sm font-medium",
+        "opacity-0 pointer-events-none",
+        "focus:opacity-100 focus:pointer-events-auto",
+        "transition-opacity"
+      )}
+    >
+      skip to content
+    </a>
+  )
+}
+
+// =============================================================================
+// Beta Badge (neutral with dot, accents on hover)
 // =============================================================================
 
 function BetaBadge() {
@@ -43,7 +65,7 @@ function BetaBadge() {
         "hover:bg-primary/10 hover:text-primary"
       )}
     >
-      beta
+      • beta
     </span>
   )
 }
@@ -95,7 +117,7 @@ function UserDropdown({ userEmail }: UserDropdownProps) {
         <DropdownMenuItem asChild>
           <Link href="/chat" className="cursor-pointer">
             <ArrowRight className="w-4 h-4 mr-2" />
-            start planning
+            try seira
           </Link>
         </DropdownMenuItem>
 
@@ -128,7 +150,7 @@ function UserDropdown({ userEmail }: UserDropdownProps) {
 }
 
 // =============================================================================
-// Mobile Menu (leave mostly as-is)
+// Mobile Menu
 // =============================================================================
 
 interface MobileMenuProps {
@@ -230,7 +252,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
                 className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <ArrowRight className="w-4 h-4" />
-                start planning
+                try seira
               </Link>
 
               <Link
@@ -284,12 +306,24 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
 }
 
 // =============================================================================
-// Main Header Component (sticky, calmer nav, CTA always visible)
+// Main Header Component
 // =============================================================================
 
 export function LandingHeader() {
   const { user, loading } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  // Track scroll position for header styling
+  useEffect(() => {
+    function handleScroll() {
+      setIsScrolled(window.scrollY > 8)
+    }
+
+    handleScroll() // Check initial position
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   function handleAnchorClick(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
     e.preventDefault()
@@ -299,9 +333,18 @@ export function LandingHeader() {
 
   return (
     <>
+      <SkipToContent />
+
       {/* Sticky wrapper */}
-      <div className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur border-b">
-        <header className="flex items-center justify-between px-4 sm:px-6 py-3 max-w-6xl mx-auto w-full">
+      <div
+        className={cn(
+          "sticky top-0 z-50 w-full backdrop-blur transition-all duration-200",
+          isScrolled
+            ? "bg-background/90 shadow-sm border-b"
+            : "bg-background/80 border-b border-transparent"
+        )}
+      >
+        <header className="flex items-center justify-between px-4 sm:px-6 py-4 max-w-6xl mx-auto w-full">
           {/* Logo + Beta Badge */}
           <div className="flex items-center">
             <Logo className="text-lg sm:text-xl" linkToHome={false} />
@@ -339,18 +382,31 @@ export function LandingHeader() {
               )
             )}
 
+            {/* My Trips link for logged-in users */}
+            {user && (
+              <Link
+                href="/trips"
+                className={cn(
+                  "text-sm text-muted-foreground hover:text-foreground",
+                  "px-2.5 py-1.5 rounded-md",
+                  "hover:bg-accent transition-colors"
+                )}
+              >
+                my trips
+              </Link>
+            )}
+
             {/* Divider spacing */}
             <div className="w-3" />
 
             {/* Auth + CTA */}
             {loading ? (
-              <div className="h-9 w-48 bg-muted rounded-lg animate-pulse" />
+              <div className="h-9 w-40 bg-muted rounded-lg animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-2">
-                {/* Primary action stays visible */}
                 <Button asChild className="h-9">
                   <Link href="/chat">
-                    start planning
+                    try seira
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
@@ -359,7 +415,6 @@ export function LandingHeader() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                {/* Not pushy: log in + sign up are subtle, CTA is primary */}
                 <Button asChild variant="ghost" className="h-9 px-3 text-sm">
                   <Link href="/login">log in</Link>
                 </Button>
@@ -368,7 +423,7 @@ export function LandingHeader() {
                 </Button>
                 <Button asChild className="h-9">
                   <Link href="/chat">
-                    start planning
+                    try seira
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
