@@ -169,6 +169,62 @@
 
 @layer components {
   /*
+   * Fancy Button - animated border on hover
+   * Used for high-emphasis CTAs
+   */
+  .btn-fancy {
+    --btn-border-width: 3px;
+    position: relative;
+    background-color: hsl(var(--foreground));
+    color: hsl(var(--background));
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn-fancy span {
+    mix-blend-mode: difference;
+  }
+
+  .btn-fancy::before {
+    content: "";
+    position: absolute;
+    inset: calc(var(--btn-border-width) * -1);
+    border: var(--btn-border-width) solid hsl(var(--foreground));
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(1.2);
+    transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+  }
+
+  .btn-fancy:hover {
+    background-color: transparent;
+    color: hsl(var(--foreground));
+  }
+
+  .btn-fancy:hover::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .btn-fancy:active::before {
+    transform: scale(0.98);
+  }
+
+  /* Dark mode adjustments */
+  .dark .btn-fancy {
+    background-color: hsl(var(--foreground));
+    color: hsl(var(--background));
+  }
+
+  .dark .btn-fancy::before {
+    border-color: hsl(var(--foreground));
+  }
+
+  .dark .btn-fancy:hover {
+    color: hsl(var(--foreground));
+  }
+
+  /*
    * Seira Typography System
    * Font: Space Grotesk
    * Style: Lowercase headings, navigation, buttons — normal case for body text

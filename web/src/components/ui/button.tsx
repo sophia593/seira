@@ -51,6 +51,9 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-foreground dark:hover:bg-accent/50",
 
         link: "text-primary underline-offset-4 hover:underline",
+
+        // Fancy: animated border effect on hover (uses .btn-fancy from globals.css)
+        fancy: "btn-fancy font-bold uppercase tracking-wide",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
