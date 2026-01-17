@@ -1,40 +1,48 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ArrowRight, Menu, X, User, Settings, Map, LogOut } from 'lucide-react'
-import { Logo } from '@/components/logo'
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/hooks/use-auth'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { ArrowRight, Menu, X, User, Settings, Map, LogOut } from "lucide-react"
+import { Logo } from "@/components/logo"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/use-auth"
+import { createClient } from "@/lib/supabase/client"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
 
 // =============================================================================
-// Navigation Links
+// Navigation Links (cleaner: no "about")
 // =============================================================================
 
 const NAV_LINKS = [
-  { href: '#how-it-works', label: 'how it works', anchor: true },
-  { href: '/about', label: 'about', anchor: false },
-  { href: '/pricing', label: 'pricing', anchor: false },
-  { href: '/contact', label: 'contact', anchor: false },
+  { href: "#how-it-works", label: "how it works", anchor: true },
+  { href: "/pricing", label: "pricing", anchor: false },
+  { href: "/contact", label: "contact", anchor: false },
 ]
 
 // =============================================================================
-// Beta Badge
+// Beta Badge (neutral, accents only on hover)
 // =============================================================================
 
 function BetaBadge() {
   return (
-    <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide rounded bg-primary/10 text-primary">
+    <span
+      title="Seira is in beta — some results may be estimates."
+      className={cn(
+        "ml-2 inline-flex items-center rounded-full",
+        "px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+        "bg-muted text-muted-foreground",
+        "transition-colors duration-200",
+        "hover:bg-primary/10 hover:text-primary"
+      )}
+    >
       beta
     </span>
   )
@@ -55,17 +63,25 @@ function UserDropdown({ userEmail }: UserDropdownProps) {
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/')
+    router.push("/")
     router.refresh()
   }
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors active:scale-[0.97]">
+        <button
+          className={cn(
+            "flex items-center justify-center w-9 h-9 rounded-full",
+            "bg-muted text-foreground text-sm font-medium",
+            "hover:bg-muted/80 transition-colors"
+          )}
+          aria-label="Open user menu"
+        >
           {userEmail ? userEmail[0].toUpperCase() : <User className="w-4 h-4" />}
         </button>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="end" className="w-48">
         {userEmail && (
           <>
@@ -75,26 +91,34 @@ function UserDropdown({ userEmail }: UserDropdownProps) {
             <DropdownMenuSeparator />
           </>
         )}
+
         <DropdownMenuItem asChild>
           <Link href="/chat" className="cursor-pointer">
             <ArrowRight className="w-4 h-4 mr-2" />
             start planning
           </Link>
         </DropdownMenuItem>
+
         <DropdownMenuItem asChild>
           <Link href="/trips" className="cursor-pointer">
             <Map className="w-4 h-4 mr-2" />
             my trips
           </Link>
         </DropdownMenuItem>
+
         <DropdownMenuItem asChild>
           <Link href="/settings" className="cursor-pointer">
             <Settings className="w-4 h-4 mr-2" />
             settings
           </Link>
         </DropdownMenuItem>
+
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="cursor-pointer text-destructive focus:text-destructive"
+        >
           <LogOut className="w-4 h-4 mr-2" />
           log out
         </DropdownMenuItem>
@@ -104,7 +128,7 @@ function UserDropdown({ userEmail }: UserDropdownProps) {
 }
 
 // =============================================================================
-// Mobile Menu
+// Mobile Menu (leave mostly as-is)
 // =============================================================================
 
 interface MobileMenuProps {
@@ -122,16 +146,15 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
     const supabase = createClient()
     await supabase.auth.signOut()
     onClose()
-    router.push('/')
+    router.push("/")
     router.refresh()
   }
 
   function handleAnchorClick(href: string) {
     onClose()
-    // Small delay to let menu close animation start
     setTimeout(() => {
       const element = document.querySelector(href)
-      element?.scrollIntoView({ behavior: 'smooth' })
+      element?.scrollIntoView({ behavior: "smooth" })
     }, 100)
   }
 
@@ -159,6 +182,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-accent transition-colors"
+            aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
@@ -166,7 +190,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
 
         {/* Links */}
         <nav className="p-4 space-y-1">
-          {NAV_LINKS.map((link) => (
+          {NAV_LINKS.map((link) =>
             link.anchor ? (
               <button
                 key={link.href}
@@ -185,7 +209,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
                 {link.label}
               </Link>
             )
-          ))}
+          )}
         </nav>
 
         {/* User Section */}
@@ -199,6 +223,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
                   {userEmail}
                 </div>
               )}
+
               <Link
                 href="/chat"
                 onClick={onClose}
@@ -207,6 +232,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
                 <ArrowRight className="w-4 h-4" />
                 start planning
               </Link>
+
               <Link
                 href="/trips"
                 onClick={onClose}
@@ -215,6 +241,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
                 <Map className="w-4 h-4" />
                 my trips
               </Link>
+
               <Link
                 href="/settings"
                 onClick={onClose}
@@ -223,6 +250,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
                 <Settings className="w-4 h-4" />
                 settings
               </Link>
+
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
@@ -256,7 +284,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
 }
 
 // =============================================================================
-// Main Header Component
+// Main Header Component (sticky, calmer nav, CTA always visible)
 // =============================================================================
 
 export function LandingHeader() {
@@ -266,63 +294,98 @@ export function LandingHeader() {
   function handleAnchorClick(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
     e.preventDefault()
     const element = document.querySelector(href)
-    element?.scrollIntoView({ behavior: 'smooth' })
+    element?.scrollIntoView({ behavior: "smooth" })
   }
 
   return (
     <>
-      <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 max-w-6xl mx-auto w-full">
-        {/* Logo + Beta Badge */}
-        <div className="flex items-center">
-          <Logo className="text-lg sm:text-xl" linkToHome={false} />
-          <BetaBadge />
-        </div>
+      {/* Sticky wrapper */}
+      <div className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur border-b">
+        <header className="flex items-center justify-between px-4 sm:px-6 py-3 max-w-6xl mx-auto w-full">
+          {/* Logo + Beta Badge */}
+          <div className="flex items-center">
+            <Logo className="text-lg sm:text-xl" linkToHome={false} />
+            <BetaBadge />
+          </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden sm:flex items-center gap-1">
-          {NAV_LINKS.map((link) => (
-            link.anchor ? (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={(e) => handleAnchorClick(e, link.href)}
-                className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-accent transition-all active:scale-[0.97]"
-              >
-                {link.label}
-              </a>
+          {/* Desktop Navigation */}
+          <nav className="hidden sm:flex items-center gap-1">
+            {NAV_LINKS.map((link) =>
+              link.anchor ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleAnchorClick(e, link.href)}
+                  className={cn(
+                    "text-sm text-muted-foreground hover:text-foreground",
+                    "px-2.5 py-1.5 rounded-md",
+                    "hover:bg-accent transition-colors"
+                  )}
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "text-sm text-muted-foreground hover:text-foreground",
+                    "px-2.5 py-1.5 rounded-md",
+                    "hover:bg-accent transition-colors"
+                  )}
+                >
+                  {link.label}
+                </Link>
+              )
+            )}
+
+            {/* Divider spacing */}
+            <div className="w-3" />
+
+            {/* Auth + CTA */}
+            {loading ? (
+              <div className="h-9 w-48 bg-muted rounded-lg animate-pulse" />
+            ) : user ? (
+              <div className="flex items-center gap-2">
+                {/* Primary action stays visible */}
+                <Button asChild className="h-9">
+                  <Link href="/chat">
+                    start planning
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+
+                <UserDropdown userEmail={user.email} />
+              </div>
             ) : (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-accent transition-all active:scale-[0.97]"
-              >
-                {link.label}
-              </Link>
-            )
-          ))}
+              <div className="flex items-center gap-2">
+                {/* Not pushy: log in + sign up are subtle, CTA is primary */}
+                <Button asChild variant="ghost" className="h-9 px-3 text-sm">
+                  <Link href="/login">log in</Link>
+                </Button>
+                <Button asChild variant="ghost" className="h-9 px-3 text-sm">
+                  <Link href="/signup">sign up</Link>
+                </Button>
+                <Button asChild className="h-9">
+                  <Link href="/chat">
+                    start planning
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </nav>
 
-          {/* Auth Section */}
-          {loading ? (
-            <div className="h-9 w-9 bg-muted rounded-full animate-pulse ml-2" />
-          ) : user ? (
-            <div className="ml-2">
-              <UserDropdown userEmail={user.email} />
-            </div>
-          ) : (
-            <Button asChild variant="ghost" className="active:scale-[0.97] transition-transform ml-2">
-              <Link href="/login">log in</Link>
-            </Button>
-          )}
-        </nav>
-
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setMobileMenuOpen(true)}
-          className="sm:hidden p-2 rounded-lg hover:bg-accent transition-colors"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </header>
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="sm:hidden p-2 rounded-lg hover:bg-accent transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </header>
+      </div>
 
       {/* Mobile Menu */}
       <MobileMenu
