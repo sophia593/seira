@@ -23,6 +23,8 @@ from app.services import user as user_service
 from app.services.event_curation import curate_events, add_curation_metadata
 from app.ai.travel_confidence import evaluate_ticket_options
 from app.ai.event_insights import enrich_events_with_insights
+from app.ai.query_normalizer import normalize_query, should_ask_clarification, get_correction_message
+from app.ai.event_recommendations import recommend_events
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +179,7 @@ async def search_events(
     Falls back to Gemini web search if no results found.
     """
     tool_start = time.time()
-    query = input.get("query", "")
+    raw_query = input.get("query", "")
     city_raw = input.get("city")
     city = normalize_city(city_raw)  # Normalize "NYC" -> "New York" etc.
     state_code = input.get("state_code")  # Two-letter state code (OR, ME, etc.)
@@ -185,6 +187,25 @@ async def search_events(
     date_to = input.get("date_to")
     category = input.get("category")
     genre = input.get("genre")  # Music genre filter
+
+    # =========================================================================
+    # QUERY NORMALIZATION: Fix typos like "Tirana gradne" -> "Ariana Grande"
+    # =========================================================================
+    should_ask, clarification_reason = should_ask_clarification(raw_query)
+    if should_ask:
+        return {
+            "success": False,
+            "needs_clarification": True,
+            "message": clarification_reason,
+            "original_query": raw_query,
+        }
+
+    # Normalize the query (fix typos, match known entities)
+    query, matched_entity, was_corrected = normalize_query(raw_query)
+    correction_message = get_correction_message(raw_query, query, matched_entity)
+
+    if was_corrected:
+        logger.info(f"Query normalized: {raw_query!r} -> {query!r} (matched: {matched_entity})")
 
     # Normalize state_code
     if state_code:
@@ -265,32 +286,34 @@ async def search_events(
         events = [_format_event(e) for e in unique_events]
 
         # =====================================================================
-        # CURATE: Filter, rank, and add "why selected" metadata
+        # RECOMMEND: Score, rank, and pick top 3 + more options
+        # (includes insights + ticket confidence internally)
         # =====================================================================
-        curated_events = curate_events(events, user_city=city, max_results=5)
-        curated_events = add_curation_metadata(curated_events, user_city=city)
-        logger.info(f"Curated {len(events)} events down to {len(curated_events)} top picks")
-
-        # Add insights (rivalry, holiday, special event context)
-        curated_events = enrich_events_with_insights(curated_events)
-
-        # Add ticket price confidence labels (Good deal / Typical / High)
-        ticket_intel = evaluate_ticket_options(curated_events)
+        rec = recommend_events(
+            raw_events=events,
+            user_query=query,
+            user_budget=None,  # TODO: pull from user preferences
+            max_total=7,
+            top_n=3,
+        )
+        logger.info(f"Recommended {len(rec['top_picks'])} top picks + {len(rec['more_options'])} more from {len(events)} events")
 
         # =====================================================================
         # VERIFIED TICKETMASTER RESULTS
         # These are real, bookable events from Ticketmaster's database
         # =====================================================================
-        logger.info(f"[TIMING] search_events COMPLETED (VERIFIED_EVENTS): {(time.time() - tool_start) * 1000:.1f}ms total, {len(curated_events)} curated events")
+        logger.info(f"[TIMING] search_events COMPLETED (VERIFIED_EVENTS): {(time.time() - tool_start) * 1000:.1f}ms total")
         return {
             "success": True,
             "result_type": "VERIFIED_EVENTS",
+            "correction_message": correction_message,  # e.g., "Searching for Ariana Grande..."
             "data_source": {
                 "provider": "Ticketmaster",
                 "reliability": "high",
                 "description": "Official event listings with real-time availability and direct booking links",
             },
             "query": query,
+            "original_query": raw_query if was_corrected else None,
             "filters": {
                 "city": city,
                 "state_code": state_code,
@@ -301,24 +324,23 @@ async def search_events(
             },
             "summary": {
                 "total_found": result.total_count,
-                "showing": len(curated_events),
-                "curated_from": len(events),
-                "message": f"Found {result.total_count} events, showing top {len(curated_events)} picks for you",
+                "showing": len(rec["top_picks"]) + len(rec["more_options"]),
+                "headline": rec["copy"]["headline"],
+                "message": rec["copy"]["why_this_format"],
             },
-            "events": curated_events,
-            "ticket_cards": ticket_intel["cards"],
-            "ticket_recommended": ticket_intel["recommended"],
+            "top_picks": rec["top_picks"],
+            "more_options": rec["more_options"],
             "instructions_for_assistant": (
-                "Present the TOP 3-5 curated events to the user. For each event, mention:\n"
-                "1. Event name, date, venue\n"
-                "2. WHY it's a good pick (use the 'why_selected' field - e.g., 'This week', 'Weekend', 'Budget-friendly')\n"
-                "3. Price label from ticket_cards (Good deal / Typical / High)\n"
-                "4. Use 'My pick' and 'Best value' tags from ticket_recommended\n"
-                "5. If event has insights (rivalry, holiday, special), weave them naturally into your response\n\n"
-                "Example format:\n"
-                "  **Lakers vs Celtics** - Feb 14 @ Crypto.com Arena\n"
-                "  Valentine's Day • Historic rivalry • Good deal • From $180 — My pick\n\n"
-                "After presenting options, ask which one interests them to continue planning."
+                "If correction_message is present, start your response with it (e.g., 'Searching for Ariana Grande...').\n\n"
+                "Present the TOP 3 picks to the user. Each event has:\n"
+                "- event['recommendation']['reasons'] — why this is a good pick\n"
+                "- event['insights']['tags'] — special context (championship, holiday, etc.)\n"
+                "- event['ticket_confidence']['price_label'] — Good deal / Typical / High\n\n"
+                "Format:\n"
+                "  **Event Name** - Date @ Venue\n"
+                "  [reasons from recommendation] • [price label] • From $X\n\n"
+                "After the top 3, say 'Want more options?' if more_options has items.\n"
+                "Don't dump all options — be a curator, not a search engine."
             ),
         }
 

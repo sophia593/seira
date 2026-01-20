@@ -181,6 +181,46 @@ Keep it useful, keep it brief.
 
 
 # -----------------------------------------------------------------------------
+# 1e. PERSONALIZATION_GUIDELINES (stable)
+# -----------------------------------------------------------------------------
+
+PERSONALIZATION_GUIDELINES = """## Being Personal
+
+You know things about this user. Use that knowledge naturally — don't announce it.
+
+**Do:**
+- Use their name in greetings and confirmations (not every message)
+- Default to their home airport for flights without asking
+- Show their favorite teams/artists near the top of results
+- Apply their travel preferences automatically (cabin class, airlines)
+- Reference past trips casually: "heading back to Chicago?"
+
+**Don't:**
+- Say "I see from your profile that..." or "I remember you like..."
+- Ask questions you already know the answer to
+- Over-explain why you're showing something
+- Use their name in every single message
+- Refuse to help with something outside their usual preferences
+
+**Examples:**
+
+Good: "Morning, Sarah! Found some Lakers games next month — the Celtics matchup on the 14th looks good."
+
+Bad: "Good morning Sarah! I noticed from your profile that you're a Lakers fan, so I've prioritized Lakers games in my search results. I also see you usually fly out of LAX, so I'll use that as your departure airport."
+
+Good: "I'll find flights from Chicago..." (you know their home airport)
+
+Bad: "Where are you flying from?" (when you already know)
+
+Good: "Another trip to NYC?" (they've been before)
+
+Bad: "I see you've visited New York 3 times before. Would you like to go again?"
+
+The goal: feel like a friend who knows them, not a database reading their profile.
+"""
+
+
+# -----------------------------------------------------------------------------
 # 2. SAFETY_AND_LIMITATIONS (stable)
 # -----------------------------------------------------------------------------
 
@@ -918,6 +958,7 @@ def build_system_prompt(
     preferences: dict | None = None,
     conversation_context: dict | None = None,
     trip_progress: dict | None = None,
+    user_profile: dict | None = None,
     include_date: bool = True,
 ) -> str:
     """
@@ -926,11 +967,15 @@ def build_system_prompt(
     Structure:
     1. Role/Goal (stable)
     1b. Progress awareness (stable)
+    1c. Proactive behavior (stable)
+    1d. Insight guidelines (stable)
+    1e. Personalization guidelines (stable)
     2. Safety & limitations (stable)
     3. Tool guidelines (stable)
     4. User context (dynamic)
     5. Conversation context (dynamic)
     5b. Trip progress (dynamic)
+    5c. Personalization context (dynamic)
     6. Response formatting (stable)
 
     Args:
@@ -939,6 +984,7 @@ def build_system_prompt(
         preferences: User preferences dict (home_airport, cabin_class, etc.)
         conversation_context: Extracted context from conversation
         trip_progress: Trip progress dict for tracking planning state
+        user_profile: Full user profile data for personalization
         include_date: Whether to include current date (default True)
 
     Returns:
@@ -957,6 +1003,9 @@ def build_system_prompt(
 
     # 1d. Insight guidelines (stable)
     parts.append(INSIGHT_GUIDELINES.strip())
+
+    # 1e. Personalization guidelines (stable)
+    parts.append(PERSONALIZATION_GUIDELINES.strip())
 
     # 2. Safety and limitations (stable)
     parts.append(SAFETY_AND_LIMITATIONS.strip())
@@ -988,6 +1037,19 @@ def build_system_prompt(
     guidance_context = _build_guidance_context(conversation_context, preferences)
     if guidance_context:
         parts.append(guidance_context.strip())
+
+    # 5d. Personalization context (dynamic - what we know about this user)
+    if user_profile:
+        from app.ai.personalization import build_user_profile, build_personalization_context
+        profile = build_user_profile(
+            user_id=user_profile.get("user_id", ""),
+            user_data=user_profile.get("user_data"),
+            preferences=user_profile.get("preferences"),
+            trip_history=user_profile.get("trip_history"),
+        )
+        personal_context = build_personalization_context(profile)
+        if personal_context:
+            parts.append(personal_context.strip())
 
     # 6. Response guidelines (stable)
     parts.append(RESPONSE_GUIDELINES.strip())
