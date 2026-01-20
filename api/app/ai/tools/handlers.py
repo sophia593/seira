@@ -24,7 +24,8 @@ from app.services.event_curation import curate_events, add_curation_metadata
 from app.ai.travel_confidence import evaluate_ticket_options
 from app.ai.event_insights import enrich_events_with_insights
 from app.ai.query_normalizer import normalize_query, should_ask_clarification, get_correction_message
-from app.ai.event_recommendations import recommend_events
+from app.ai.event_recommendations import recommend_events, show_more_from_cache
+from app.ai.reco_presenter import render_event_recos_text
 
 logger = logging.getLogger(__name__)
 
@@ -293,9 +294,10 @@ async def search_events(
             raw_events=events,
             user_query=query,
             user_budget=None,  # TODO: pull from user preferences
-            max_total=7,
+            max_visible=7,
             top_n=3,
         )
+        chat_text = render_event_recos_text(rec)
         logger.info(f"Recommended {len(rec['top_picks'])} top picks + {len(rec['more_options'])} more from {len(events)} events")
 
         # =====================================================================
@@ -322,25 +324,23 @@ async def search_events(
                 "category": category,
                 "genre": genre,
             },
-            "summary": {
-                "total_found": result.total_count,
-                "showing": len(rec["top_picks"]) + len(rec["more_options"]),
-                "headline": rec["copy"]["headline"],
-                "message": rec["copy"]["why_this_format"],
-            },
+            # Time-saver format: headline + curated picks + chat text
+            "headline": rec["headline"],
+            "message_for_user": chat_text,
             "top_picks": rec["top_picks"],
             "more_options": rec["more_options"],
+            "cursor": rec["cursor"],
+            "cache": rec["cache"],
             "instructions_for_assistant": (
                 "If correction_message is present, start your response with it (e.g., 'Searching for Ariana Grande...').\n\n"
-                "Present the TOP 3 picks to the user. Each event has:\n"
-                "- event['recommendation']['reasons'] — why this is a good pick\n"
+                "Use the message_for_user as a starting point — it's formatted for chat.\n"
+                "Each event in top_picks has:\n"
+                "- event['recommendation']['badges'] — My pick / Best value / Good deal / Notable\n"
+                "- event['recommendation']['reasons'] — short bullets explaining why\n"
                 "- event['insights']['tags'] — special context (championship, holiday, etc.)\n"
                 "- event['ticket_confidence']['price_label'] — Good deal / Typical / High\n\n"
-                "Format:\n"
-                "  **Event Name** - Date @ Venue\n"
-                "  [reasons from recommendation] • [price label] • From $X\n\n"
-                "After the top 3, say 'Want more options?' if more_options has items.\n"
-                "Don't dump all options — be a curator, not a search engine."
+                "Be opinionated: lead with your top pick. Don't say 'here are some options' — say 'this one's great because...'.\n"
+                "If more_options exists, mention the user can see more. If they ask, use show_more_from_cache."
             ),
         }
 

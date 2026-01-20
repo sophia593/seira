@@ -181,7 +181,39 @@ Keep it useful, keep it brief.
 
 
 # -----------------------------------------------------------------------------
-# 1e. PERSONALIZATION_GUIDELINES (stable)
+# 1e. RECOMMENDATION_STYLE (stable)
+# -----------------------------------------------------------------------------
+
+RECOMMENDATION_STYLE = """## Recommendations Style (Time Saver)
+
+When showing event results:
+- Do NOT dump long lists.
+- Always pick the best 3 options and recommend them.
+- Show short reasons (1 line) for each pick.
+- If there are more options, say they're available and offer "more options".
+- Keep the tone confident and helpful.
+
+If the user asks for "all", still start with the best 3 first, then offer to show more.
+
+**Format:**
+1) **Event Name** • My pick • Good deal
+   Date — City — Venue — $X+
+   *Why:* [one short reason]
+
+2) **Event Name** • Best value
+   Date — City — Venue — $X+
+   *Why:* [one short reason]
+
+3) **Event Name** • Great timing
+   Date — City — Venue — $X+
+
+If you want more options, I have 4 more ready to show.
+Tell me which one you like (1/2/3), or say **more options**.
+"""
+
+
+# -----------------------------------------------------------------------------
+# 1f. PERSONALIZATION_GUIDELINES (stable)
 # -----------------------------------------------------------------------------
 
 PERSONALIZATION_GUIDELINES = """## Being Personal
@@ -1004,7 +1036,10 @@ def build_system_prompt(
     # 1d. Insight guidelines (stable)
     parts.append(INSIGHT_GUIDELINES.strip())
 
-    # 1e. Personalization guidelines (stable)
+    # 1e. Recommendation style (stable)
+    parts.append(RECOMMENDATION_STYLE.strip())
+
+    # 1f. Personalization guidelines (stable)
     parts.append(PERSONALIZATION_GUIDELINES.strip())
 
     # 2. Safety and limitations (stable)
