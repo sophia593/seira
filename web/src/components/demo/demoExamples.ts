@@ -259,43 +259,43 @@ export const demoExamples: DemoExample[] = [
   // Concerts
   // ---------------------------------------------------------------------------
   {
-    id: 'taylor-swift',
+    id: 'billie-eilish',
     category: 'concerts',
-    query: 'Taylor Swift Eras Tour, anywhere on the West Coast',
+    query: 'Billie Eilish tour, anywhere on the West Coast',
     meta: {
       date: 'Aug 2026',
       travelers: 2,
       nights: 2,
       origin: 'DEN',
       originCity: 'Denver',
-      destination: 'Santa Clara',
-      understood: ['Eras Tour', 'CA/WA/OR dates', 'Flexible venue', 'Origin: Denver'],
+      destination: 'Los Angeles',
+      understood: ['Hit Me Hard and Soft Tour', 'CA dates', 'Flexible venue', 'Origin: Denver'],
     },
     layers: createSearchLayers('Dates scanned', 'Routes mapped', 'Area scanned'),
     itinerary: {
-      title: 'Taylor Swift · Eras Tour',
-      subtitle: 'Aug 8, 2026 · Levi\'s Stadium · Santa Clara',
+      title: 'Billie Eilish · Hit Me Hard and Soft',
+      subtitle: 'Aug 8, 2026 · Kia Forum · Los Angeles',
       lineItems: [
         {
           iconKey: 'ticket',
           label: 'Floor seats, 2 tickets',
           detail: 'Verified resale',
-          range: { min: 450, max: 900 },
+          range: { min: 280, max: 550 },
         },
         {
           iconKey: 'flight',
-          label: 'DEN → SJC round-trip',
+          label: 'DEN → LAX round-trip',
           detail: 'Multiple options',
           range: { min: 180, max: 320 },
         },
         {
           iconKey: 'hotel',
-          label: '2 nights Bay Area',
-          detail: '4★+ near transit',
+          label: '2 nights Los Angeles',
+          detail: '4★+ near venue',
           range: { min: 280, max: 420 },
         },
       ],
-      totalRange: { min: 910, max: 1640 },
+      totalRange: { min: 740, max: 1290 },
     },
   },
   {
@@ -873,13 +873,13 @@ export const demoExamples: DemoExample[] = [
 // =============================================================================
 
 export const demoPrompts: DemoPrompt[] = [
-  { label: 'taylor swift', exampleId: 'taylor-swift' },
+  { label: 'billie eilish', exampleId: 'billie-eilish' },
   { label: 'super bowl', exampleId: 'super-bowl' },
   { label: 'f1 monaco', exampleId: 'f1-monaco' },
   { label: 'el clásico', exampleId: 'el-clasico' },
   { label: 'hamilton', exampleId: 'hamilton-broadway' },
   { label: 'coachella', exampleId: 'coachella' },
-  { label: 'beyoncé', exampleId: 'beyonce' },
+  { label: 'bad bunny', exampleId: 'bad-bunny' },
   { label: 'wicked', exampleId: 'wicked-london' },
 ]
 

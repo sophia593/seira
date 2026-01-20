@@ -262,7 +262,7 @@ function GroupedTripList({ trips }: { trips: Trip[] }) {
 
 const tripSuggestions = [
   { icon: Ticket, text: "Lakers game in LA", prompt: "Find me Lakers games in Los Angeles" },
-  { icon: Music, text: "Taylor Swift concert", prompt: "Taylor Swift concerts near me" },
+  { icon: Music, text: "Kendrick Lamar concert", prompt: "Kendrick Lamar concerts near me" },
   { icon: MapPin, text: "Festival this summer", prompt: "Music festivals this summer" },
 ]
 

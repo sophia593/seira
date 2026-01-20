@@ -97,40 +97,40 @@ const EXAMPLES: HowItWorksExample[] = [
   {
     category: "concerts",
     chat: [
-      { role: "user", text: "i want to see taylor swift in LA" },
+      { role: "user", text: "i want to see billie eilish in LA" },
       { role: "assistant", text: "great choice! which city are you flying from?" },
       { role: "user", text: "san francisco" },
-      { role: "assistant", text: "found 3 Eras Tour dates at SoFi Stadium. aug 7th has the best availability..." },
+      { role: "assistant", text: "found 2 dates at the Kia Forum. aug 7th has the best availability..." },
     ],
     results: {
       tickets: [
-        { icon: Ticket, label: "Lower Bowl Sec 118", detail: "Row 15", price: 450, tooltip: "Great view of main stage, aisle seats", isBest: true },
-        { icon: Ticket, label: "Floor GA", detail: "Standing", price: 680, tooltip: "General admission floor access" },
+        { icon: Ticket, label: "Lower Bowl Sec 118", detail: "Row 15", price: 285, tooltip: "Great view of main stage, aisle seats", isBest: true },
+        { icon: Ticket, label: "Floor GA", detail: "Standing", price: 425, tooltip: "General admission floor access" },
       ],
       flights: [
         { icon: Plane, label: "SFO → LAX", detail: "Delta, 1h 20m", price: 127, tooltip: "Departs 2:30pm, arrives 3:50pm", isBest: true },
         { icon: Plane, label: "SFO → LAX", detail: "United, 1h 25m", price: 142, tooltip: "Departs 11:00am, arrives 12:25pm" },
       ],
       hotels: [
-        { icon: Hotel, label: "JW Marriott LA Live", detail: "0.3 mi from venue", price: 189, tooltip: "4.5★ · Walking distance to SoFi", isBest: true },
+        { icon: Hotel, label: "JW Marriott LA Live", detail: "0.3 mi from venue", price: 189, tooltip: "4.5★ · Walking distance to Forum", isBest: true },
         { icon: Hotel, label: "The Westin LAX", detail: "2.1 mi from venue", price: 145, tooltip: "4.2★ · Free airport shuttle" },
       ],
     },
     summary: {
-      event: "Taylor Swift - The Eras Tour",
-      venue: "SoFi Stadium, Los Angeles",
+      event: "Billie Eilish - Hit Me Hard and Soft Tour",
+      venue: "Kia Forum, Los Angeles",
       date: "Aug 7, 2026",
       itinerary: [
         { day: "Aug 6", label: "Arrive LA", detail: "Flight + hotel check-in" },
-        { day: "Aug 7", label: "Show Day", detail: "Eras Tour @ 7:00pm" },
+        { day: "Aug 7", label: "Show Day", detail: "Concert @ 8:00pm" },
         { day: "Aug 8", label: "Return", detail: "Check-out + flight home" },
       ],
       breakdown: [
-        { label: "Ticket", price: 450 },
+        { label: "Ticket", price: 285 },
         { label: "Flight (round trip)", price: 254 },
         { label: "Hotel (2 nights)", price: 378 },
       ],
-      total: 1082,
+      total: 917,
     },
   },
   {
@@ -175,10 +175,10 @@ const EXAMPLES: HowItWorksExample[] = [
   {
     category: "concerts",
     chat: [
-      { role: "user", text: "beyoncé renaissance tour" },
-      { role: "assistant", text: "queen bey! where are you located?" },
+      { role: "user", text: "bad bunny concert in miami" },
+      { role: "assistant", text: "great pick! where are you located?" },
       { role: "user", text: "atlanta" },
-      { role: "assistant", text: "she's playing Hard Rock Stadium in Miami on July 15th. only a short flight..." },
+      { role: "assistant", text: "he's playing Hard Rock Stadium in Miami on July 15th. only a short flight..." },
     ],
     results: {
       tickets: [
@@ -195,12 +195,12 @@ const EXAMPLES: HowItWorksExample[] = [
       ],
     },
     summary: {
-      event: "Beyoncé - Renaissance World Tour",
+      event: "Bad Bunny - Most Wanted Tour",
       venue: "Hard Rock Stadium, Miami",
       date: "Jul 15, 2026",
       itinerary: [
         { day: "Jul 14", label: "Miami arrival", detail: "Beach day + dinner" },
-        { day: "Jul 15", label: "Renaissance", detail: "Show @ 7:30pm" },
+        { day: "Jul 15", label: "Concert", detail: "Show @ 8:00pm" },
         { day: "Jul 16", label: "Fly home", detail: "Morning flight" },
       ],
       breakdown: [

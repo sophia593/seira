@@ -67,10 +67,10 @@ const CATEGORIES: CategoryConfig[] = [
 // =============================================================================
 
 const EXAMPLE_TAGS = [
-  { label: "taylor swift", prompt: "taylor swift eras tour" },
+  { label: "billie eilish", prompt: "billie eilish concert in LA" },
   { label: "lakers game", prompt: "lakers games in los angeles" },
   { label: "coachella", prompt: "coachella 2026 weekend 1" },
-  { label: "f1 miami", prompt: "formula 1 miami grand prix" },
+  { label: "f1 austin", prompt: "formula 1 austin grand prix" },
   { label: "hamilton", prompt: "hamilton on broadway" },
   { label: "ufc", prompt: "ufc fights in las vegas" },
 ]

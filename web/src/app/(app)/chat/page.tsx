@@ -12,15 +12,15 @@ import { Loader2, Sparkles } from 'lucide-react'
 const PAGE_TITLE = "new chat | seira"
 
 const EXAMPLE_PROMPTS = [
-  "taylor swift eras tour in los angeles",
+  "kendrick lamar at the forum",
   "lakers vs celtics next month",
   "coachella 2026 weekend 1",
-  "f1 miami grand prix",
+  "f1 austin grand prix",
   "hamilton on broadway",
-  "ufc 300 in vegas",
-  "coldplay world tour near me",
+  "ufc fight night in vegas",
+  "billie eilish tour near me",
   "super bowl 2027",
-  "wimbledon finals",
+  "us open tennis finals",
   "comic con san diego",
 ]
 

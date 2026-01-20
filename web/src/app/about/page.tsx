@@ -79,7 +79,7 @@ const eventTypes = [
     icon: Music,
     title: "concerts",
     description: "from stadium tours to intimate venues",
-    examples: "taylor swift, coldplay, beyoncé",
+    examples: "kendrick lamar, billie eilish, bad bunny",
   },
   {
     icon: Trophy,

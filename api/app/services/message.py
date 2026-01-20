@@ -131,9 +131,7 @@ async def save_user_message(
     conversation_id: str,
     content: str,
 ) -> Dict[str, Any]:
-    """
-    Save a user message to a conversation.
-    """
+    """Save a user message to a conversation."""
     return await create_message(
         conversation_id=conversation_id,
         role="user",
@@ -148,16 +146,7 @@ async def save_assistant_message(
     tokens_used: Optional[int] = None,
     model_version: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Save an assistant message to a conversation.
-
-    Args:
-        conversation_id: The conversation to add the message to
-        content: The assistant's response text
-        tool_calls: Optional list of tool calls made by the assistant
-        tokens_used: Optional token count for this response
-        model_version: Optional model identifier (e.g., "claude-haiku-4-5")
-    """
+    """Save an assistant message to a conversation."""
     return await create_message(
         conversation_id=conversation_id,
         role="assistant",
@@ -172,10 +161,7 @@ async def save_system_message(
     conversation_id: str,
     content: str,
 ) -> Dict[str, Any]:
-    """
-    Save a system message to a conversation.
-    Typically used for setting context or instructions.
-    """
+    """Save a system message to a conversation."""
     return await create_message(
         conversation_id=conversation_id,
         role="system",
@@ -188,14 +174,7 @@ async def save_tool_message(
     content: str,
     tool_call_id: str,
 ) -> Dict[str, Any]:
-    """
-    Save a tool response message to a conversation.
-
-    Args:
-        conversation_id: The conversation to add the message to
-        content: The tool's response (typically JSON stringified)
-        tool_call_id: The ID of the tool call this is responding to
-    """
+    """Save a tool response message to a conversation."""
     return await create_message(
         conversation_id=conversation_id,
         role="tool",
@@ -216,12 +195,7 @@ async def save_message_pair(
     tokens_used: Optional[int] = None,
     model_version: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Save a user message and assistant response pair.
-    Useful for importing conversations or testing.
-
-    Returns dict with both messages.
-    """
+    """Save a user message and assistant response pair."""
     user_msg = await save_user_message(conversation_id, user_content)
     assistant_msg = await save_assistant_message(
         conversation_id=conversation_id,
@@ -263,26 +237,33 @@ async def get_messages_for_context(
     max_messages: int = 20,
     include_system: bool = True,
     include_tool: bool = False,
+    exclude_message_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Get messages formatted for LLM context.
-    Returns recent messages, optionally filtering by role.
+    Get recent messages for LLM context.
 
-    Args:
-        conversation_id: The conversation to fetch messages from
-        max_messages: Maximum number of messages to return
-        include_system: Whether to include system messages (default True)
-        include_tool: Whether to include tool messages (default False)
+    Key feature: you can exclude a specific message by ID.
+    This prevents accidental "memory loss" caused by removing the wrong message.
     """
-    messages = await get_recent_messages(conversation_id, limit=max_messages)
+    # Fetch a little extra so we still have enough after exclusions
+    messages = await get_recent_messages(conversation_id, limit=max_messages + 5)
 
-    excluded_roles = []
+    # Exclude roles if needed
+    excluded_roles: List[str] = []
     if not include_system:
         excluded_roles.append("system")
     if not include_tool:
         excluded_roles.append("tool")
 
     if excluded_roles:
-        messages = [m for m in messages if m["role"] not in excluded_roles]
+        messages = [m for m in messages if m.get("role") not in excluded_roles]
+
+    # Exclude a specific message (usually the one we just saved)
+    if exclude_message_id:
+        messages = [m for m in messages if m.get("id") != exclude_message_id]
+
+    # Keep only the most recent max_messages, in oldest->newest order
+    if len(messages) > max_messages:
+        messages = messages[-max_messages:]
 
     return messages
