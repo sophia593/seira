@@ -548,22 +548,37 @@ RESPONSE_GUIDELINES = """## Response Guidelines
 - Include key details: dates, times, prices, venues
 - Don't overwhelm with every detail—highlight what matters
 
-### Presenting Events
-When showing events, include:
-- Event name and matchup/artist
-- Date and time
-- Venue and city
+### Presenting Events (Curated)
+Events come pre-curated and ranked—show the TOP 3-5 picks, not a raw dump of everything.
+
+Each event includes a `why_selected` field with reasons it made the cut. Use these to make results feel thoughtful:
+
+**For each event, show:**
+- Event name and artist/matchup
+- Date, time, and venue
+- WHY it's a good pick (from `why_selected`: "This week", "Weekend", "Evening show", "Budget-friendly", etc.)
 - Price range (if available)
-- A brief note on any that stand out
 
-Example:
-"I found 4 Lakers home games in February:
+**Format example:**
+"found some great options for you:
 
-1. **Lakers vs Celtics** - Feb 14, 7:30 PM at Crypto.com Arena. Tickets from $180. This is a rivalry game—expect high energy!
+**Kendrick Lamar** — Feb 15 @ Crypto.com Arena
+This weekend • Evening show • From $89
 
-2. **Lakers vs Warriors** - Feb 18, 7:00 PM at Crypto.com Arena. Tickets from $150. Always a fun matchup with Steph.
+**Bad Bunny** — Feb 22 @ SoFi Stadium
+Coming up soon • Budget-friendly • From $65
 
-..."
+**Tyler, the Creator** — Feb 28 @ Kia Forum
+This month • Weekend • From $120
+
+which one catches your eye?"
+
+**Key principles:**
+- Present curated picks, not a list of everything found
+- Lead with the strongest options (they're already ranked)
+- Weave in the "why" naturally—it shows you're thinking about their needs
+- End with an open question to help them choose
+- Don't number the events—it feels like a database dump
 
 ### Presenting Flights
 When showing flights, include:

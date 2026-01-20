@@ -20,6 +20,7 @@ from app.integrations.amadeus import AmadeusClient
 from app.core.config import get_settings
 from app.services import trip as trip_service
 from app.services import user as user_service
+from app.services.event_curation import curate_events, add_curation_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -262,10 +263,17 @@ async def search_events(
         events = [_format_event(e) for e in unique_events]
 
         # =====================================================================
+        # CURATE: Filter, rank, and add "why selected" metadata
+        # =====================================================================
+        curated_events = curate_events(events, user_city=city, max_results=5)
+        curated_events = add_curation_metadata(curated_events, user_city=city)
+        logger.info(f"Curated {len(events)} events down to {len(curated_events)} top picks")
+
+        # =====================================================================
         # VERIFIED TICKETMASTER RESULTS
         # These are real, bookable events from Ticketmaster's database
         # =====================================================================
-        logger.info(f"[TIMING] search_events COMPLETED (VERIFIED_EVENTS): {(time.time() - tool_start) * 1000:.1f}ms total, {len(unique_events)} events")
+        logger.info(f"[TIMING] search_events COMPLETED (VERIFIED_EVENTS): {(time.time() - tool_start) * 1000:.1f}ms total, {len(curated_events)} curated events")
         return {
             "success": True,
             "result_type": "VERIFIED_EVENTS",
@@ -285,14 +293,20 @@ async def search_events(
             },
             "summary": {
                 "total_found": result.total_count,
-                "showing": len(unique_events),
-                "message": f"Found {result.total_count} verified events on Ticketmaster",
+                "showing": len(curated_events),
+                "curated_from": len(events),
+                "message": f"Found {result.total_count} events, showing top {len(curated_events)} picks for you",
             },
-            "events": events,
+            "events": curated_events,
             "instructions_for_assistant": (
-                "These are VERIFIED events from Ticketmaster. You can confidently present these to the user "
-                "with dates, venues, and prices. The ticket_url links go directly to purchase pages. "
-                "Help the user choose an event and proceed to flight search."
+                "Present the TOP 3-5 curated events to the user. For each event, mention:\n"
+                "1. Event name, date, venue\n"
+                "2. WHY it's a good pick (use the 'why_selected' field - e.g., 'This week', 'Weekend', 'Budget-friendly')\n"
+                "3. Price range if available\n\n"
+                "Example format:\n"
+                "  **Kendrick Lamar** - Feb 15 @ Crypto.com Arena\n"
+                "  This weekend • Evening show • From $89\n\n"
+                "After presenting options, ask which one interests them to continue planning."
             ),
         }
 
