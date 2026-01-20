@@ -26,6 +26,7 @@ from app.ai.event_insights import enrich_events_with_insights
 from app.ai.query_normalizer import normalize_query, should_ask_clarification, get_correction_message
 from app.ai.event_recommendations import recommend_events, show_more_from_cache
 from app.ai.reco_presenter import render_event_recos_text
+from app.ai.trip_brief import build_trip_brief
 
 logger = logging.getLogger(__name__)
 
@@ -301,6 +302,16 @@ async def search_events(
         logger.info(f"Recommended {len(rec['top_picks'])} top picks + {len(rec['more_options'])} more from {len(events)} events")
 
         # =====================================================================
+        # TRIP BRIEF: Differentiation layer - ready-to-execute plan + next actions
+        # =====================================================================
+        all_visible = rec["top_picks"] + rec["more_options"]
+        trip_brief = build_trip_brief(
+            events=all_visible,
+            selected_event_id=None,  # No selection yet - uses top pick
+            user_budget=None,  # TODO: pull from user preferences
+        )
+
+        # =====================================================================
         # VERIFIED TICKETMASTER RESULTS
         # These are real, bookable events from Ticketmaster's database
         # =====================================================================
@@ -331,16 +342,20 @@ async def search_events(
             "more_options": rec["more_options"],
             "cursor": rec["cursor"],
             "cache": rec["cache"],
+            # Trip Brief: differentiator payload with hero, why_this, watch_out, next_actions
+            "trip_brief": trip_brief,
             "instructions_for_assistant": (
                 "If correction_message is present, start your response with it (e.g., 'Searching for Ariana Grande...').\n\n"
-                "Use the message_for_user as a starting point — it's formatted for chat.\n"
-                "Each event in top_picks has:\n"
-                "- event['recommendation']['badges'] — My pick / Best value / Good deal / Notable\n"
-                "- event['recommendation']['reasons'] — short bullets explaining why\n"
-                "- event['insights']['tags'] — special context (championship, holiday, etc.)\n"
-                "- event['ticket_confidence']['price_label'] — Good deal / Typical / High\n\n"
-                "Be opinionated: lead with your top pick. Don't say 'here are some options' — say 'this one's great because...'.\n"
-                "If more_options exists, mention the user can see more. If they ask, use show_more_from_cache."
+                "Use the message_for_user as a starting point — it's formatted for chat.\n\n"
+                "TRIP BRIEF (trip_brief) — Use this to differentiate from a search engine:\n"
+                "- trip_brief['hero'] — The top pick with price_label and insights\n"
+                "- trip_brief['why_this'] — 2-3 bullets explaining why this pick (value, insight, budget)\n"
+                "- trip_brief['watch_out'] — Warnings/tips (timing, logistics)\n"
+                "- trip_brief['practical_tips'] — Venue-specific tips (parking, transit, stay area)\n"
+                "- trip_brief['next_actions'] — 4 buttons to offer (save, hotels, parking, dinner)\n\n"
+                "Be opinionated: lead with your top pick. Say 'this one's great because...' not 'here are options'.\n"
+                "Include one practical tip or warning when available.\n"
+                "End with next actions: 'Want me to find hotels nearby, or save this event?'"
             ),
         }
 
