@@ -60,6 +60,47 @@ Turn a user's intent into a saved trip plan they can act on. A typical flow:
 
 
 # -----------------------------------------------------------------------------
+# 1b. PROGRESS_AWARENESS (stable)
+# -----------------------------------------------------------------------------
+
+PROGRESS_AWARENESS = """## Trip Progress
+
+You are always aware of where you are in planning a trip. A trip has these possible steps:
+
+1. **Find event** → User tells you what they want to see
+2. **Select event** → User picks a specific event from options
+3. **Determine travel** → Either find out where they're coming from, OR confirm they're local
+4. **Find flights** → Search flights (skip if local)
+5. **Select flights** → User picks flights (skip if local)
+6. **Optional extras** → Hotels, restaurants, parking tips (offer but don't require)
+7. **Save trip** → Lock it in
+
+**Not every trip needs every step:**
+- Local user seeing a show? Skip flights entirely.
+- User just browsing? They might save an event without flights.
+- User declines hotels? Move on, don't push.
+
+**Always know:**
+- What we HAVE (event details, flight selections, etc.)
+- What we NEED (what's missing before we can save)
+- What's NEXT (the logical next action)
+
+**Communicate progress naturally:**
+- After selecting an event: "Great pick! Now I just need to know where you're flying from—or are you local to [city]?"
+- After selecting flights: "Perfect, you're all set. Want me to look up hotels near the venue, or should I save this trip?"
+- When complete: "We've got the event and your flights sorted. Ready to save this trip?"
+
+**When user is local or skips a step:**
+- Acknowledge it briefly and offer something useful instead
+- "Since you're in NYC, you're all set on travel. Want me to look up good dinner spots near the theater?"
+- Don't keep offering flights after they've said they don't need them
+
+**Before saving, summarize what we have:**
+- "Here's your trip: Hamilton on Feb 14, flying from Chicago (United 8am), returning Feb 15. Total around $450. Save it?"
+"""
+
+
+# -----------------------------------------------------------------------------
 # 2. SAFETY_AND_LIMITATIONS (stable)
 # -----------------------------------------------------------------------------
 
@@ -675,6 +716,44 @@ def _build_conversation_context(
     return CONVERSATION_CONTEXT_HEADER + "\n".join(lines)
 
 
+def _build_progress_context(progress: dict | None) -> str | None:
+    """Build progress context for the prompt."""
+    if not progress:
+        return None
+
+    from app.ai.trip_progress import extract_progress_from_context
+
+    trip = extract_progress_from_context(progress)
+
+    lines = ["## Current Trip Progress", ""]
+
+    # What we have
+    have = trip.what_we_have()
+    if have:
+        lines.append("**Completed:**")
+        for item in have:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    # What we need
+    need = trip.what_we_need()
+    if need:
+        lines.append("**Still needed:**")
+        for item in need:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    # Next step instruction
+    lines.append(f"**Your next action:** {trip.next_step()}")
+
+    # Completion status
+    if trip.is_complete():
+        lines.append("")
+        lines.append("✓ Trip is complete enough to save. Offer to save when appropriate.")
+
+    return "\n".join(lines)
+
+
 def get_current_date_context() -> str:
     """
     Return current date context for the prompt.
@@ -689,6 +768,7 @@ def build_system_prompt(
     user_email: str | None = None,
     preferences: dict | None = None,
     conversation_context: dict | None = None,
+    trip_progress: dict | None = None,
     include_date: bool = True,
 ) -> str:
     """
@@ -696,10 +776,12 @@ def build_system_prompt(
 
     Structure:
     1. Role/Goal (stable)
+    1b. Progress awareness (stable)
     2. Safety & limitations (stable)
     3. Tool guidelines (stable)
     4. User context (dynamic)
     5. Conversation context (dynamic)
+    5b. Trip progress (dynamic)
     6. Response formatting (stable)
 
     Args:
@@ -707,6 +789,7 @@ def build_system_prompt(
         user_email: User's email (for reference)
         preferences: User preferences dict (home_airport, cabin_class, etc.)
         conversation_context: Extracted context from conversation
+        trip_progress: Trip progress dict for tracking planning state
         include_date: Whether to include current date (default True)
 
     Returns:
@@ -716,6 +799,9 @@ def build_system_prompt(
 
     # 1. Role and goal (stable)
     parts.append(ROLE_AND_GOAL.strip())
+
+    # 1b. Progress awareness (stable)
+    parts.append(PROGRESS_AWARENESS.strip())
 
     # 2. Safety and limitations (stable)
     parts.append(SAFETY_AND_LIMITATIONS.strip())
@@ -737,6 +823,11 @@ def build_system_prompt(
     elif include_date:
         # Add date even without other conversation context
         parts.append(CONVERSATION_CONTEXT_HEADER.strip() + f"\n{get_current_date_context()}")
+
+    # 5b. Trip progress (dynamic)
+    progress_context = _build_progress_context(trip_progress)
+    if progress_context:
+        parts.append(progress_context.strip())
 
     # 6. Response guidelines (stable)
     parts.append(RESPONSE_GUIDELINES.strip())
