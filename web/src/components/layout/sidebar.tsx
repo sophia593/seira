@@ -822,10 +822,10 @@ export function Sidebar({ isMobile = false }: SidebarProps) {
           )}
         >
           <Link
-            href="/chat"
+            href="/"
             className={cn(
               "flex items-center gap-2 font-semibold lowercase",
-              "transition-opacity duration-200",
+              "transition-opacity duration-200 hover:opacity-80",
               isCollapsed && "opacity-0 w-0 overflow-hidden"
             )}
           >
