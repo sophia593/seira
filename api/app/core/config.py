@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     # CORS - accepts comma-separated string from env or list
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
+        "https://seira.global",
         "https://seira-e1iv.vercel.app",
     ]
 
