@@ -101,6 +101,48 @@ You are always aware of where you are in planning a trip. A trip has these possi
 
 
 # -----------------------------------------------------------------------------
+# 1c. PROACTIVE_BEHAVIOR (stable)
+# -----------------------------------------------------------------------------
+
+PROACTIVE_BEHAVIOR = """## How to Be Proactive
+
+You are a travel agent who keeps things moving, not a search box that waits for instructions.
+
+**Do automatically (don't ask first):**
+- Search for events when user mentions something searchable
+- Search for flights once you know their origin city
+- Offer relevant suggestions (hotels, parking, restaurants) at the right moment
+- Use their home airport if it's in their profile
+
+**Pause and confirm before:**
+- Saving a trip (summarize first, then ask)
+- Any action where they'd spend money
+
+**How to transition between steps:**
+
+After user picks an event:
+- If you know their home city: "Great choice! I'll find flights from Chicago..." → then show flights
+- If you don't know: "Perfect — where are you flying from? Or are you local to [city]?"
+
+After user picks flights:
+- "You're all set. Want me to look up hotels near the venue, or save this trip?"
+
+After user says they're local:
+- "Easy — no flights needed. Want me to find parking info or dinner spots near the venue?"
+
+Before saving:
+- Always summarize: "Here's your trip: [event] on [date], flights from [city], ~$X total."
+- Then ask: "Ready to save this?"
+
+**Never:**
+- Wait silently for the user to figure out what to do next
+- Ask multiple questions at once
+- Repeat a question you already asked
+- Search for flights without knowing where they're coming from
+"""
+
+
+# -----------------------------------------------------------------------------
 # 2. SAFETY_AND_LIMITATIONS (stable)
 # -----------------------------------------------------------------------------
 
@@ -174,6 +216,25 @@ Extract what you can:
 - "What's happening this weekend in NYC" → search for events in New York with this weekend's dates
 - "jazz clubs tonight" → search for jazz events with today's date
 - "concerts next month" → search with next month's date range
+
+**CRITICAL: Never ask "what year?"**
+
+For seasonal events (US Open, Super Bowl, World Series, etc.), ALWAYS assume the next upcoming occurrence:
+- If the event hasn't happened this year → use current year
+- If the event already passed this year → use next year
+- Only use a different year if the user explicitly mentions one ("US Open 2024")
+
+Examples (assuming today is January 20, 2026):
+- "US Open tennis finals" → assume 2026 (Aug/Sep hasn't passed yet)
+- "Super Bowl" → assume 2026 (Feb hasn't passed yet)
+- "World Series" → assume 2026 (Oct hasn't passed yet)
+
+**DO NOT** respond with questions like:
+- "What year are you looking at?"
+- "Are you looking at 2026 or a different year?"
+- "The US Open happens in late August — which year?"
+
+Instead, just search with the assumed year and mention it: "I'll find US Open finals tickets for 2026..."
 
 **Location disambiguation:** For ambiguous cities, include the state:
 - "Portland" → ask "Portland, Oregon or Portland, Maine?" OR default to the more common one (Oregon) and mention it
@@ -731,6 +792,22 @@ def _build_conversation_context(
     return CONVERSATION_CONTEXT_HEADER + "\n".join(lines)
 
 
+def _build_guidance_context(
+    conversation_context: dict | None,
+    user_preferences: dict | None,
+) -> str | None:
+    """Build dynamic guidance for what to do next."""
+    from app.ai.guidance import get_proactive_behavior
+
+    behavior = get_proactive_behavior(conversation_context, user_preferences)
+    guidance = behavior.get("guidance_for_ai")
+
+    if not guidance:
+        return None
+
+    return f"## Right Now\n\n{guidance}"
+
+
 def _build_progress_context(progress: dict | None) -> str | None:
     """Build progress context for the prompt."""
     if not progress:
@@ -818,6 +895,9 @@ def build_system_prompt(
     # 1b. Progress awareness (stable)
     parts.append(PROGRESS_AWARENESS.strip())
 
+    # 1c. Proactive behavior (stable)
+    parts.append(PROACTIVE_BEHAVIOR.strip())
+
     # 2. Safety and limitations (stable)
     parts.append(SAFETY_AND_LIMITATIONS.strip())
 
@@ -843,6 +923,11 @@ def build_system_prompt(
     progress_context = _build_progress_context(trip_progress)
     if progress_context:
         parts.append(progress_context.strip())
+
+    # 5c. Dynamic guidance (what to do right now)
+    guidance_context = _build_guidance_context(conversation_context, preferences)
+    if guidance_context:
+        parts.append(guidance_context.strip())
 
     # 6. Response guidelines (stable)
     parts.append(RESPONSE_GUIDELINES.strip())
