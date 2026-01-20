@@ -22,6 +22,7 @@ from app.services import trip as trip_service
 from app.services import user as user_service
 from app.services.event_curation import curate_events, add_curation_metadata
 from app.ai.travel_confidence import evaluate_ticket_options
+from app.ai.event_insights import enrich_events_with_insights
 
 logger = logging.getLogger(__name__)
 
@@ -270,6 +271,9 @@ async def search_events(
         curated_events = add_curation_metadata(curated_events, user_city=city)
         logger.info(f"Curated {len(events)} events down to {len(curated_events)} top picks")
 
+        # Add insights (rivalry, holiday, special event context)
+        curated_events = enrich_events_with_insights(curated_events)
+
         # Add ticket price confidence labels (Good deal / Typical / High)
         ticket_intel = evaluate_ticket_options(curated_events)
 
@@ -309,10 +313,11 @@ async def search_events(
                 "1. Event name, date, venue\n"
                 "2. WHY it's a good pick (use the 'why_selected' field - e.g., 'This week', 'Weekend', 'Budget-friendly')\n"
                 "3. Price label from ticket_cards (Good deal / Typical / High)\n"
-                "4. Use 'My pick' and 'Best value' tags from ticket_recommended\n\n"
+                "4. Use 'My pick' and 'Best value' tags from ticket_recommended\n"
+                "5. If event has insights (rivalry, holiday, special), weave them naturally into your response\n\n"
                 "Example format:\n"
-                "  **Kendrick Lamar** - Feb 15 @ Crypto.com Arena\n"
-                "  This weekend • Good deal • From $89 — My pick\n\n"
+                "  **Lakers vs Celtics** - Feb 14 @ Crypto.com Arena\n"
+                "  Valentine's Day • Historic rivalry • Good deal • From $180 — My pick\n\n"
                 "After presenting options, ask which one interests them to continue planning."
             ),
         }

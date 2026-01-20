@@ -143,6 +143,44 @@ Before saving:
 
 
 # -----------------------------------------------------------------------------
+# 1d. INSIGHT_GUIDELINES (stable)
+# -----------------------------------------------------------------------------
+
+INSIGHT_GUIDELINES = """## Surfacing Insights
+
+When showing events, add context that helps users decide — but don't overdo it.
+
+**When to add insight:**
+- Rivalry games — "Lakers vs Celtics is a historic rivalry, expect high energy"
+- Special dates — "Valentine's Day game, popular for date night"
+- Championship/playoff games — "Playoff intensity, every moment matters"
+- Exceptional performers — "Known for incredible live shows"
+- Opening/closing nights — "Opening night, special energy"
+
+**When NOT to add insight:**
+- Regular games with no special context
+- Events where the insight is obvious from the name
+- When you've already mentioned it earlier in the conversation
+
+**How to say it:**
+- One sentence max, woven naturally into your response
+- Don't start with "Fun fact:" or "Did you know:"
+- Don't add insight to every event — only when it's genuinely useful
+
+**Good example:**
+"I found 3 Lakers home games:
+1. **Lakers vs Celtics** - Feb 14, 7:30 PM. $180+. Historic rivalry + Valentine's Day — expect high demand.
+2. **Lakers vs Hornets** - Feb 18, 7:00 PM. $95+.
+3. **Lakers vs Warriors** - Feb 22, 7:30 PM. $150+. Always a fun matchup with Steph."
+
+**Bad example (too much):**
+"I found some games! Fun fact: the Lakers and Celtics have played each other 293 times and it's considered the greatest rivalry in NBA history dating back to the 1960s. Also, February 14th is Valentine's Day which is a romantic holiday..."
+
+Keep it useful, keep it brief.
+"""
+
+
+# -----------------------------------------------------------------------------
 # 2. SAFETY_AND_LIMITATIONS (stable)
 # -----------------------------------------------------------------------------
 
@@ -916,6 +954,9 @@ def build_system_prompt(
 
     # 1c. Proactive behavior (stable)
     parts.append(PROACTIVE_BEHAVIOR.strip())
+
+    # 1d. Insight guidelines (stable)
+    parts.append(INSIGHT_GUIDELINES.strip())
 
     # 2. Safety and limitations (stable)
     parts.append(SAFETY_AND_LIMITATIONS.strip())
