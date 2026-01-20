@@ -21,7 +21,7 @@ from app.core.config import get_settings
 from app.services import trip as trip_service
 from app.services import user as user_service
 from app.services.event_curation import curate_events, add_curation_metadata
-from app.ai.event_curation_policy import fallback_response_for_user, assumed_event_year
+from app.ai.travel_confidence import evaluate_ticket_options
 
 logger = logging.getLogger(__name__)
 
@@ -270,6 +270,9 @@ async def search_events(
         curated_events = add_curation_metadata(curated_events, user_city=city)
         logger.info(f"Curated {len(events)} events down to {len(curated_events)} top picks")
 
+        # Add ticket price confidence labels (Good deal / Typical / High)
+        ticket_intel = evaluate_ticket_options(curated_events)
+
         # =====================================================================
         # VERIFIED TICKETMASTER RESULTS
         # These are real, bookable events from Ticketmaster's database
@@ -299,14 +302,17 @@ async def search_events(
                 "message": f"Found {result.total_count} events, showing top {len(curated_events)} picks for you",
             },
             "events": curated_events,
+            "ticket_cards": ticket_intel["cards"],
+            "ticket_recommended": ticket_intel["recommended"],
             "instructions_for_assistant": (
                 "Present the TOP 3-5 curated events to the user. For each event, mention:\n"
                 "1. Event name, date, venue\n"
                 "2. WHY it's a good pick (use the 'why_selected' field - e.g., 'This week', 'Weekend', 'Budget-friendly')\n"
-                "3. Price range if available\n\n"
+                "3. Price label from ticket_cards (Good deal / Typical / High)\n"
+                "4. Use 'My pick' and 'Best value' tags from ticket_recommended\n\n"
                 "Example format:\n"
                 "  **Kendrick Lamar** - Feb 15 @ Crypto.com Arena\n"
-                "  This weekend • Evening show • From $89\n\n"
+                "  This weekend • Good deal • From $89 — My pick\n\n"
                 "After presenting options, ask which one interests them to continue planning."
             ),
         }
@@ -447,46 +453,8 @@ async def search_events(
         )
 
         # =====================================================================
-        # BOTH SOURCES FAILED - Try smart fallback before giving up
+        # BOTH SOURCES FAILED - Be helpful, not a dead-end
         # =====================================================================
-        fallback = fallback_response_for_user(query)
-        if fallback:
-            # We have a smart fallback (e.g., US Open finals options)
-            logger.info(f"[TIMING] search_events using SMART_FALLBACK for: {query}")
-            return {
-                "success": True,
-                "result_type": "SMART_FALLBACK",
-                "data_source": {
-                    "provider": "Seira (smart defaults)",
-                    "reliability": "medium",
-                    "description": fallback.get("assumption_note", "Assuming sensible defaults"),
-                },
-                "query": query,
-                "filters": {
-                    "city": city,
-                    "state_code": state_code,
-                    "date_from": date_from,
-                    "date_to": date_to,
-                    "category": category,
-                    "genre": genre,
-                },
-                "summary": {
-                    "total_found": 0,
-                    "message": fallback.get("message", "Here are your options"),
-                },
-                "events": [],
-                "fallback_options": fallback.get("options", []),
-                "assumed_year": fallback.get("assumed_year"),
-                "instructions_for_assistant": (
-                    f"Search timed out, but we detected this is about {fallback.get('title', 'a specific event')}.\n"
-                    f"DO NOT ask 'what year?' - we've already assumed {fallback.get('assumed_year', 'the next upcoming')}.\n\n"
-                    "Present these options to the user:\n" +
-                    "\n".join(f"- {opt['label']}" for opt in fallback.get("options", [])) +
-                    "\n\nLet them pick one, then search more specifically."
-                ),
-            }
-
-        # No smart fallback available - generic error
         return {
             "success": False,
             "result_type": "ERROR",
