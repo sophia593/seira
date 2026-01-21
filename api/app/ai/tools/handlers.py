@@ -27,6 +27,7 @@ from app.ai.query_normalizer import normalize_query, should_ask_clarification, g
 from app.ai.event_recommendations import recommend_events, show_more_from_cache
 from app.ai.reco_presenter import render_event_recos_text
 from app.ai.trip_brief import build_trip_brief
+from app.ai.smart_package import build_smart_packages_for_events, format_smart_package_for_chat, get_comparison_insight
 
 logger = logging.getLogger(__name__)
 
@@ -312,6 +313,31 @@ async def search_events(
         )
 
         # =====================================================================
+        # SMART PACKAGES: Full trip cost estimates (THE differentiator)
+        # Shows user: "Lakers game = $570 total (tickets + flights + hotel)"
+        # This is what Google CAN'T do.
+        # =====================================================================
+        # Get user's home airport if available
+        user_home_airport = None
+        user_home_city = None
+        if user_id:
+            try:
+                prefs = await user_service.get_preferences_row(user_id)
+                if prefs:
+                    user_home_airport = prefs.get("home_airport")
+                    user_home_city = prefs.get("home_city")
+            except Exception:
+                pass
+
+        smart_packages = build_smart_packages_for_events(
+            events=rec["top_picks"],  # Only for top picks
+            user_home_city=user_home_city,
+            user_home_airport=user_home_airport,
+            limit=3,
+        )
+        comparison_insight = get_comparison_insight(smart_packages)
+
+        # =====================================================================
         # VERIFIED TICKETMASTER RESULTS
         # These are real, bookable events from Ticketmaster's database
         # =====================================================================
@@ -344,18 +370,22 @@ async def search_events(
             "cache": rec["cache"],
             # Trip Brief: differentiator payload with hero, why_this, watch_out, next_actions
             "trip_brief": trip_brief,
+            # Smart Packages: FULL TRIP ESTIMATES (the key differentiator from Google)
+            "smart_packages": smart_packages,
+            "comparison_insight": comparison_insight,
             "instructions_for_assistant": (
-                "If correction_message is present, start your response with it (e.g., 'Searching for Ariana Grande...').\n\n"
-                "Use the message_for_user as a starting point — it's formatted for chat.\n\n"
-                "TRIP BRIEF (trip_brief) — Use this to differentiate from a search engine:\n"
-                "- trip_brief['hero'] — The top pick with price_label and insights\n"
-                "- trip_brief['why_this'] — 2-3 bullets explaining why this pick (value, insight, budget)\n"
-                "- trip_brief['watch_out'] — Warnings/tips (timing, logistics)\n"
-                "- trip_brief['practical_tips'] — Venue-specific tips (parking, transit, stay area)\n"
-                "- trip_brief['next_actions'] — 4 buttons to offer (save, hotels, parking, dinner)\n\n"
-                "Be opinionated: lead with your top pick. Say 'this one's great because...' not 'here are options'.\n"
-                "Include one practical tip or warning when available.\n"
-                "End with next actions: 'Want me to find hotels nearby, or save this event?'"
+                "THIS IS YOUR DIFFERENTIATION FROM GOOGLE. Don't just list events — show the FULL TRIP PICTURE.\n\n"
+                "SMART PACKAGES (smart_packages) — Show these! This is what Google can't do:\n"
+                "Each package has: event + flight estimate + hotel estimate + TOTAL TRIP COST\n"
+                "Example: 'Lakers vs Celtics — Complete trip ~$570 (tickets $150, flights ~$240, hotel ~$180)'\n\n"
+                "Lead with your top pick AND its total trip cost:\n"
+                "'Here's my pick: Lakers vs Celtics on Feb 14 — great rivalry game.\n"
+                "Full trip from Chicago: ~$570 (tickets $150 + flights ~$240 + hotel ~$180).\n"
+                "Evening game, so a morning flight gives you plenty of time.'\n\n"
+                "If comparison_insight exists, mention it: 'Trip costs range from $500-700 depending on the date.'\n\n"
+                "If user's home isn't set, ask: 'Where are you coming from? I'll estimate the full trip cost.'\n\n"
+                "ALWAYS end with: 'Want me to find actual flights and hotels for this?'\n\n"
+                "The user should think: 'Wow, I would've spent 30 minutes figuring all that out.'"
             ),
         }
 
