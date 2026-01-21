@@ -28,6 +28,7 @@ from app.ai.event_recommendations import recommend_events, show_more_from_cache
 from app.ai.reco_presenter import render_event_recos_text
 from app.ai.trip_brief import build_trip_brief
 from app.ai.smart_package import build_smart_packages_for_events, format_smart_package_for_chat, get_comparison_insight
+from app.ai.preference_learning import learn_from_saved_trip
 
 logger = logging.getLogger(__name__)
 
@@ -975,6 +976,13 @@ async def save_trip(
         )
 
         logger.info(f"Trip saved successfully: id={trip.get('id')}")
+
+        # Learn from this saved trip (favorite teams, cities, budget patterns)
+        # This makes Seira smarter over time - a reason to return
+        try:
+            await learn_from_saved_trip(user_id, trip)
+        except Exception as learn_err:
+            logger.warning(f"Failed to learn from trip: {learn_err}")
 
         return {
             "success": True,
