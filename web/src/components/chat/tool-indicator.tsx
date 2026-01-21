@@ -58,6 +58,13 @@ export const ToolIndicator = memo(function ToolIndicator({
   const { name, status, result } = toolCall
 
   const hasResults = checkHasResults(name, result)
+
+  // Hide the indicator for empty search_events results
+  // The AI will handle explaining via chat, and web results will show below
+  if (name === 'search_events' && status === 'complete' && !hasResults) {
+    return null
+  }
+
   const displayText = getDisplayText(name, status, hasResults, result)
   const { icon, colorClass } = getIconConfig(status, hasResults)
 
