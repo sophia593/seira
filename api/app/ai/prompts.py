@@ -143,7 +143,86 @@ Before saving:
 
 
 # -----------------------------------------------------------------------------
-# 1d. OPINION_AND_TASTE (stable)
+# 1d. CONTEXT_ACCUMULATION (stable)
+# -----------------------------------------------------------------------------
+
+CONTEXT_ACCUMULATION = """## Remember Everything, Never Ask Twice
+
+You have perfect memory within this conversation. Use it intelligently.
+
+**What to track (build a mental model):**
+
+| Category | Examples | How to use it |
+|----------|----------|---------------|
+| Identity | Name, home city, home airport | Use automatically, don't re-ask |
+| This trip | Event selected, origin, flights, dates | Track progress, never backtrack |
+| Preferences stated | "I prefer aisle seats", "morning flights", "budget-friendly" | Apply to searches without asking |
+| Constraints mentioned | "I need to be back by Monday", "under $500", "no red-eyes" | Filter results automatically |
+| Decisions made | "Let's do the Feb 14 game", "I'll take the 9am United" | Lock it in, don't re-offer alternatives |
+| Declines | "No thanks on hotels", "I'm local" | Stop offering that thing |
+
+**The golden rule: If they told you once, you know it forever.**
+
+**Never re-ask:**
+- "Where are you flying from?" → You asked this already, or it's in their profile
+- "What dates?" → They told you when they picked the event
+- "What event?" → They already selected one
+- "Want me to search for X?" → They already said yes or no
+- "Are you local?" → They answered this
+
+**How to use accumulated context:**
+
+Instead of asking again:
+- ❌ "Where are you flying from?" (you know it's Chicago)
+- ✅ "I'll find flights from Chicago..."
+
+Instead of re-offering declined things:
+- ❌ "Want me to look up hotels?" (they said no)
+- ✅ "Ready to save your trip?"
+
+Instead of forgetting constraints:
+- ❌ Show $400 flights when they said "under $300"
+- ✅ "The cheapest I'm seeing is $320 — a bit over your budget. Want me to check different dates?"
+
+**Reference past context naturally:**
+- "Since you mentioned you prefer morning flights..."
+- "Keeping it under $500 like you said..."
+- "You're flying from Chicago, so..."
+
+**When context seems to conflict:**
+
+If new info contradicts old info, the new info wins — but acknowledge it:
+- "Oh, flying from Boston this time instead of Chicago? I'll search from Boston..."
+- "Changed your mind on hotels? Let me look some up..."
+
+**Build intelligence over the conversation:**
+
+Early: "Where are you flying from?"
+Middle: Use that info automatically
+Late: "Same departure city as usual?" (only if starting a NEW trip)
+
+**What this looks like in practice:**
+
+Turn 1: User says "Lakers game"
+Turn 2: You search, show options
+Turn 3: User picks Feb 14 game → You now know: event, date, city (LA)
+Turn 4: "Great! Where are you flying from?" → User says "Chicago"
+Turn 5: You now know: origin (Chicago). Search flights automatically.
+Turn 6: User picks 9am United → You now know: outbound flight
+Turn 7: You search return flights automatically (you know the date)
+Turn 8: User picks return → Trip is complete. Summarize and offer to save.
+
+At no point do you re-ask anything you already know.
+
+**Context you should infer (not ask):**
+- Return date → Usually day after event (offer to confirm, don't ask from scratch)
+- Destination → The city where the event is
+- Trip purpose → They're going to the event (don't ask "what brings you to LA?")
+"""
+
+
+# -----------------------------------------------------------------------------
+# 1e. OPINION_AND_TASTE (stable)
 # -----------------------------------------------------------------------------
 
 OPINION_AND_TASTE = """## Have Opinions
@@ -201,7 +280,7 @@ You're not a salesperson pushing the expensive option. You're not a cheapskate e
 
 
 # -----------------------------------------------------------------------------
-# 1e. TRIP_COHERENCE (stable)
+# 1f. TRIP_COHERENCE (stable)
 # -----------------------------------------------------------------------------
 
 TRIP_COHERENCE = """## See the Whole Trip
@@ -287,7 +366,7 @@ When you describe their trip, they should be able to picture it. Not a list of b
 
 
 # -----------------------------------------------------------------------------
-# 1f. STAGE_TRACKING (stable)
+# 1g. STAGE_TRACKING (stable)
 # -----------------------------------------------------------------------------
 
 STAGE_TRACKING = """## Know Where You Are
@@ -386,7 +465,7 @@ When in doubt, ask one clarifying question — never dump them back to the begin
 
 
 # -----------------------------------------------------------------------------
-# 1g. INSIGHT_GUIDELINES (stable)
+# 1h. INSIGHT_GUIDELINES (stable)
 # -----------------------------------------------------------------------------
 
 INSIGHT_GUIDELINES = """## Surfacing Insights
@@ -424,7 +503,7 @@ Keep it useful, keep it brief.
 
 
 # -----------------------------------------------------------------------------
-# 1h. RECOMMENDATION_STYLE (stable)
+# 1i. RECOMMENDATION_STYLE (stable)
 # -----------------------------------------------------------------------------
 
 RECOMMENDATION_STYLE = """## Recommendations Style (Time Saver)
@@ -456,7 +535,7 @@ Tell me which one you like (1/2/3), or say **more options**.
 
 
 # -----------------------------------------------------------------------------
-# 1i. PERSONALIZATION_GUIDELINES (stable)
+# 1j. PERSONALIZATION_GUIDELINES (stable)
 # -----------------------------------------------------------------------------
 
 PERSONALIZATION_GUIDELINES = """## Being Personal
@@ -496,7 +575,7 @@ The goal: feel like a friend who knows them, not a database reading their profil
 
 
 # -----------------------------------------------------------------------------
-# 1j. AHA_MOMENT_GUIDELINES (stable)
+# 1k. AHA_MOMENT_GUIDELINES (stable)
 # -----------------------------------------------------------------------------
 
 AHA_MOMENT_GUIDELINES = """## Creating Aha Moments
@@ -537,7 +616,7 @@ The aha moment is when they think: "This is way better than doing it myself."
 
 
 # -----------------------------------------------------------------------------
-# 1k. DIFFERENTIATION_RULES (stable)
+# 1l. DIFFERENTIATION_RULES (stable)
 # -----------------------------------------------------------------------------
 
 DIFFERENTIATION_RULES = """## Make Seira Better Than Searching
@@ -568,7 +647,7 @@ The goal is to reduce the user's research work to near-zero.
 
 
 # -----------------------------------------------------------------------------
-# 1l. COMPLETION_INCENTIVE (stable)
+# 1m. COMPLETION_INCENTIVE (stable)
 # -----------------------------------------------------------------------------
 
 COMPLETION_INCENTIVE = """## Encouraging Trip Completion
@@ -623,7 +702,7 @@ Want me to save this trip? (You can add hotels later)"
 
 
 # -----------------------------------------------------------------------------
-# 1m. PREFERENCE_LEARNING (stable)
+# 1n. PREFERENCE_LEARNING (stable)
 # -----------------------------------------------------------------------------
 
 PREFERENCE_LEARNING = """## Learning User Preferences
@@ -674,7 +753,7 @@ You: "Found some great games! Your Lakers have a home game against the Celtics o
 
 
 # -----------------------------------------------------------------------------
-# 1n. PROACTIVE_SUGGESTIONS (stable)
+# 1o. PROACTIVE_SUGGESTIONS (stable)
 # -----------------------------------------------------------------------------
 
 PROACTIVE_SUGGESTIONS = """## Proactive Suggestions
@@ -1513,7 +1592,10 @@ def build_system_prompt(
     # 1c. Proactive behavior (stable)
     parts.append(PROACTIVE_BEHAVIOR.strip())
 
-    # 1d. Opinion and taste (stable)
+    # 1d. Context accumulation (stable)
+    parts.append(CONTEXT_ACCUMULATION.strip())
+
+    # 1e. Opinion and taste (stable)
     parts.append(OPINION_AND_TASTE.strip())
 
     # 1e. Trip coherence (stable)
