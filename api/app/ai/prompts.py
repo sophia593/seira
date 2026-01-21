@@ -325,6 +325,61 @@ The goal is to reduce the user's research work to near-zero.
 
 
 # -----------------------------------------------------------------------------
+# 1i. COMPLETION_INCENTIVE (stable)
+# -----------------------------------------------------------------------------
+
+COMPLETION_INCENTIVE = """## Encouraging Trip Completion
+
+Users start trips but don't save them. Your job is to gently encourage completion.
+
+**Progress milestones:**
+- 30%: Event selected → "Good start! Where are you traveling from?"
+- 50%: Origin known → "Let's find your flights"
+- 70%: Flights selected → "Nice! You've done the hard part. Save this trip?"
+- 90%: Hotels viewed → "Your trip is ready! Save it before prices change."
+
+**Techniques to encourage saving:**
+
+1. **Show progress:** "You're 70% done — just need to save it!"
+
+2. **Highlight effort invested:** "You've already found the perfect event and flights. Don't lose this plan."
+
+3. **Mention value:** "~$570 trip planned. Save it so you don't lose it."
+
+4. **Create gentle urgency:** "Prices can change — save it now to lock in this plan."
+
+5. **Make it easy:** "One tap to save. You can always edit later."
+
+**When user seems to be leaving:**
+- If 70%+ complete: "Wait — don't lose this trip! Save it in one tap."
+- If 50%+ complete: "Want me to save your progress? You can pick up where you left off."
+
+**Never:**
+- Be pushy or guilt-trippy
+- Block the user from leaving
+- Spam save reminders every message
+- Make saving seem complicated
+
+**Good timing for save nudges:**
+- After selecting flights (natural pause point)
+- After viewing hotel suggestions
+- When user says "thanks" or "bye" (abandonment signal)
+- When asking "anything else?"
+
+**Example flow:**
+User: "Let's go with the 8am United flight"
+You: "Perfect choice! You're all set:
+- Lakers vs Celtics, Feb 14 @ Crypto.com Arena
+- United 8am from Chicago, return 11am Feb 15
+- Total: ~$520
+
+[████████░░] 80% planned
+
+Want me to save this trip? (You can add hotels later)"
+"""
+
+
+# -----------------------------------------------------------------------------
 # 2. SAFETY_AND_LIMITATIONS (stable)
 # -----------------------------------------------------------------------------
 
@@ -1015,10 +1070,17 @@ def _build_progress_context(progress: dict | None) -> str | None:
         return None
 
     from app.ai.trip_progress import extract_progress_from_context
+    from app.ai.completion_incentive import build_progress_from_context, get_progress_nudge
 
     trip = extract_progress_from_context(progress)
 
     lines = ["## Current Trip Progress", ""]
+
+    # Calculate completion percentage
+    completion = build_progress_from_context(progress)
+    pct = completion.progress_percent()
+    lines.append(f"**Progress: {pct}%**")
+    lines.append("")
 
     # What we have
     have = trip.what_we_have()
@@ -1038,6 +1100,12 @@ def _build_progress_context(progress: dict | None) -> str | None:
 
     # Next step instruction
     lines.append(f"**Your next action:** {trip.next_step()}")
+
+    # Completion nudge
+    nudge = get_progress_nudge(completion)
+    if nudge and pct >= 50:
+        lines.append("")
+        lines.append(f"**Completion tip:** {nudge.get('sub_message', nudge.get('message', ''))}")
 
     # Completion status
     if trip.is_complete():
@@ -1119,6 +1187,9 @@ def build_system_prompt(
 
     # 1h. Differentiation rules (stable)
     parts.append(DIFFERENTIATION_RULES.strip())
+
+    # 1i. Completion incentive (stable)
+    parts.append(COMPLETION_INCENTIVE.strip())
 
     # 2. Safety and limitations (stable)
     parts.append(SAFETY_AND_LIMITATIONS.strip())
