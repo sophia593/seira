@@ -183,6 +183,12 @@ async def search_events(
     Falls back to Gemini web search if no results found.
     """
     tool_start = time.time()
+
+    # Defensive: handle None or invalid input
+    if input is None:
+        input = {}
+        logger.warning("search_events received None input, using empty dict")
+
     raw_query = input.get("query", "")
     city_raw = input.get("city")
     city = normalize_city(city_raw)  # Normalize "NYC" -> "New York" etc.
@@ -611,6 +617,10 @@ async def search_flights(
     Search for flights using Amadeus API.
     Falls back to mock data if API key not configured.
     """
+    # Defensive: handle None input
+    if input is None:
+        input = {}
+
     origin = normalize_airport(input.get("origin", ""))
     destination = normalize_airport(input.get("destination", ""))
     departure_date = input.get("departure_date", "")
@@ -905,6 +915,10 @@ async def save_trip(
             "error": "sign in to save this trip to your account",
         }
 
+    # Defensive: handle None input
+    if input is None:
+        input = {}
+
     # Note: Email verification is enforced on the frontend.
     # The frontend checks isEmailVerified before allowing the save action.
 
@@ -1028,6 +1042,10 @@ async def research_web(
     - Travel tips
     - Event updates and news
     """
+    # Defensive: handle None input
+    if input is None:
+        input = {}
+
     query = input.get("query", "")
     context = input.get("context")
     search_type_str = input.get("search_type")
