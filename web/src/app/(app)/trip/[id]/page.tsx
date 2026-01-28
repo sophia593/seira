@@ -397,50 +397,37 @@ export default function TripBuilderPage() {
           {/* Flights Section */}
           {/* ================================================================= */}
           <section className="rounded-xl border bg-card overflow-hidden">
-            {/* Header - Always visible */}
-            <button
-              onClick={() => setFlightSectionOpen(!flightSectionOpen)}
-              className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'p-2 rounded-lg',
-                  hasFlights ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted'
-                )}>
-                  <Plane className={cn(
-                    'w-5 h-5',
-                    hasFlights ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
-                  )} />
-                </div>
-                <div className="text-left">
-                  <h2 className="font-medium lowercase flex items-center gap-2">
-                    flights
-                    {hasFlights && <Check className="w-4 h-4 text-green-600" />}
-                  </h2>
-                  {hasFlights ? (
-                    <p className="text-sm text-muted-foreground">
-                      {trip.flight_origin} → {trip.flight_destination} · ${trip.flight_price}
-                    </p>
+            {hasFlights ? (
+              <>
+                {/* Header with flight info */}
+                <button
+                  onClick={() => setFlightSectionOpen(!flightSectionOpen)}
+                  className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                      <Plane className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="text-left">
+                      <h2 className="font-medium lowercase flex items-center gap-2">
+                        flights
+                        <Check className="w-4 h-4 text-green-600" />
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {trip.flight_origin} → {trip.flight_destination} · ${trip.flight_price}
+                      </p>
+                    </div>
+                  </div>
+                  {flightSectionOpen ? (
+                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      search and add flights
-                    </p>
+                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
                   )}
-                </div>
-              </div>
-              {flightSectionOpen ? (
-                <ChevronUp className="w-5 h-5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-muted-foreground" />
-              )}
-            </button>
+                </button>
 
-            {/* Expanded Content */}
-            {flightSectionOpen && (
-              <div className="border-t">
-                {hasFlights ? (
-                  // Show selected flight details
-                  <div className="p-5">
+                {/* Expanded flight details */}
+                {flightSectionOpen && (
+                  <div className="border-t p-5">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <p className="font-medium">
@@ -468,23 +455,69 @@ export default function TripBuilderPage() {
                       Change Flight
                     </Button>
                   </div>
-                ) : (
-                  // Show flight search
-                  <div className="p-5">
-                    {isUpdatingFlight && (
-                      <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                      </div>
-                    )}
-                    <FlightSearch
-                      onFlightSelect={handleFlightSelect}
-                      defaultDestination={trip.destination_city ? getAirportCode(trip.destination_city) : ''}
-                      defaultDepartureDate={trip.event_date ? getDayBefore(trip.event_date) : ''}
-                      defaultReturnDate={trip.event_date ? getDayAfter(trip.event_date) : ''}
-                    />
-                  </div>
                 )}
-              </div>
+              </>
+            ) : (
+              <>
+                {/* Empty state - collapsed */}
+                {!flightSectionOpen ? (
+                  <button
+                    onClick={() => setFlightSectionOpen(true)}
+                    className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
+                        <Plane className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                      <div className="text-left">
+                        <h2 className="font-medium lowercase">flights</h2>
+                        <p className="text-sm text-muted-foreground">
+                          not added yet
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      + Add flights
+                    </span>
+                  </button>
+                ) : (
+                  <>
+                    {/* Header when expanded */}
+                    <button
+                      onClick={() => setFlightSectionOpen(false)}
+                      className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors border-b"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Plane className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="text-left">
+                          <h2 className="font-medium lowercase">add flights</h2>
+                          <p className="text-sm text-muted-foreground">
+                            search for flights to your event
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    </button>
+
+                    {/* Flight search */}
+                    <div className="p-5 relative">
+                      {isUpdatingFlight && (
+                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        </div>
+                      )}
+                      <FlightSearch
+                        onFlightSelect={handleFlightSelect}
+                        defaultDestination={trip.destination_city ? getAirportCode(trip.destination_city) : ''}
+                        defaultDepartureDate={trip.event_date ? getDayBefore(trip.event_date) : ''}
+                        defaultReturnDate={trip.event_date ? getDayAfter(trip.event_date) : ''}
+                      />
+                    </div>
+                  </>
+                )}
+              </>
             )}
           </section>
 
@@ -492,50 +525,37 @@ export default function TripBuilderPage() {
           {/* Hotel Section */}
           {/* ================================================================= */}
           <section className="rounded-xl border bg-card overflow-hidden">
-            {/* Header - Always visible */}
-            <button
-              onClick={() => setHotelSectionOpen(!hotelSectionOpen)}
-              className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'p-2 rounded-lg',
-                  hasHotel ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted'
-                )}>
-                  <Hotel className={cn(
-                    'w-5 h-5',
-                    hasHotel ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
-                  )} />
-                </div>
-                <div className="text-left">
-                  <h2 className="font-medium lowercase flex items-center gap-2">
-                    hotel
-                    {hasHotel && <Check className="w-4 h-4 text-green-600" />}
-                  </h2>
-                  {hasHotel ? (
-                    <p className="text-sm text-muted-foreground">
-                      {trip.hotel_name} · ${trip.hotel_price}
-                    </p>
+            {hasHotel ? (
+              <>
+                {/* Header with hotel info */}
+                <button
+                  onClick={() => setHotelSectionOpen(!hotelSectionOpen)}
+                  className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                      <Hotel className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="text-left">
+                      <h2 className="font-medium lowercase flex items-center gap-2">
+                        hotel
+                        <Check className="w-4 h-4 text-green-600" />
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {trip.hotel_name} · ${trip.hotel_price}
+                      </p>
+                    </div>
+                  </div>
+                  {hotelSectionOpen ? (
+                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      search and add hotel
-                    </p>
+                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
                   )}
-                </div>
-              </div>
-              {hotelSectionOpen ? (
-                <ChevronUp className="w-5 h-5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-muted-foreground" />
-              )}
-            </button>
+                </button>
 
-            {/* Expanded Content */}
-            {hotelSectionOpen && (
-              <div className="border-t">
-                {hasHotel ? (
-                  // Show selected hotel details
-                  <div className="p-5">
+                {/* Expanded hotel details */}
+                {hotelSectionOpen && (
+                  <div className="border-t p-5">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <p className="font-medium">{trip.hotel_name}</p>
@@ -556,23 +576,69 @@ export default function TripBuilderPage() {
                       Change Hotel
                     </Button>
                   </div>
-                ) : (
-                  // Show hotel search
-                  <div className="p-5">
-                    {isUpdatingHotel && (
-                      <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                      </div>
-                    )}
-                    <HotelSearch
-                      onHotelSelect={handleHotelSelect}
-                      defaultCity={trip.destination_city || ''}
-                      defaultCheckIn={trip.event_date ? getDayBefore(trip.event_date) : ''}
-                      defaultCheckOut={trip.event_date ? getDayAfter(trip.event_date) : ''}
-                    />
-                  </div>
                 )}
-              </div>
+              </>
+            ) : (
+              <>
+                {/* Empty state - collapsed */}
+                {!hotelSectionOpen ? (
+                  <button
+                    onClick={() => setHotelSectionOpen(true)}
+                    className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
+                        <Hotel className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                      <div className="text-left">
+                        <h2 className="font-medium lowercase">hotel</h2>
+                        <p className="text-sm text-muted-foreground">
+                          not added yet
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      + Add hotel
+                    </span>
+                  </button>
+                ) : (
+                  <>
+                    {/* Header when expanded */}
+                    <button
+                      onClick={() => setHotelSectionOpen(false)}
+                      className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors border-b"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Hotel className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="text-left">
+                          <h2 className="font-medium lowercase">add hotel</h2>
+                          <p className="text-sm text-muted-foreground">
+                            search for hotels near your event
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    </button>
+
+                    {/* Hotel search */}
+                    <div className="p-5 relative">
+                      {isUpdatingHotel && (
+                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        </div>
+                      )}
+                      <HotelSearch
+                        onHotelSelect={handleHotelSelect}
+                        defaultCity={trip.destination_city || ''}
+                        defaultCheckIn={trip.event_date ? getDayBefore(trip.event_date) : ''}
+                        defaultCheckOut={trip.event_date ? getDayAfter(trip.event_date) : ''}
+                      />
+                    </div>
+                  </>
+                )}
+              </>
             )}
           </section>
 
