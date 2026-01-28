@@ -413,7 +413,7 @@ function ErrorState({ type, onRetry, tripId }: ErrorStateProps) {
               <Link href="/trips">view all trips</Link>
             </Button>
             <Button asChild variant="outline" className="lowercase">
-              <Link href="/chat">plan new trip</Link>
+              <Link href="/search">plan new trip</Link>
             </Button>
           </div>
 

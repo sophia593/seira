@@ -122,7 +122,7 @@ function LoginForm() {
         localStorage.removeItem('seira_remembered_email')
       }
 
-      router.push("/chat")
+      router.push("/search")
       router.refresh()
     } catch {
       setFormError('something went wrong. please try again.')

@@ -583,6 +583,334 @@ async def search_flights(
 
 
 # -----------------------------------------------------------------------------
+# Hotel Types
+# -----------------------------------------------------------------------------
+
+
+class HotelOffer(BaseModel):
+    """A hotel offer with price and details."""
+    id: str
+    hotel_id: str
+    hotel_name: str
+    hotel_rating: int | None = None  # 1-5 stars
+
+    # Location
+    city_code: str
+    latitude: float | None = None
+    longitude: float | None = None
+    address: str | None = None
+    distance_km: float | None = None
+
+    # Room details
+    room_type: str | None = None
+    room_description: str | None = None
+    bed_type: str | None = None
+    guests: int = 2
+
+    # Price
+    price: float
+    currency: str = "USD"
+    price_per_night: float | None = None
+
+    # Dates
+    check_in: str
+    check_out: str
+    nights: int
+
+    # Amenities
+    amenities: list[str] = []
+
+    # Booking
+    cancellation_policy: str | None = None
+    payment_type: str | None = None  # "GUARANTEE", "DEPOSIT", etc.
+
+    # Source
+    source: str = "amadeus"
+
+
+class HotelSearchResult(BaseModel):
+    """Hotel search results."""
+    offers: list[HotelOffer]
+    search_params: dict[str, Any]
+    is_mock: bool = False
+
+
+# -----------------------------------------------------------------------------
+# Hotel Client
+# -----------------------------------------------------------------------------
+
+
+class AmadeusHotelClient:
+    """Client for Amadeus Hotel Search API."""
+
+    CACHE_PREFIX = "amadeus:hotels:"
+    TOKEN_CACHE_KEY = "amadeus:token"
+    HOTEL_CACHE_TTL = 10 * 60  # 10 minutes
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        api_secret: str | None = None,
+        base_url: str | None = None,
+        use_cache: bool = True,
+    ):
+        settings = get_settings()
+        self.api_key = api_key or settings.AMADEUS_API_KEY
+        self.api_secret = api_secret or settings.AMADEUS_API_SECRET
+        self.base_url = base_url or settings.AMADEUS_BASE_URL
+        self.use_cache = use_cache
+
+        self._access_token: str | None = None
+        self._token_expires_at: float = 0
+
+        self.client = httpx.AsyncClient(
+            timeout=30.0,
+            headers={"Accept": "application/json"},
+        )
+
+    async def close(self):
+        await self.client.aclose()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        await self.close()
+
+    def is_configured(self) -> bool:
+        return bool(self.api_key and self.api_secret)
+
+    async def get_access_token(self) -> str:
+        """Get valid access token, refreshing if needed."""
+        if self._access_token and time.time() < self._token_expires_at:
+            return self._access_token
+
+        if self.use_cache:
+            cached_token = await cache_get(self.TOKEN_CACHE_KEY)
+            if cached_token:
+                self._access_token = cached_token if isinstance(cached_token, str) else cached_token.get("token")
+                self._token_expires_at = time.time() + TOKEN_CACHE_TTL
+                return self._access_token
+
+        response = await self.client.post(
+            f"{self.base_url}/v1/security/oauth2/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": self.api_key,
+                "client_secret": self.api_secret,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        self._access_token = data["access_token"]
+        expires_in = data.get("expires_in", 1800)
+        self._token_expires_at = time.time() + expires_in - 60
+
+        if self.use_cache:
+            await cache_set(self.TOKEN_CACHE_KEY, self._access_token, ex=TOKEN_CACHE_TTL)
+
+        return self._access_token
+
+    def _make_cache_key(self, params: dict[str, Any]) -> str:
+        param_str = json.dumps(params, sort_keys=True)
+        hash_digest = hashlib.sha256(param_str.encode()).hexdigest()[:16]
+        return f"{self.CACHE_PREFIX}{hash_digest}"
+
+    async def search_hotels(
+        self,
+        city_code: str,
+        check_in: str,  # YYYY-MM-DD
+        check_out: str,  # YYYY-MM-DD
+        adults: int = 2,
+        rooms: int = 1,
+        radius: int = 20,  # km
+        ratings: list[int] | None = None,  # [3, 4, 5] for 3+ stars
+        price_range: str | None = None,  # "100-300"
+        max_offers: int = 20,
+    ) -> HotelSearchResult:
+        """
+        Search for hotel offers by city.
+
+        Uses Amadeus Hotel Offers Search API (v3).
+        """
+        city_code = city_code.upper().strip()
+
+        search_params = {
+            "city_code": city_code,
+            "check_in": check_in,
+            "check_out": check_out,
+            "adults": adults,
+            "rooms": rooms,
+            "radius": radius,
+            "ratings": ratings,
+            "price_range": price_range,
+            "max_offers": max_offers,
+        }
+
+        logger.info(f"Searching Amadeus hotels: {city_code}, {check_in} to {check_out}")
+
+        # Check cache
+        cache_key = self._make_cache_key(search_params)
+        if self.use_cache:
+            cached = await cache_get(cache_key)
+            if cached:
+                logger.debug(f"Hotel cache hit for {cache_key}")
+                try:
+                    if isinstance(cached, str):
+                        cached = json.loads(cached)
+                    return HotelSearchResult(**cached)
+                except Exception as e:
+                    logger.warning(f"Failed to parse cached hotel data: {e}")
+
+        token = await self.get_access_token()
+
+        # Build query params for Hotel Offers Search
+        params: dict[str, Any] = {
+            "cityCode": city_code,
+            "checkInDate": check_in,
+            "checkOutDate": check_out,
+            "adults": adults,
+            "roomQuantity": rooms,
+            "radius": radius,
+            "radiusUnit": "KM",
+            "currency": "USD",
+            "bestRateOnly": "true",
+        }
+
+        if ratings:
+            params["ratings"] = ",".join(str(r) for r in ratings)
+
+        if price_range:
+            parts = price_range.split("-")
+            if len(parts) == 2:
+                params["priceRange"] = f"{parts[0]}-{parts[1]}"
+
+        try:
+            response = await self.client.get(
+                f"{self.base_url}/v3/shopping/hotel-offers",
+                params=params,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Amadeus Hotel API error: {e.response.status_code} - {e.response.text[:500]}")
+            raise
+        except Exception as e:
+            logger.error(f"Amadeus hotel request failed: {e}")
+            raise
+
+        # Parse response
+        offers_data = data.get("data", [])
+        offers = []
+
+        # Calculate nights
+        from datetime import datetime as dt
+        check_in_dt = dt.strptime(check_in, "%Y-%m-%d")
+        check_out_dt = dt.strptime(check_out, "%Y-%m-%d")
+        nights = (check_out_dt - check_in_dt).days
+
+        for hotel_data in offers_data[:max_offers]:
+            hotel = hotel_data.get("hotel", {})
+            hotel_offers = hotel_data.get("offers", [])
+
+            if not hotel_offers:
+                continue
+
+            # Take first/best offer
+            offer = hotel_offers[0]
+            price_info = offer.get("price", {})
+            room_info = offer.get("room", {})
+            room_type_info = room_info.get("typeEstimated", {})
+
+            total_price = float(price_info.get("total", 0))
+            price_per_night = total_price / nights if nights > 0 else total_price
+
+            # Extract amenities from hotel
+            amenities = hotel.get("amenities", []) or []
+            # Clean up amenity names
+            amenities = [a.replace("_", " ").title() for a in amenities[:8]]
+
+            # Build address
+            address_parts = []
+            if hotel.get("address"):
+                addr = hotel["address"]
+                if addr.get("lines"):
+                    address_parts.extend(addr["lines"])
+                if addr.get("cityName"):
+                    address_parts.append(addr["cityName"])
+
+            offers.append(HotelOffer(
+                id=offer.get("id", ""),
+                hotel_id=hotel.get("hotelId", ""),
+                hotel_name=hotel.get("name", "Unknown Hotel"),
+                hotel_rating=hotel.get("rating"),
+                city_code=city_code,
+                latitude=hotel.get("latitude"),
+                longitude=hotel.get("longitude"),
+                address=", ".join(address_parts) if address_parts else None,
+                distance_km=hotel.get("distance", {}).get("value"),
+                room_type=room_type_info.get("category"),
+                room_description=room_info.get("description", {}).get("text"),
+                bed_type=room_type_info.get("bedType"),
+                guests=adults,
+                price=total_price,
+                currency=price_info.get("currency", "USD"),
+                price_per_night=round(price_per_night, 2),
+                check_in=check_in,
+                check_out=check_out,
+                nights=nights,
+                amenities=amenities,
+                cancellation_policy=offer.get("policies", {}).get("cancellation", {}).get("description", {}).get("text"),
+                payment_type=offer.get("policies", {}).get("paymentType"),
+                source="amadeus",
+            ))
+
+        result = HotelSearchResult(
+            offers=offers,
+            search_params=search_params,
+            is_mock=False,
+        )
+
+        # Cache result
+        if self.use_cache and offers:
+            try:
+                await cache_set(
+                    cache_key,
+                    result.model_dump(mode="json"),
+                    ex=self.HOTEL_CACHE_TTL,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to cache hotel result: {e}")
+
+        logger.info(f"Amadeus returned {len(offers)} hotel offers")
+        return result
+
+
+async def search_hotels(
+    city_code: str,
+    check_in: str,
+    check_out: str,
+    adults: int = 2,
+    **kwargs,
+) -> HotelSearchResult:
+    """Convenience function to search hotels."""
+    async with AmadeusHotelClient() as client:
+        if not client.is_configured():
+            raise ValueError("Amadeus API credentials not configured")
+        return await client.search_hotels(
+            city_code=city_code,
+            check_in=check_in,
+            check_out=check_out,
+            adults=adults,
+            **kwargs,
+        )
+
+
+# -----------------------------------------------------------------------------
 # Duration formatting helper
 # -----------------------------------------------------------------------------
 

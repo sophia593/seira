@@ -311,10 +311,10 @@ export function AppShellProvider({
 
       if (isInput) return
 
-      // Cmd/Ctrl + K: New chat
+      // Cmd/Ctrl + K: New search
       if (modifier && e.key === "k") {
         e.preventDefault()
-        router.push("/chat")
+        router.push("/search")
       }
 
       // Cmd/Ctrl + /: Go to settings (help/preferences)

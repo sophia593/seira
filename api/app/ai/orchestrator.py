@@ -9,11 +9,16 @@ Flow:
 2. Stream response from Claude
 3. If Claude requests tool use, execute tools and continue
 4. Yield events for frontend consumption throughout
+
+Error Handling:
+- ToolUseTracker prevents Claude from retrying failed tools with same params
+- Structured error responses tell Claude whether to retry
 """
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import uuid
@@ -31,6 +36,74 @@ logger = logging.getLogger(__name__)
 
 # Maximum size for tool result content (characters)
 MAX_TOOL_RESULT_SIZE = 50_000
+
+
+# -----------------------------------------------------------------------------
+# Tool Use Tracker - Prevents retry loops
+# -----------------------------------------------------------------------------
+
+
+class ToolUseTracker:
+    """
+    Tracks tool usage to prevent Claude from retrying the same tool
+    with the same parameters in an infinite loop.
+
+    When a tool returns retry=False, we block subsequent identical calls.
+    This prevents the common pattern of:
+    1. Tool fails with "search_failed"
+    2. Claude retries with exact same params
+    3. Tool fails again
+    4. Claude retries...
+    """
+
+    def __init__(self, max_retries: int = 1):
+        self.attempts: dict[str, int] = {}
+        self.max_retries = max_retries
+        self.blocked_tools: set[str] = set()
+
+    def _make_key(self, tool_name: str, params: dict[str, Any]) -> str:
+        """Create a unique key for tool + params combination."""
+        # Sort params for consistent hashing
+        params_str = json.dumps(params, sort_keys=True, default=str)
+        params_hash = hashlib.md5(params_str.encode()).hexdigest()[:12]
+        return f"{tool_name}:{params_hash}"
+
+    def can_use_tool(self, tool_name: str, params: dict[str, Any]) -> bool:
+        """Check if this tool call should be allowed."""
+        key = self._make_key(tool_name, params)
+
+        # Check if explicitly blocked (from a non-retryable error)
+        if key in self.blocked_tools:
+            return False
+
+        # Check retry count
+        attempts = self.attempts.get(key, 0)
+        return attempts <= self.max_retries
+
+    def record_attempt(self, tool_name: str, params: dict[str, Any]) -> None:
+        """Record a tool use attempt."""
+        key = self._make_key(tool_name, params)
+        self.attempts[key] = self.attempts.get(key, 0) + 1
+
+    def block_tool(self, tool_name: str, params: dict[str, Any]) -> None:
+        """Block a specific tool+params combo (called when retry=False)."""
+        key = self._make_key(tool_name, params)
+        self.blocked_tools.add(key)
+        logger.debug(f"Blocked tool: {key}")
+
+    def get_rejection_message(self, tool_name: str) -> dict[str, Any]:
+        """Get a message to inject when blocking a retry."""
+        return {
+            "success": False,
+            "error": "max_retries_exceeded",
+            "message": f"This search was already attempted. Please help the user differently.",
+            "retry": False,
+            "suggestions": [
+                "suggest alternative search terms",
+                "offer to search for something related",
+                "provide helpful information without the tool",
+            ],
+        }
 
 
 # -----------------------------------------------------------------------------
@@ -192,6 +265,9 @@ async def run_conversation(
     turn_messages = list(truncated_messages)  # Copy to avoid mutation
     tool_rounds = 0
 
+    # Track tool usage to prevent retry loops
+    tool_tracker = ToolUseTracker(max_retries=1)
+
     while tool_rounds < config.max_tool_rounds:
         tool_rounds += 1
 
@@ -331,22 +407,19 @@ async def run_conversation(
         # Execute tools and add results
         tool_results: list[dict[str, Any]] = []
 
+        # Tool execution timeout (separate from API client timeouts)
+        TOOL_EXECUTION_TIMEOUT = 45  # seconds
+
         for tool_call in tool_calls:
             tool_id = tool_call["id"]
             tool_name = tool_call["name"]
             tool_input = tool_call["input"]
 
-            logger.info(f"[{request_id}] Executing: {tool_name}")
-
-            try:
-                result = await execute_tool(
-                    tool_name=tool_name,
-                    tool_input=tool_input,
-                    user_id=user_context.user_id if user_context else None,
-                )
-
-                # Truncate large results to prevent context overflow
-                result_content = _truncate_tool_result(result)
+            # Check if this exact tool call should be blocked (retry prevention)
+            if not tool_tracker.can_use_tool(tool_name, tool_input):
+                logger.info(f"[{request_id}] Blocking retry: {tool_name}")
+                rejection = tool_tracker.get_rejection_message(tool_name)
+                result_content = _truncate_tool_result(rejection)
 
                 tool_results.append({
                     "type": "tool_result",
@@ -359,19 +432,69 @@ async def run_conversation(
                     data={
                         "id": tool_id,
                         "name": tool_name,
-                        "result": result,
-                        "is_error": False,
+                        "result": rejection,
+                        "is_error": True,
                     },
                 )
+                continue
 
-            except Exception as e:
-                logger.exception(f"[{request_id}] Tool error ({tool_name}): {e}")
+            # Record this attempt
+            tool_tracker.record_attempt(tool_name, tool_input)
 
-                error_message = f"Error executing {tool_name}: {str(e)}"
+            logger.info(f"[{request_id}] Executing: {tool_name}")
+
+            try:
+                # Execute with timeout to prevent hanging
+                result = await asyncio.wait_for(
+                    execute_tool(
+                        tool_name=tool_name,
+                        tool_input=tool_input,
+                        user_id=user_context.user_id if user_context else None,
+                    ),
+                    timeout=TOOL_EXECUTION_TIMEOUT,
+                )
+
+                # Check if result indicates non-retryable error
+                if isinstance(result, dict):
+                    if result.get("success") is False and result.get("retry") is False:
+                        # Block future identical calls
+                        tool_tracker.block_tool(tool_name, tool_input)
+                        logger.debug(f"[{request_id}] Marked as non-retryable: {tool_name}")
+
+                # Truncate large results to prevent context overflow
+                result_content = _truncate_tool_result(result)
+
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": tool_id,
-                    "content": error_message,
+                    "content": result_content,
+                })
+
+                is_error = isinstance(result, dict) and result.get("success") is False
+                yield StreamEvent(
+                    type="tool_result",
+                    data={
+                        "id": tool_id,
+                        "name": tool_name,
+                        "result": result,
+                        "is_error": is_error,
+                    },
+                )
+
+            except asyncio.TimeoutError:
+                logger.error(f"[{request_id}] Tool timeout ({tool_name}): {TOOL_EXECUTION_TIMEOUT}s")
+                tool_tracker.block_tool(tool_name, tool_input)
+
+                timeout_result = {
+                    "success": False,
+                    "error": "timeout",
+                    "message": "search took too long — try a simpler query",
+                    "retry": False,
+                }
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_id,
+                    "content": _truncate_tool_result(timeout_result),
                     "is_error": True,
                 })
 
@@ -380,7 +503,36 @@ async def run_conversation(
                     data={
                         "id": tool_id,
                         "name": tool_name,
-                        "result": {"error": error_message},
+                        "result": timeout_result,
+                        "is_error": True,
+                    },
+                )
+
+            except Exception as e:
+                logger.exception(f"[{request_id}] Tool error ({tool_name}): {e}")
+
+                # Block retries for exceptions too
+                tool_tracker.block_tool(tool_name, tool_input)
+
+                error_result = {
+                    "success": False,
+                    "error": "execution_error",
+                    "message": "something went wrong with that search",
+                    "retry": False,
+                }
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_id,
+                    "content": _truncate_tool_result(error_result),
+                    "is_error": True,
+                })
+
+                yield StreamEvent(
+                    type="tool_result",
+                    data={
+                        "id": tool_id,
+                        "name": tool_name,
+                        "result": error_result,
                         "is_error": True,
                     },
                 )

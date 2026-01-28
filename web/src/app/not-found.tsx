@@ -48,7 +48,7 @@ export default function NotFound() {
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="lowercase gap-2">
-            <Link href="/chat">
+            <Link href="/search">
               start planning a trip
               <ArrowRight className="w-4 h-4" />
             </Link>

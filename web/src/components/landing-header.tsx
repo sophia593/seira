@@ -93,7 +93,7 @@ function UserDropdown({ userEmail }: UserDropdownProps) {
         )}
 
         <DropdownMenuItem asChild>
-          <Link href="/chat" className="cursor-pointer">
+          <Link href="/search" className="cursor-pointer">
             <ArrowRight className="w-4 h-4 mr-2" />
             try seira
           </Link>
@@ -225,7 +225,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
               )}
 
               <Link
-                href="/chat"
+                href="/search"
                 onClick={onClose}
                 className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
@@ -349,7 +349,7 @@ export function LandingHeader() {
               <div className="flex items-center gap-2">
                 {/* Primary action stays visible */}
                 <Button asChild className="h-9">
-                  <Link href="/chat">
+                  <Link href="/search">
                     try seira
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
@@ -367,7 +367,7 @@ export function LandingHeader() {
                   <Link href="/signup">sign up</Link>
                 </Button>
                 <Button asChild className="h-9">
-                  <Link href="/chat">
+                  <Link href="/search">
                     try seira
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>

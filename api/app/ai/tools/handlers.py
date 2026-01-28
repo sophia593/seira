@@ -2,6 +2,11 @@
 Tool Handlers
 
 Implementation of tool functions called by Claude.
+
+Error Handling Pattern:
+- All tools return structured responses with success/error fields
+- Errors include retry=True/False to tell Claude whether to retry
+- Claude's TOOL_ERROR_HANDLING prompt section teaches it how to handle errors gracefully
 """
 
 from __future__ import annotations
@@ -10,9 +15,40 @@ import logging
 import re
 import time
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypedDict
 
 from app.ai.tools.registry import register_tool
+
+
+# -----------------------------------------------------------------------------
+# Structured Response Types
+# -----------------------------------------------------------------------------
+
+class ToolError(TypedDict, total=False):
+    """Structured error response for tools."""
+    success: bool  # Always False
+    error: str  # Short error code
+    message: str  # User-friendly message
+    retry: bool  # Whether Claude should retry
+    suggestions: list[str]  # Alternative actions
+
+
+def tool_error(
+    error: str,
+    message: str,
+    retry: bool = False,
+    suggestions: list[str] | None = None,
+) -> ToolError:
+    """Create a structured tool error response."""
+    result: ToolError = {
+        "success": False,
+        "error": error,
+        "message": message,
+        "retry": retry,
+    }
+    if suggestions:
+        result["suggestions"] = suggestions
+    return result
 from app.ai.clients.gemini import GeminiResearcher, SearchType
 from app.ai.metrics import gemini_rescue_metrics, research_web_metrics
 from app.integrations.ticketmaster import TicketmasterClient, Event
@@ -405,6 +441,8 @@ async def search_events(
         f"city={city!r}, after {(time.time() - tool_start) * 1000:.1f}ms"
     )
 
+    # Note: We don't return a retry-able error here because we're falling back to Gemini
+
     try:
         t0 = time.time()
         researcher = GeminiResearcher()
@@ -532,38 +570,18 @@ async def search_events(
         )
 
         # =====================================================================
-        # BOTH SOURCES FAILED - Be helpful, not a dead-end
+        # BOTH SOURCES FAILED - Structured error response
         # =====================================================================
-        return {
-            "success": False,
-            "result_type": "ERROR",
-            "error": {
-                "message": ticketmaster_error or str(e),
-                "ticketmaster_tried": True,
-                "web_search_tried": True,
-            },
-            "query": query,
-            "filters": {
-                "city": city,
-                "state_code": state_code,
-                "date_from": date_from,
-                "date_to": date_to,
-                "category": category,
-                "genre": genre,
-            },
-            "summary": {
-                "total_found": 0,
-                "message": "Could not find events from any source",
-            },
-            "events": [],
-            "instructions_for_assistant": (
-                "Both Ticketmaster and web search failed. Apologize to the user and suggest:\n"
-                "1. Try a different search term or spelling\n"
-                "2. Check if the event/artist name is correct\n"
-                "3. Try broadening the search (remove city or date filters)\n"
-                "4. Search directly on the venue or artist's official website"
-            ),
-        }
+        return tool_error(
+            error="search_failed",
+            message="couldn't find events right now",
+            retry=False,  # Don't retry - both sources failed
+            suggestions=[
+                "try a different search term or spelling",
+                "broaden the search (remove city or date filters)",
+                "check the venue or artist's official website",
+            ],
+        )
 
 
 def _format_event(event: Event) -> dict[str, Any]:
@@ -910,10 +928,12 @@ async def save_trip(
     Requires email verification.
     """
     if not user_id:
-        return {
-            "success": False,
-            "error": "sign in to save this trip to your account",
-        }
+        return tool_error(
+            error="not_authenticated",
+            message="sign in to save this trip to your account",
+            retry=False,  # Can't retry without auth
+            suggestions=["ask user to sign in first"],
+        )
 
     # Defensive: handle None input
     if input is None:
@@ -1014,10 +1034,12 @@ async def save_trip(
 
     except Exception as e:
         logger.exception(f"Failed to save trip: {e}")
-        return {
-            "success": False,
-            "error": "couldn't save your trip right now — please try again",
-        }
+        return tool_error(
+            error="save_failed",
+            message="couldn't save your trip right now",
+            retry=True,  # Transient error, can retry
+            suggestions=["try saving again in a moment"],
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -1051,10 +1073,11 @@ async def research_web(
     search_type_str = input.get("search_type")
 
     if not query:
-        return {
-            "success": False,
-            "error": "Query is required",
-        }
+        return tool_error(
+            error="missing_query",
+            message="need a search query to look things up",
+            retry=False,
+        )
 
     # Parse search_type if provided
     search_type = None
@@ -1123,8 +1146,9 @@ async def research_web(
             error=str(e),
         )
 
-        return {
-            "success": False,
-            "error": "couldn't complete the search — try a different query",
-            "query": query,
-        }
+        return tool_error(
+            error="research_failed",
+            message="couldn't complete the search",
+            retry=False,
+            suggestions=["try a different query", "ask in a different way"],
+        )

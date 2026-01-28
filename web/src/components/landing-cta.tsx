@@ -17,7 +17,7 @@ export function LandingCTA() {
   if (user) {
     return (
       <Button asChild variant="fancy" size="lg" className="rounded-full px-8">
-        <Link href="/chat">
+        <Link href="/search">
           <span>try seira</span>
           <ArrowRight className="h-4 w-4 ml-2" />
         </Link>

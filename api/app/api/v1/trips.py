@@ -81,9 +81,18 @@ class CreateTripRequest(BaseModel):
     conversation_id: Optional[str] = None
     destination_city: Optional[str] = None
     destination_country: Optional[str] = None
+    notes: Optional[str] = None
+
+    # Event details
     event_name: Optional[str] = None
     event_date: Optional[str] = None
-    notes: Optional[str] = None
+    event_time: Optional[str] = None
+    event_provider: Optional[str] = None
+    event_provider_id: Optional[str] = None
+    event_venue: Optional[str] = None
+    event_venue_address: Optional[str] = None
+    event_price_estimate: Optional[float] = None
+    event_purchase_url: Optional[str] = None
 
 
 class UpdateTripRequest(BaseModel):
@@ -107,7 +116,9 @@ class UpdateTripRequest(BaseModel):
     flight_origin: Optional[str] = None
     flight_destination: Optional[str] = None
     flight_outbound_date: Optional[str] = None
+    flight_outbound_time: Optional[str] = None
     flight_return_date: Optional[str] = None
+    flight_return_time: Optional[str] = None
     flight_price: Optional[float] = None
     flight_carrier: Optional[str] = None
     flight_purchase_url: Optional[str] = None

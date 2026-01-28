@@ -106,6 +106,23 @@ export interface TripDetail extends Trip {
   quote_expires_at: string | null
 }
 
+export interface CreateTripRequest {
+  title?: string
+  conversation_id?: string
+  destination_city?: string
+  destination_country?: string
+  notes?: string
+  event_name?: string
+  event_date?: string
+  event_time?: string
+  event_provider?: string
+  event_provider_id?: string
+  event_venue?: string
+  event_venue_address?: string
+  event_price_estimate?: number
+  event_purchase_url?: string
+}
+
 export interface UserProfile {
   id: string
   email: string
@@ -367,6 +384,10 @@ export function createApiClient(config: ApiClientConfig) {
     return get<TripDetail>(`/api/v1/trips/${id}`)
   }
 
+  async function createTrip(data: CreateTripRequest): Promise<TripDetail> {
+    return post<TripDetail>("/api/v1/trips", data)
+  }
+
   async function updateTrip(
     id: string,
     data: Partial<TripDetail>
@@ -410,6 +431,7 @@ export function createApiClient(config: ApiClientConfig) {
     // Trips
     getTrips,
     getTrip,
+    createTrip,
     updateTrip,
     deleteTrip,
   }

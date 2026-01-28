@@ -242,7 +242,7 @@ function EmptyState({ filter }: { filter: FilterType }) {
         start planning your next adventure — tell us about an event you want to attend
       </p>
       <Button asChild className="lowercase">
-        <Link href="/chat">
+        <Link href="/search">
           <Plus className="w-4 h-4 mr-2" />
           plan your first trip
         </Link>
@@ -415,7 +415,7 @@ export default function TripsPage() {
               in the meantime, you can still explore
             </p>
             <Button asChild variant="outline" className="lowercase">
-              <Link href="/chat">
+              <Link href="/search">
                 <Plus className="w-4 h-4 mr-2" />
                 plan a trip
               </Link>
@@ -438,7 +438,7 @@ export default function TripsPage() {
             </p>
           </div>
           <Button asChild className="lowercase w-full sm:w-auto">
-            <Link href="/chat">
+            <Link href="/search">
               <Plus className="w-4 h-4 mr-2" />
               plan a trip
             </Link>

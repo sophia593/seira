@@ -332,11 +332,11 @@ export default function SettingsPage() {
       <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Back link */}
         <Link
-          href="/chat"
+          href="/search"
           className="inline-flex items-center gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground mb-4 sm:mb-6 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          back to chat
+          back to search
         </Link>
 
         {/* Header */}

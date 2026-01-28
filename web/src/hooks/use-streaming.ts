@@ -4,6 +4,14 @@ import { useCallback, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 // -----------------------------------------------------------------------------
+// Constants
+// -----------------------------------------------------------------------------
+
+// Client-side timeout for the entire request (in ms)
+// This catches hangs that the server-side timeout might miss
+const STREAM_TIMEOUT_MS = 120_000; // 2 minutes - covers long tool executions
+
+// -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
@@ -59,6 +67,8 @@ export interface StreamCallbacks {
   onError?: (data: ErrorEventData) => void;
   /** Called when authentication fails (401 or missing session) */
   onAuthError?: () => void;
+  /** Called when the request times out (client-side timeout) */
+  onTimeout?: () => void;
 }
 
 export interface SendMessageOptions {
@@ -136,6 +146,13 @@ export function useStreaming(
       // Create new abort controller
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
+
+      // Set up client-side timeout
+      let isTimeout = false;
+      const timeoutId = setTimeout(() => {
+        isTimeout = true;
+        abortController.abort();
+      }, STREAM_TIMEOUT_MS);
 
       // Merge signals if one was provided
       const signal = options.signal
@@ -217,8 +234,18 @@ export function useStreaming(
           }
         }
       } catch (err) {
+        // Clear timeout on error too
+        clearTimeout(timeoutId);
+
         if (err instanceof Error && err.name === "AbortError") {
-          // Request was aborted, not an error
+          // Check if this was a timeout-induced abort
+          if (isTimeout) {
+            const timeoutMessage = "This is taking too long. Try again?";
+            setError(timeoutMessage);
+            callbacksRef.current.onTimeout?.();
+            callbacksRef.current.onError?.({ message: timeoutMessage });
+          }
+          // Otherwise, request was manually aborted, not an error
           return;
         }
 
@@ -237,6 +264,7 @@ export function useStreaming(
         setError(errorMessage);
         callbacksRef.current.onError?.({ message: errorMessage });
       } finally {
+        clearTimeout(timeoutId);
         setIsStreaming(false);
         abortControllerRef.current = null;
       }

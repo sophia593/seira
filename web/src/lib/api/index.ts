@@ -78,6 +78,7 @@ export type {
   ApiClientConfig,
   Conversation,
   ConversationWithMessages,
+  CreateTripRequest,
   Message,
   Trip,
   TripDetail,
