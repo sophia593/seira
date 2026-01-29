@@ -87,6 +87,20 @@ export default function TripBuilderPage() {
   const [isUpdatingFlight, setIsUpdatingFlight] = useState(false)
   const [isUpdatingHotel, setIsUpdatingHotel] = useState(false)
 
+  // Skipped states (persisted in localStorage)
+  const [flightSkipped, setFlightSkipped] = useState(false)
+  const [hotelSkipped, setHotelSkipped] = useState(false)
+
+  // Load skipped states from localStorage
+  useEffect(() => {
+    if (tripId) {
+      const savedFlightSkipped = localStorage.getItem(`trip-${tripId}-flight-skipped`)
+      const savedHotelSkipped = localStorage.getItem(`trip-${tripId}-hotel-skipped`)
+      if (savedFlightSkipped === 'true') setFlightSkipped(true)
+      if (savedHotelSkipped === 'true') setHotelSkipped(true)
+    }
+  }, [tripId])
+
   const fetchTrip = useCallback(async () => {
     const supabase = createClient()
 
@@ -278,6 +292,36 @@ export default function TripBuilderPage() {
   }
 
   // ===========================================================================
+  // Skip Handlers
+  // ===========================================================================
+
+  const handleSkipFlight = () => {
+    setFlightSkipped(true)
+    setFlightSectionOpen(false)
+    localStorage.setItem(`trip-${tripId}-flight-skipped`, 'true')
+    toast.success('flights marked as not needed')
+  }
+
+  const handleUnskipFlight = () => {
+    setFlightSkipped(false)
+    setFlightSectionOpen(true)
+    localStorage.removeItem(`trip-${tripId}-flight-skipped`)
+  }
+
+  const handleSkipHotel = () => {
+    setHotelSkipped(true)
+    setHotelSectionOpen(false)
+    localStorage.setItem(`trip-${tripId}-hotel-skipped`, 'true')
+    toast.success('hotel marked as not needed')
+  }
+
+  const handleUnskipHotel = () => {
+    setHotelSkipped(false)
+    setHotelSectionOpen(true)
+    localStorage.removeItem(`trip-${tripId}-hotel-skipped`)
+  }
+
+  // ===========================================================================
   // Loading State
   // ===========================================================================
 
@@ -342,8 +386,8 @@ export default function TripBuilderPage() {
   // Build component statuses for progress strip
   const componentStatuses: TripComponentStatuses = {
     event: { resolved: hasEvent },
-    flights: { resolved: hasFlights, skipped: false },
-    hotel: { resolved: hasHotel, skipped: false },
+    flights: { resolved: hasFlights || flightSkipped, skipped: flightSkipped },
+    hotel: { resolved: hasHotel || hotelSkipped, skipped: hotelSkipped },
   }
 
   // Calculate estimated total
@@ -457,6 +501,30 @@ export default function TripBuilderPage() {
                   </div>
                 )}
               </>
+            ) : flightSkipped ? (
+              /* Skipped state */
+              <button
+                onClick={handleUnskipFlight}
+                className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Plane className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="font-medium lowercase flex items-center gap-2">
+                      flights
+                      <span className="text-xs text-muted-foreground font-normal">(not needed)</span>
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      skipped for this trip
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  Add flights
+                </span>
+              </button>
             ) : (
               <>
                 {/* Empty state - collapsed */}
@@ -514,6 +582,16 @@ export default function TripBuilderPage() {
                         defaultDepartureDate={trip.event_date ? getDayBefore(trip.event_date) : ''}
                         defaultReturnDate={trip.event_date ? getDayAfter(trip.event_date) : ''}
                       />
+
+                      {/* Not needed option */}
+                      <div className="mt-6 pt-4 border-t">
+                        <button
+                          onClick={handleSkipFlight}
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          I don't need flights for this trip
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -578,6 +656,30 @@ export default function TripBuilderPage() {
                   </div>
                 )}
               </>
+            ) : hotelSkipped ? (
+              /* Skipped state */
+              <button
+                onClick={handleUnskipHotel}
+                className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Hotel className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="font-medium lowercase flex items-center gap-2">
+                      hotel
+                      <span className="text-xs text-muted-foreground font-normal">(not needed)</span>
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      skipped for this trip
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  Add hotel
+                </span>
+              </button>
             ) : (
               <>
                 {/* Empty state - collapsed */}
@@ -635,6 +737,16 @@ export default function TripBuilderPage() {
                         defaultCheckIn={trip.event_date ? getDayBefore(trip.event_date) : ''}
                         defaultCheckOut={trip.event_date ? getDayAfter(trip.event_date) : ''}
                       />
+
+                      {/* Not needed option */}
+                      <div className="mt-6 pt-4 border-t">
+                        <button
+                          onClick={handleSkipHotel}
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          I don't need a hotel for this trip
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
