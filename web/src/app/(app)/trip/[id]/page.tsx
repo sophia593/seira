@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Plane, Hotel, ChevronDown, ChevronUp, X, Check } from 'lucide-react'
+import { ArrowLeft, Loader2, Plane, Hotel, ChevronDown, ChevronUp, X, Check, Ticket, DollarSign } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
@@ -435,13 +435,13 @@ export default function TripBuilderPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Back Link */}
         <Link
           href="/trips"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground mb-4 sm:mb-6 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           back to trips
         </Link>
 
@@ -456,7 +456,7 @@ export default function TripBuilderPage() {
               city: trip.destination_city,
               ticketUrl: trip.event_purchase_url,
             }}
-            className="mb-4"
+            className="mb-3 sm:mb-4"
           />
         )}
 
@@ -464,21 +464,21 @@ export default function TripBuilderPage() {
         <ProgressStrip
           statuses={componentStatuses}
           onReviewClick={handleReviewClick}
-          className="mb-6"
+          className="mb-4 sm:mb-6"
         />
 
         {/* Trip Builder Sections */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* ================================================================= */}
           {/* Flights Section */}
           {/* ================================================================= */}
-          <section className="rounded-xl border bg-card overflow-hidden">
+          <section className="rounded-lg sm:rounded-xl border bg-card overflow-hidden">
             {hasFlights ? (
               <>
                 {/* Header with flight info */}
                 <button
                   onClick={() => setFlightSectionOpen(!flightSectionOpen)}
-                  className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                  className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
@@ -503,7 +503,7 @@ export default function TripBuilderPage() {
 
                 {/* Expanded flight details */}
                 {flightSectionOpen && (
-                  <div className="border-t p-5">
+                  <div className="border-t p-4 sm:p-5">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <p className="font-medium">
@@ -588,7 +588,7 @@ export default function TripBuilderPage() {
                     {/* Header when expanded */}
                     <button
                       onClick={() => setFlightSectionOpen(false)}
-                      className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors border-b"
+                      className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-muted/50 transition-colors border-b"
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
@@ -605,7 +605,7 @@ export default function TripBuilderPage() {
                     </button>
 
                     {/* Flight search */}
-                    <div className="p-5 relative">
+                    <div className="p-4 sm:p-5 relative">
                       {isUpdatingFlight && (
                         <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
                           <Loader2 className="w-6 h-6 animate-spin" />
@@ -637,13 +637,13 @@ export default function TripBuilderPage() {
           {/* ================================================================= */}
           {/* Hotel Section */}
           {/* ================================================================= */}
-          <section className="rounded-xl border bg-card overflow-hidden">
+          <section className="rounded-lg sm:rounded-xl border bg-card overflow-hidden">
             {hasHotel ? (
               <>
                 {/* Header with hotel info */}
                 <button
                   onClick={() => setHotelSectionOpen(!hotelSectionOpen)}
-                  className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                  className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
@@ -668,7 +668,7 @@ export default function TripBuilderPage() {
 
                 {/* Expanded hotel details */}
                 {hotelSectionOpen && (
-                  <div className="border-t p-5">
+                  <div className="border-t p-4 sm:p-5">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <p className="font-medium">{trip.hotel_name}</p>
@@ -746,7 +746,7 @@ export default function TripBuilderPage() {
                     {/* Header when expanded */}
                     <button
                       onClick={() => setHotelSectionOpen(false)}
-                      className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors border-b"
+                      className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-muted/50 transition-colors border-b"
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
@@ -763,7 +763,7 @@ export default function TripBuilderPage() {
                     </button>
 
                     {/* Hotel search */}
-                    <div className="p-5 relative">
+                    <div className="p-4 sm:p-5 relative">
                       {isUpdatingHotel && (
                         <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
                           <Loader2 className="w-6 h-6 animate-spin" />
@@ -793,38 +793,87 @@ export default function TripBuilderPage() {
           </section>
 
           {/* ================================================================= */}
-          {/* Total */}
+          {/* Cost Estimate */}
           {/* ================================================================= */}
-          {estimatedTotal > 0 && (
-            <div className="rounded-xl border bg-muted/50 p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">estimated total</span>
-                <span className="text-xl font-semibold">
-                  ${estimatedTotal.toLocaleString()}
-                </span>
+          <section className="rounded-lg sm:rounded-xl border bg-card overflow-hidden">
+            <div className="p-4 sm:p-5">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <DollarSign className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-medium lowercase">cost estimate</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {estimatedTotal > 0 ? 'based on your selections' : 'add items to see estimate'}
+                  </p>
+                </div>
               </div>
-              <div className="mt-2 text-xs text-muted-foreground space-y-1">
-                {trip.event_price_estimate && (
-                  <div className="flex justify-between">
-                    <span>Event</span>
-                    <span>${trip.event_price_estimate}</span>
+
+              {/* Cost breakdown */}
+              <div className="space-y-3">
+                {/* Tickets */}
+                <div className="flex items-center justify-between py-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <Ticket className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">Tickets</span>
                   </div>
-                )}
-                {trip.flight_price && (
-                  <div className="flex justify-between">
-                    <span>Flights</span>
-                    <span>${trip.flight_price}</span>
+                  {trip.event_price_estimate ? (
+                    <span className="text-sm font-medium">${trip.event_price_estimate.toLocaleString()}</span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground italic">—</span>
+                  )}
+                </div>
+
+                {/* Flights */}
+                <div className="flex items-center justify-between py-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <Plane className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">Flights</span>
                   </div>
-                )}
-                {trip.hotel_price && (
-                  <div className="flex justify-between">
-                    <span>Hotel</span>
-                    <span>${trip.hotel_price}</span>
+                  {trip.flight_price ? (
+                    <span className="text-sm font-medium">${trip.flight_price.toLocaleString()}</span>
+                  ) : flightSkipped ? (
+                    <span className="text-sm text-muted-foreground">Not needed</span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground italic">Select flights</span>
+                  )}
+                </div>
+
+                {/* Hotel */}
+                <div className="flex items-center justify-between py-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <Hotel className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">Hotel</span>
                   </div>
-                )}
+                  {trip.hotel_price ? (
+                    <span className="text-sm font-medium">${trip.hotel_price.toLocaleString()}</span>
+                  ) : hotelSkipped ? (
+                    <span className="text-sm text-muted-foreground">Not needed</span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground italic">Select hotel</span>
+                  )}
+                </div>
+
+                {/* Total */}
+                <div className="flex items-center justify-between pt-2">
+                  <span className="font-medium">Estimated Total</span>
+                  {estimatedTotal > 0 ? (
+                    <span className="text-xl font-bold">${estimatedTotal.toLocaleString()}</span>
+                  ) : (
+                    <span className="text-lg text-muted-foreground">—</span>
+                  )}
+                </div>
               </div>
+
+              {/* Note */}
+              {estimatedTotal > 0 && (
+                <p className="text-xs text-muted-foreground mt-4">
+                  Prices are estimates and may vary at time of booking.
+                </p>
+              )}
             </div>
-          )}
+          </section>
         </div>
       </div>
     </div>

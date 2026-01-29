@@ -55,12 +55,12 @@ export function ProgressStrip({
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-4 p-4 rounded-xl border bg-card',
+        'flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl border bg-card',
         className
       )}
     >
-      {/* Left side: Status indicators */}
-      <div className="flex items-center gap-6">
+      {/* Status indicators */}
+      <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto">
         {components.map((component) => (
           <StatusIndicator
             key={component.key}
@@ -71,12 +71,12 @@ export function ProgressStrip({
         ))}
 
         {/* Divider */}
-        <div className="hidden sm:block w-px h-5 bg-border" />
+        <div className="hidden lg:block w-px h-5 bg-border" />
 
         {/* Status message */}
         <span
           className={cn(
-            'hidden sm:block text-sm font-medium',
+            'hidden lg:block text-sm font-medium whitespace-nowrap',
             isReady ? 'text-green-600 dark:text-green-500' : 'text-muted-foreground'
           )}
         >
@@ -84,13 +84,13 @@ export function ProgressStrip({
         </span>
       </div>
 
-      {/* Right side: Review button */}
+      {/* Review button */}
       <Button
         onClick={onReviewClick}
         disabled={!isReady}
         size="sm"
         className={cn(
-          'gap-2 transition-all',
+          'gap-2 transition-all w-full sm:w-auto',
           isReady
             ? 'bg-green-600 hover:bg-green-700 text-white'
             : 'opacity-50'

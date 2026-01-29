@@ -37,13 +37,13 @@ export function EventAnchor({ event, className }: EventAnchorProps) {
   return (
     <div
       className={cn(
-        'relative rounded-2xl border bg-card overflow-hidden',
+        'relative rounded-xl sm:rounded-2xl border bg-card overflow-hidden',
         'shadow-lg shadow-primary/5',
         className
       )}
     >
       {/* Top accent bar */}
-      <div className="h-1.5 bg-gradient-to-r from-primary via-primary/80 to-primary" />
+      <div className="h-1 sm:h-1.5 bg-gradient-to-r from-primary via-primary/80 to-primary" />
 
       <div className="flex">
         {/* Image (if available) */}
@@ -58,30 +58,30 @@ export function EventAnchor({ event, className }: EventAnchorProps) {
         )}
 
         {/* Content */}
-        <div className="flex-1 p-5">
+        <div className="flex-1 p-3 sm:p-5">
           {/* Event badge */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
-            <Ticket className="w-3 h-3" />
+          <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-primary/10 text-primary text-[10px] sm:text-xs font-semibold mb-2 sm:mb-3">
+            <Ticket className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             YOUR EVENT
           </div>
 
           {/* Event name */}
-          <h2 className="text-xl md:text-2xl font-bold tracking-tight lowercase leading-tight mb-3">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight lowercase leading-tight mb-2 sm:mb-3">
             {name}
           </h2>
 
           {/* Date & Time - prominent */}
           {(formattedDate || formattedTime) && (
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2 text-sm sm:text-base">
               {formattedDate && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-primary" />
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                   <span className="font-semibold">{formattedDate}</span>
                 </div>
               )}
               {formattedTime && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span>{formattedTime}</span>
                 </div>
               )}
@@ -90,9 +90,9 @@ export function EventAnchor({ event, className }: EventAnchorProps) {
 
           {/* Venue */}
           {locationParts.length > 0 && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-              <MapPin className="w-4 h-4 shrink-0" />
-              <span>
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="line-clamp-1">
                 {venue && <span className="font-medium text-foreground">{venue}</span>}
                 {venue && city && <span className="mx-1">·</span>}
                 {city && <span>{city}</span>}
@@ -102,11 +102,11 @@ export function EventAnchor({ event, className }: EventAnchorProps) {
 
           {/* Ticket button */}
           {ticketUrl && (
-            <Button asChild size="sm" className="gap-2">
+            <Button asChild size="sm" className="gap-1.5 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9">
               <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
-                <Ticket className="w-4 h-4" />
+                <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 View Tickets
-                <ExternalLink className="w-3 h-3 ml-1 opacity-70" />
+                <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3 ml-0.5 sm:ml-1 opacity-70" />
               </a>
             </Button>
           )}
