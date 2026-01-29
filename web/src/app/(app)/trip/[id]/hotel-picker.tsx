@@ -301,17 +301,17 @@ export function HotelPicker({
             <Button
               type="submit"
               disabled={isLoading || !city || !checkIn || !checkOut}
-              className="gap-2 flex-1 sm:flex-none"
+              className="gap-2 flex-1 sm:flex-none h-11"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Searching...
+                  searching...
                 </>
               ) : (
                 <>
                   <Search className="w-4 h-4" />
-                  Search
+                  search hotels
                 </>
               )}
             </Button>
@@ -322,10 +322,10 @@ export function HotelPicker({
                 variant="ghost"
                 size="sm"
                 onClick={handleClear}
-                className="gap-1 text-muted-foreground"
+                className="gap-1 text-muted-foreground h-11"
               >
                 <X className="w-3.5 h-3.5" />
-                Clear
+                clear
               </Button>
             )}
           </div>
@@ -354,10 +354,10 @@ export function HotelPicker({
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 {results.totalCount === 0 ? (
-                  'No hotels found'
+                  'no hotels found'
                 ) : (
                   <>
-                    Found <span className="font-medium text-foreground">{results.totalCount}</span> hotel{results.totalCount !== 1 ? 's' : ''}
+                    found <span className="font-medium text-foreground">{results.totalCount}</span> hotel{results.totalCount !== 1 ? 's' : ''}
                   </>
                 )}
               </p>
@@ -385,9 +385,9 @@ export function HotelPicker({
             {/* Empty state */}
             {results.offers.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-muted-foreground mb-2">No hotels match your search</p>
+                <p className="text-muted-foreground mb-2">no hotels match your search</p>
                 <p className="text-sm text-muted-foreground">
-                  Try different dates or location
+                  try different dates or location
                 </p>
               </div>
             )}
@@ -398,7 +398,7 @@ export function HotelPicker({
         {!hasSearched && !isLoading && (
           <div className="text-center py-12 text-muted-foreground">
             <Hotel className="w-10 h-10 mx-auto mb-3 opacity-20" />
-            <p className="text-sm">Enter your city and dates to search</p>
+            <p className="text-sm">enter your city and dates to search</p>
           </div>
         )}
       </div>
@@ -408,9 +408,9 @@ export function HotelPicker({
         <div className="border-t p-3 sm:p-4">
           <button
             onClick={onSkip}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center min-h-[44px]"
           >
-            I don't need a hotel for this trip
+            i don't need a hotel for this trip
           </button>
         </div>
       )}

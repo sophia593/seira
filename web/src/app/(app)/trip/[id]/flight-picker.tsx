@@ -440,7 +440,7 @@ export function FlightPicker({
                 onChange={(e) => setNonstopOnly(e.target.checked)}
                 className="rounded border-muted-foreground w-3.5 h-3.5"
               />
-              <span className="text-muted-foreground">Nonstop only</span>
+              <span className="text-muted-foreground">nonstop only</span>
             </label>
           </div>
 
@@ -449,17 +449,17 @@ export function FlightPicker({
             <Button
               type="submit"
               disabled={isLoading || !origin || !destination || !departureDate}
-              className="gap-2 flex-1 sm:flex-none"
+              className="gap-2 flex-1 sm:flex-none h-11"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Searching...
+                  searching...
                 </>
               ) : (
                 <>
                   <Search className="w-4 h-4" />
-                  Search
+                  search flights
                 </>
               )}
             </Button>
@@ -560,7 +560,7 @@ export function FlightPicker({
         {!hasSearched && !isLoading && (
           <div className="text-center py-12 text-muted-foreground">
             <Plane className="w-10 h-10 mx-auto mb-3 opacity-20" />
-            <p className="text-sm">Enter your origin airport and search</p>
+            <p className="text-sm">enter your origin airport and search</p>
           </div>
         )}
       </div>
@@ -570,9 +570,9 @@ export function FlightPicker({
         <div className="border-t p-3 sm:p-4">
           <button
             onClick={onSkip}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center min-h-[44px]"
           >
-            I don't need flights for this trip
+            i don't need flights for this trip
           </button>
         </div>
       )}

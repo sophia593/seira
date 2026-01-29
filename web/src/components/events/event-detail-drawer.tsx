@@ -69,7 +69,8 @@ export function EventDetailDrawer({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition-colors"
+          className="absolute top-3 right-3 p-2.5 rounded-full hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          aria-label="close"
         >
           <X className="w-5 h-5" />
         </button>
@@ -177,21 +178,21 @@ export function EventDetailDrawer({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 pt-4 border-t bg-background">
+        <div className="p-6 pt-4 border-t bg-background pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="flex gap-3">
             <Button
               variant="outline"
               onClick={onClose}
-              className="flex-1"
+              className="flex-1 h-12"
             >
-              Cancel
+              cancel
             </Button>
             <Button
               onClick={() => onConfirm(event)}
               disabled={isLoading}
-              className="flex-1"
+              className="flex-1 h-12"
             >
-              {isLoading ? 'Creating Trip...' : 'Select This Date'}
+              {isLoading ? 'creating trip...' : 'select this event'}
             </Button>
           </div>
         </div>

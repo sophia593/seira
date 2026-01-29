@@ -64,9 +64,9 @@ export function ShareModal({ tripId, existingShareToken, userName }: ShareModalP
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2 h-9">
           <Share2 className="w-4 h-4" />
-          Share
+          share
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -82,7 +82,7 @@ export function ShareModal({ tripId, existingShareToken, userName }: ShareModalP
           {!shareToken && (
             <div>
               <label className="text-sm font-medium mb-1.5 block">
-                Your name (optional)
+                your name (optional)
               </label>
               <Input
                 placeholder="e.g., Alex"

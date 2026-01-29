@@ -352,7 +352,7 @@ export default function TripReviewPage() {
             {isBooked && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
-                Booked
+                booked
               </span>
             )}
           </div>
@@ -367,7 +367,7 @@ export default function TripReviewPage() {
             <div className="px-5 py-4 border-b bg-muted/30">
               <h2 className="font-semibold flex items-center gap-2.5">
                 <Calendar className="w-5 h-5 text-muted-foreground" />
-                Trip Timeline
+                trip timeline
               </h2>
             </div>
             <div className="p-5 sm:p-6">
@@ -387,7 +387,7 @@ export default function TripReviewPage() {
                   ) : (
                     <AlertTriangle className="w-5 h-5 text-amber-500" />
                   )}
-                  Plan Health
+                  plan health
                 </h2>
                 <span
                   className={cn(
@@ -397,7 +397,7 @@ export default function TripReviewPage() {
                       : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                   )}
                 >
-                  {allPassed ? 'All checks passed' : 'Review recommended'}
+                  {allPassed ? 'all checks passed' : 'review recommended'}
                 </span>
               </div>
             </div>
@@ -417,7 +417,7 @@ export default function TripReviewPage() {
             <div className="px-5 py-4 border-b bg-muted/30">
               <h2 className="font-semibold flex items-center gap-2.5">
                 <DollarSign className="w-5 h-5 text-muted-foreground" />
-                Cost Breakdown
+                cost breakdown
               </h2>
             </div>
             <div className="p-5 sm:p-6">
@@ -426,8 +426,8 @@ export default function TripReviewPage() {
                 <CostRow
                   icon={<Ticket className="w-4 h-4" />}
                   iconBg="bg-primary/10 text-primary"
-                  title="Event Tickets"
-                  subtitle={trip.event_name || 'Event'}
+                  title="event tickets"
+                  subtitle={trip.event_name || 'event'}
                   amount={ticketCost}
                 />
 
@@ -435,13 +435,13 @@ export default function TripReviewPage() {
                 <CostRow
                   icon={<Plane className="w-4 h-4" />}
                   iconBg="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                  title="Flights"
+                  title="flights"
                   subtitle={
                     hasFlights
                       ? `${trip.flight_origin} → ${trip.flight_destination}`
                       : flightSkipped
-                      ? 'Not needed'
-                      : 'Not selected'
+                      ? 'not needed'
+                      : 'not selected'
                   }
                   amount={flightCost}
                   muted={flightSkipped}
@@ -451,13 +451,13 @@ export default function TripReviewPage() {
                 <CostRow
                   icon={<Hotel className="w-4 h-4" />}
                   iconBg="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
-                  title="Hotel"
+                  title="hotel"
                   subtitle={
                     hasHotel
-                      ? trip.hotel_name || 'Hotel'
+                      ? trip.hotel_name || 'hotel'
                       : hotelSkipped
-                      ? 'Not needed'
-                      : 'Not selected'
+                      ? 'not needed'
+                      : 'not selected'
                   }
                   amount={hotelCost}
                   muted={hotelSkipped}
@@ -466,14 +466,14 @@ export default function TripReviewPage() {
 
                 {/* Total */}
                 <div className="flex items-center justify-between pt-5 mt-1 border-t">
-                  <span className="text-lg font-semibold">Estimated Total</span>
+                  <span className="text-lg font-semibold">estimated total</span>
                   <span className="text-2xl sm:text-3xl font-bold text-primary">
                     ${totalCost.toLocaleString()}
                   </span>
                 </div>
 
                 <p className="text-xs text-muted-foreground pt-3">
-                  Prices are estimates and may vary at time of booking.
+                  prices are estimates and may vary at time of booking.
                 </p>
               </div>
             </div>
@@ -486,12 +486,12 @@ export default function TripReviewPage() {
             <div className="px-5 py-4 border-b bg-muted/30">
               <h2 className="font-semibold flex items-center gap-2.5">
                 <ExternalLink className="w-5 h-5 text-muted-foreground" />
-                Book Your Trip
+                book your trip
               </h2>
             </div>
             <div className="p-5 sm:p-6">
               <p className="text-sm text-muted-foreground mb-5">
-                Complete your bookings in order for the best experience.
+                complete your bookings in order for the best experience.
               </p>
               <div className="space-y-3">
                 {/* Step 1: Tickets */}
@@ -499,8 +499,8 @@ export default function TripReviewPage() {
                   step={1}
                   icon={<Ticket className="w-5 h-5" />}
                   iconBg="bg-primary/10 text-primary"
-                  title="Event Tickets"
-                  subtitle={trip.event_name || 'Event'}
+                  title="event tickets"
+                  subtitle={trip.event_name || 'event'}
                   price={ticketCost}
                   url={trip.event_purchase_url}
                 />
@@ -511,7 +511,7 @@ export default function TripReviewPage() {
                     step={2}
                     icon={<Plane className="w-5 h-5" />}
                     iconBg="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                    title="Flights"
+                    title="flights"
                     subtitle={`${trip.flight_origin} → ${trip.flight_destination}${trip.flight_carrier ? ` · ${trip.flight_carrier}` : ''}`}
                     price={flightCost}
                     url={trip.flight_purchase_url}
@@ -524,8 +524,8 @@ export default function TripReviewPage() {
                     step={hasFlights ? 3 : 2}
                     icon={<Hotel className="w-5 h-5" />}
                     iconBg="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
-                    title="Hotel"
-                    subtitle={trip.hotel_name || 'Hotel'}
+                    title="hotel"
+                    subtitle={trip.hotel_name || 'hotel'}
                     price={hotelCost}
                     url={trip.hotel_purchase_url}
                   />
@@ -536,10 +536,10 @@ export default function TripReviewPage() {
               {(flightSkipped || hotelSkipped) && (
                 <p className="mt-4 text-sm text-muted-foreground">
                   {flightSkipped && hotelSkipped
-                    ? 'Flights and hotel were marked as not needed.'
+                    ? 'flights and hotel were marked as not needed.'
                     : flightSkipped
-                    ? 'Flights were marked as not needed.'
-                    : 'Hotel was marked as not needed.'}
+                    ? 'flights were marked as not needed.'
+                    : 'hotel was marked as not needed.'}
                 </p>
               )}
             </div>
@@ -569,7 +569,7 @@ export default function TripReviewPage() {
                   size="lg"
                   onClick={handleMarkBooked}
                   disabled={isMarkingBooked}
-                  className="gap-2 px-8"
+                  className="gap-2 px-8 h-12"
                 >
                   {isMarkingBooked ? (
                     <>
@@ -579,7 +579,7 @@ export default function TripReviewPage() {
                   ) : (
                     <>
                       <Check className="w-4 h-4" />
-                      I booked this trip
+                      i booked this trip
                     </>
                   )}
                 </Button>

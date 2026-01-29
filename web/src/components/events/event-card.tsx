@@ -93,16 +93,16 @@ export function EventCard({
           onClick={() => onSelect?.(event)}
           variant={selected ? 'default' : 'outline'}
           size="sm"
-          className="w-full"
+          className="w-full h-10"
         >
-          {selected ? 'Selected' : 'Select Event'}
+          {selected ? 'selected' : 'select event'}
         </Button>
       </div>
 
       {/* Selected badge */}
       {selected && (
         <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
-          ✓ Selected
+          selected
         </div>
       )}
     </div>
