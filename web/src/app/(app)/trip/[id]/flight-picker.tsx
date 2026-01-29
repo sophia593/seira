@@ -339,6 +339,7 @@ export function FlightPicker({
               <Input
                 type="text"
                 placeholder="From (e.g., SFO)"
+                aria-label="Origin airport code"
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value.toUpperCase())}
                 maxLength={3}
@@ -352,6 +353,7 @@ export function FlightPicker({
               variant="ghost"
               size="icon"
               onClick={swapAirports}
+              aria-label="Swap origin and destination"
               className="shrink-0 h-11 w-11"
             >
               <ArrowRightLeft className="w-4 h-4" />
@@ -363,6 +365,7 @@ export function FlightPicker({
               <Input
                 type="text"
                 placeholder="To (e.g., LAX)"
+                aria-label="Destination airport code"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value.toUpperCase())}
                 maxLength={3}
@@ -379,6 +382,7 @@ export function FlightPicker({
               <Input
                 type="date"
                 placeholder="Depart"
+                aria-label="Departure date"
                 value={departureDate}
                 onChange={(e) => setDepartureDate(e.target.value)}
                 className="pl-10 h-11"
@@ -391,6 +395,7 @@ export function FlightPicker({
               <Input
                 type="date"
                 placeholder="Return"
+                aria-label="Return date"
                 value={returnDate}
                 onChange={(e) => setReturnDate(e.target.value)}
                 className="pl-10 h-11"
@@ -404,6 +409,7 @@ export function FlightPicker({
                 type="number"
                 min={1}
                 max={9}
+                aria-label="Number of passengers"
                 value={adults}
                 onChange={(e) => setAdults(parseInt(e.target.value) || 1)}
                 className="pl-10 h-11"
@@ -626,6 +632,7 @@ export function FlightPicker({
                   variant="ghost"
                   size="icon"
                   onClick={() => onOpenChange(false)}
+                  aria-label="close"
                   className="shrink-0"
                 >
                   <X className="w-5 h-5" />
@@ -637,46 +644,36 @@ export function FlightPicker({
         </Sheet>
       </div>
 
-      {/* Desktop: Panel/Split view */}
+      {/* Desktop: Sheet/Panel from right */}
       <div className="hidden sm:block">
-        {open && (
-          <div className="fixed inset-0 z-50 flex">
-            {/* Overlay */}
-            <div
-              className="absolute inset-0 bg-black/50"
-              onClick={() => onOpenChange(false)}
-            />
-
-            {/* Panel */}
-            <div
-              className={cn(
-                'relative ml-auto w-full max-w-xl bg-background border-l shadow-xl flex flex-col h-full',
-                'animate-in slide-in-from-right duration-300',
-                className
-              )}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-5 border-b">
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent
+            side="right"
+            className={cn('w-full max-w-xl p-0 sm:max-w-xl', className)}
+            showCloseButton={false}
+          >
+            <SheetHeader className="p-5 border-b">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold lowercase">add flights</h2>
-                  <p className="text-sm text-muted-foreground">
+                  <SheetTitle className="lowercase">add flights</SheetTitle>
+                  <SheetDescription>
                     search and select your flights
-                  </p>
+                  </SheetDescription>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => onOpenChange(false)}
+                  aria-label="close"
                   className="shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </Button>
               </div>
-
-              {pickerContent}
-            </div>
-          </div>
-        )}
+            </SheetHeader>
+            {pickerContent}
+          </SheetContent>
+        </Sheet>
       </div>
     </>
   )

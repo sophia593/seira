@@ -1,9 +1,15 @@
 'use client'
 
-import { Calendar, MapPin, Ticket, ExternalLink, X, Clock } from 'lucide-react'
+import { Calendar, MapPin, Ticket, ExternalLink, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
 import { OptimizedImage } from '@/components/ui/optimized-image'
-import { cn } from '@/lib/utils'
 import type { EventResult } from '@/hooks/use-event-search'
 
 // =============================================================================
@@ -43,37 +49,18 @@ export function EventDetailDrawer({
     : null
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className={cn(
-          'fixed inset-0 bg-black/50 z-40 transition-opacity duration-300',
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        )}
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div
-        className={cn(
-          'fixed inset-x-0 bottom-0 z-50 bg-background rounded-t-2xl shadow-xl transition-transform duration-300 ease-out',
-          'max-h-[85vh] overflow-hidden flex flex-col',
-          isOpen ? 'translate-y-0' : 'translate-y-full'
-        )}
+    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[85vh] rounded-t-2xl p-0 flex flex-col"
+        showCloseButton={true}
       >
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-12 h-1.5 rounded-full bg-muted" />
-        </div>
-
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 p-2.5 rounded-full hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-          aria-label="close"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <SheetHeader className="px-6 pt-4 pb-0">
+          <SheetTitle className="sr-only">{name}</SheetTitle>
+          <SheetDescription className="sr-only">
+            Event details for {name}
+          </SheetDescription>
+        </SheetHeader>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 pb-6">
@@ -90,7 +77,7 @@ export function EventDetailDrawer({
           )}
 
           {/* Event Name */}
-          <h2 className="text-2xl font-bold mb-4 lowercase leading-tight">
+          <h2 className="text-2xl font-bold mb-4 lowercase leading-tight" aria-hidden="true">
             {name}
           </h2>
 
@@ -116,13 +103,13 @@ export function EventDetailDrawer({
             <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
-                  <Calendar className="w-5 h-5 text-primary" />
+                  <Calendar className="w-5 h-5 text-primary" aria-hidden="true" />
                 </div>
                 <div>
                   <p className="font-semibold text-lg">{formattedDate}</p>
                   {formattedTime && (
                     <p className="text-muted-foreground flex items-center gap-1.5 mt-1">
-                      <Clock className="w-4 h-4" />
+                      <Clock className="w-4 h-4" aria-hidden="true" />
                       {formattedTime}
                     </p>
                   )}
@@ -134,7 +121,7 @@ export function EventDetailDrawer({
             {venueDisplay && (
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-muted">
-                  <MapPin className="w-5 h-5 text-muted-foreground" />
+                  <MapPin className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
                 </div>
                 <div>
                   <p className="font-medium">{venue?.name}</p>
@@ -154,7 +141,7 @@ export function EventDetailDrawer({
             {priceDisplay && (
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-muted">
-                  <Ticket className="w-5 h-5 text-muted-foreground" />
+                  <Ticket className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
                 </div>
                 <div>
                   <p className="font-medium">{priceDisplay}</p>
@@ -172,7 +159,7 @@ export function EventDetailDrawer({
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
             >
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-4 h-4" aria-hidden="true" />
               View on Ticketmaster
             </a>
           )}
@@ -197,8 +184,8 @@ export function EventDetailDrawer({
             </Button>
           </div>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   )
 }
 

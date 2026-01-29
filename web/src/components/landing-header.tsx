@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation"
 import { ArrowRight, Menu, X, User, Settings, Map, LogOut } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { useAuth } from "@/hooks/use-auth"
 import { createClient } from "@/lib/supabase/client"
 import {
@@ -159,34 +165,20 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
   }
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className={cn(
-          "fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-opacity duration-200",
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}
-        onClick={onClose}
-      />
-
-      {/* Menu Panel */}
-      <div
-        className={cn(
-          "fixed top-0 right-0 h-full w-72 bg-background border-l shadow-lg z-50 transition-transform duration-200 ease-out",
-          isOpen ? "translate-x-0" : "translate-x-full"
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <span className="font-medium">menu</span>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-accent transition-colors"
-            aria-label="Close menu"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <SheetContent side="right" className="w-72 p-0" showCloseButton={false}>
+        <SheetHeader className="p-4 border-b">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="font-medium text-base">menu</SheetTitle>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-accent transition-colors"
+              aria-label="Close menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </SheetHeader>
 
         {/* Links */}
         <nav className="p-4 space-y-1">
@@ -278,8 +270,8 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
             </div>
           )}
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   )
 }
 

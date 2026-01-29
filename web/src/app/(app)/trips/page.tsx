@@ -257,7 +257,7 @@ function TripCard({ trip, onDelete, onShare, isDeleting }: TripCardProps) {
       </Link>
 
       {/* Quick Actions - positioned at bottom right, always visible on mobile */}
-      <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+      <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
         {/* Primary action button */}
         <Button
           variant="default"
@@ -280,6 +280,7 @@ function TripCard({ trip, onDelete, onShare, isDeleting }: TripCardProps) {
               size="sm"
               className="h-9 w-9 sm:h-8 sm:w-8 p-0"
               onClick={(e) => e.preventDefault()}
+              aria-label="More actions"
             >
               <MoreHorizontal className="w-4 h-4" />
             </Button>
@@ -483,12 +484,14 @@ function ShareDialog({
                 <input
                   readOnly
                   value={shareUrl}
+                  aria-label="Share URL"
                   className="flex-1 px-3 py-2 text-sm rounded-lg border bg-muted font-mono truncate"
                 />
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={handleCopy}
+                  aria-label={copied ? "Copied" : "Copy link"}
                 >
                   {copied ? (
                     <Check className="w-4 h-4 text-green-500" />
@@ -701,6 +704,7 @@ export default function TripsPage() {
               <button
                 key={filter.value}
                 onClick={() => setActiveFilter(filter.value)}
+                aria-pressed={activeFilter === filter.value}
                 className={cn(
                   'min-h-[44px] px-4 py-2.5 text-sm rounded-full transition-all whitespace-nowrap',
                   activeFilter === filter.value

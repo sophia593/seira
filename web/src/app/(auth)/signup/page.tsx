@@ -427,7 +427,7 @@ export default function SignupPage() {
                   "w-full h-12 px-5 rounded-2xl",
                   "bg-background border",
                   "text-sm placeholder:text-muted-foreground/50",
-                  "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:border-primary",
                   "transition-all duration-150",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   errors.firstName && "border-destructive focus:ring-destructive/20"
@@ -458,7 +458,7 @@ export default function SignupPage() {
                   "w-full h-12 px-5 rounded-2xl",
                   "bg-background border",
                   "text-sm placeholder:text-muted-foreground/50",
-                  "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:border-primary",
                   "transition-all duration-150",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   errors.email && "border-destructive focus:ring-destructive/20"
@@ -490,7 +490,7 @@ export default function SignupPage() {
                     "w-full h-12 px-5 pr-12 rounded-2xl",
                     "bg-background border",
                     "text-sm placeholder:text-muted-foreground/50",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                    "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:border-primary",
                     "transition-all duration-150",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                     errors.password && "border-destructive focus:ring-destructive/20"
@@ -533,7 +533,7 @@ export default function SignupPage() {
                 "bg-primary text-primary-foreground",
                 "text-sm font-medium",
                 "hover:bg-primary/90",
-                "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2",
+                "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:ring-offset-2",
                 "transition-all duration-150",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}

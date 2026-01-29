@@ -582,6 +582,7 @@ export default function TripBuilderPage() {
                 {/* Header with flight info */}
                 <button
                   onClick={() => setFlightSectionOpen(!flightSectionOpen)}
+                  aria-expanded={flightSectionOpen}
                   className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -657,7 +658,7 @@ export default function TripBuilderPage() {
                     </p>
                   </div>
                 </div>
-                <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
                   Add flights
                 </span>
               </button>
@@ -682,7 +683,7 @@ export default function TripBuilderPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
                     + Add flights
                   </span>
                 </button>
@@ -699,6 +700,7 @@ export default function TripBuilderPage() {
                 {/* Header with hotel info */}
                 <button
                   onClick={() => setHotelSectionOpen(!hotelSectionOpen)}
+                  aria-expanded={hotelSectionOpen}
                   className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -767,7 +769,7 @@ export default function TripBuilderPage() {
                     </p>
                   </div>
                 </div>
-                <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
                   Add hotel
                 </span>
               </button>
@@ -793,7 +795,7 @@ export default function TripBuilderPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
                     + Add hotel
                   </span>
                 </button>

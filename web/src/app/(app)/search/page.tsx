@@ -85,7 +85,7 @@ export default function SearchPage() {
 
         {/* Creating overlay */}
         {isCreating && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center" role="status" aria-live="assertive">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="text-lg font-medium">creating your trip...</p>

@@ -39,6 +39,29 @@ interface EventSearchProps {
 }
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+function buildSearchParams(
+  cat: CategoryId, q: string, c: string, from: string, to: string
+): EventSearchParams {
+  const config = EVENT_CATEGORIES.find(x => x.id === cat)
+  const params: EventSearchParams = { size: 20 }
+  if (q) params.q = q
+  if (c) params.city = c
+  if (from) params.dateFrom = from
+  if (to) params.dateTo = to
+  if (config?.segment) params.segment = config.segment
+  if (config?.genre) params.genre = config.genre
+  // "All" with no other filters → show featured
+  if (cat === 'all' && !q && !c && !from) {
+    params.segment = 'Music'
+    params.size = 12
+  }
+  return params
+}
+
+// =============================================================================
 // Component
 // =============================================================================
 
@@ -52,12 +75,8 @@ export function EventSearch({
   const searchParams = useSearchParams()
   const { search, results, isLoading, error, clear } = useEventSearch()
 
-  // Get category from URL or default
-  const urlCategory = searchParams.get('category') as CategoryId | null
-  const initialCategory = urlCategory || defaultCategory || 'all'
-
   // Search form state
-  const [category, setCategory] = useState<CategoryId>(initialCategory)
+  const [category, setCategory] = useState<CategoryId>(defaultCategory || 'all')
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -66,86 +85,69 @@ export function EventSearch({
   // Track if we've searched
   const [hasSearched, setHasSearched] = useState(false)
 
-  // Auto-load featured events on initial render
+  // Restore form state from URL and auto-search on mount
   useEffect(() => {
-    async function loadFeaturedEvents() {
-      // Only load featured events if no filters are set
-      if (!hasSearched && !urlCategory) {
-        const params: EventSearchParams = {
-          size: 12,
-          segment: 'Music', // Show concerts by default as they're most popular
-        }
-        await search(params)
-        setHasSearched(true)
-      }
-    }
-    loadFeaturedEvents()
+    const urlQ = searchParams.get('q') || ''
+    const urlCity = searchParams.get('city') || ''
+    const urlFrom = searchParams.get('from') || ''
+    const urlTo = searchParams.get('to') || ''
+    const urlCat = (searchParams.get('category') as CategoryId) || defaultCategory || 'all'
+
+    if (urlQ) setQuery(urlQ)
+    if (urlCity) setCity(urlCity)
+    if (urlFrom) setDateFrom(urlFrom)
+    if (urlTo) setDateTo(urlTo)
+    if (urlCat !== 'all') setCategory(urlCat)
+
+    const params = buildSearchParams(urlCat, urlQ, urlCity, urlFrom, urlTo)
+    search(params)
+    setHasSearched(true)
     // Only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Sync category from URL changes
-  useEffect(() => {
-    if (urlCategory && urlCategory !== category) {
-      setCategory(urlCategory)
-    }
-  }, [urlCategory])
-
-  const updateUrlCategory = useCallback((newCategory: CategoryId) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (newCategory === 'all') {
-      params.delete('category')
-    } else {
-      params.set('category', newCategory)
-    }
-    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname
-    router.push(newUrl, { scroll: false })
-  }, [router, searchParams])
+  const syncUrl = useCallback((
+    cat: CategoryId, q: string, c: string, from: string, to: string
+  ) => {
+    const params = new URLSearchParams()
+    if (cat !== 'all') params.set('category', cat)
+    if (q) params.set('q', q)
+    if (c) params.set('city', c)
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
+    const url = params.toString() ? `?${params.toString()}` : window.location.pathname
+    router.push(url, { scroll: false })
+  }, [router])
 
   const handleCategoryChange = useCallback((newCategory: CategoryId) => {
     setCategory(newCategory)
-    updateUrlCategory(newCategory)
-    // Clear results when category changes
-    clear()
-    setHasSearched(false)
-  }, [updateUrlCategory, clear])
+    syncUrl(newCategory, query, city, dateFrom, dateTo)
+    const params = buildSearchParams(newCategory, query, city, dateFrom, dateTo)
+    search(params)
+    setHasSearched(true)
+  }, [query, city, dateFrom, dateTo, search, syncUrl])
 
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault()
 
-    // For category searches, we need at least category OR query/city/date
-    const categoryConfig = EVENT_CATEGORIES.find(c => c.id === category)
-    const hasCategory = category !== 'all'
+    if (!query && !city && !dateFrom && category === 'all') return
 
-    if (!query && !city && !dateFrom && !hasCategory) {
-      return
-    }
-
-    const params: EventSearchParams = {
-      size: 20,
-    }
-
-    if (query) params.q = query
-    if (city) params.city = city
-    if (dateFrom) params.dateFrom = dateFrom
-    if (dateTo) params.dateTo = dateTo
-
-    // Add category filters
-    if (categoryConfig?.segment) params.segment = categoryConfig.segment
-    if (categoryConfig?.genre) params.genre = categoryConfig.genre
-
+    syncUrl(category, query, city, dateFrom, dateTo)
+    const params = buildSearchParams(category, query, city, dateFrom, dateTo)
     await search(params)
     setHasSearched(true)
-  }, [query, city, dateFrom, dateTo, category, search])
+  }, [query, city, dateFrom, dateTo, category, search, syncUrl])
 
   const handleClear = useCallback(() => {
     setQuery('')
     setCity('')
     setDateFrom('')
     setDateTo('')
+    setCategory('all')
     clear()
     setHasSearched(false)
-  }, [clear])
+    router.push(window.location.pathname, { scroll: false })
+  }, [clear, router])
 
   const hasFilters = query || city || dateFrom || dateTo || category !== 'all'
 
@@ -157,6 +159,7 @@ export function EventSearch({
           <button
             key={cat.id}
             onClick={() => handleCategoryChange(cat.id)}
+            aria-pressed={category === cat.id}
             className={cn(
               'min-h-[44px] px-4 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap',
               category === cat.id
@@ -177,6 +180,7 @@ export function EventSearch({
           <Input
             type="text"
             placeholder="search for an artist, team, or event..."
+            aria-label="Search for an artist, team, or event"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-10 h-12 text-base"
@@ -191,6 +195,7 @@ export function EventSearch({
             <Input
               type="text"
               placeholder="city"
+              aria-label="City"
               value={city}
               onChange={(e) => setCity(e.target.value)}
               className="pl-10"
@@ -203,6 +208,7 @@ export function EventSearch({
             <Input
               type="date"
               placeholder="from"
+              aria-label="Date from"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="pl-10 w-[160px]"
@@ -215,6 +221,7 @@ export function EventSearch({
             <Input
               type="date"
               placeholder="to"
+              aria-label="Date to"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="pl-10 w-[160px]"
@@ -266,7 +273,7 @@ export function EventSearch({
 
       {/* Results */}
       {results && (
-        <div className="space-y-4">
+        <div className="space-y-4" aria-live="polite">
           {/* Results header */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">

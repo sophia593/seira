@@ -138,11 +138,12 @@ function NewsletterSignup() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
+            aria-label="Email address"
             disabled={state.status === "loading" || state.status === "success"}
             className={cn(
               "w-full h-9 px-3 text-sm rounded-lg border bg-background",
               "placeholder:text-muted-foreground/50",
-              "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50",
+              "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:border-primary/50",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               "transition-all duration-200",
               state.status === "error" && "border-destructive focus:ring-destructive/20"
@@ -152,6 +153,7 @@ function NewsletterSignup() {
 
         <button
           type="submit"
+          aria-label="Subscribe to newsletter"
           disabled={state.status === "loading" || state.status === "success"}
           className={cn(
             "h-9 px-3 rounded-lg text-sm font-medium",
