@@ -166,3 +166,94 @@ async def delete_trip(trip_id: str) -> None:
     """Delete a trip."""
     sb = get_supabase()
     await _exec(sb.table("trips").delete().eq("id", trip_id))
+
+
+# -----------------------------------------------------------------------------
+# Share operations
+# -----------------------------------------------------------------------------
+
+
+def _generate_share_token() -> str:
+    """Generate a unique share token (URL-safe, 12 characters)."""
+    import secrets
+    return secrets.token_urlsafe(9)  # 9 bytes = 12 chars base64
+
+
+async def generate_share_token(trip_id: str, shared_by_name: Optional[str] = None) -> str:
+    """Generate and save a share token for a trip."""
+    sb = get_supabase()
+    token = _generate_share_token()
+
+    update_data: Dict[str, Any] = {"share_token": token}
+    if shared_by_name:
+        update_data["shared_by_name"] = shared_by_name
+
+    await _exec(sb.table("trips").update(update_data).eq("id", trip_id))
+    return token
+
+
+async def remove_share_token(trip_id: str) -> None:
+    """Remove sharing from a trip."""
+    sb = get_supabase()
+    await _exec(
+        sb.table("trips")
+        .update({"share_token": None, "shared_by_name": None})
+        .eq("id", trip_id)
+    )
+
+
+async def get_trip_by_share_token(token: str) -> Optional[Dict[str, Any]]:
+    """Get a trip by its share token (for public access)."""
+    sb = get_supabase()
+    data = await _exec(
+        sb.table("trips").select("*").eq("share_token", token).limit(1)
+    )
+    if not data:
+        return None
+    return data[0]
+
+
+async def duplicate_trip(source_trip: Dict[str, Any], new_user_id: str) -> Dict[str, Any]:
+    """
+    Duplicate a trip for a new user.
+    Copies all trip details except user-specific fields.
+    """
+    sb = get_supabase()
+
+    # Fields to copy from source trip
+    copy_fields = [
+        "title", "notes", "destination_city", "destination_country",
+        "event_name", "event_date", "event_time", "event_provider",
+        "event_provider_id", "event_venue", "event_venue_address",
+        "event_price_estimate", "event_purchase_url",
+        # Note: We copy flight/hotel details but they may need to be re-searched
+        "flight_origin", "flight_destination",
+        "flight_outbound_date", "flight_return_date",
+        "hotel_check_in", "hotel_check_out",
+    ]
+
+    payload: Dict[str, Any] = {
+        "user_id": new_user_id,
+        "status": "draft",  # Always start as draft
+        "title": f"{source_trip.get('title', 'Trip')} (copy)",
+    }
+
+    for field in copy_fields:
+        if field in source_trip and source_trip[field] is not None:
+            if field != "title":  # Don't override the modified title
+                payload[field] = source_trip[field]
+
+    # Insert the new trip
+    await _exec(sb.table("trips").insert(payload))
+
+    # Get the newly created trip
+    data = await _exec(
+        sb.table("trips")
+        .select("*")
+        .eq("user_id", new_user_id)
+        .order("created_at", desc=True)
+        .limit(1)
+    )
+    if not data:
+        raise HTTPException(status_code=500, detail="Failed to duplicate trip")
+    return data[0]

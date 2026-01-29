@@ -119,8 +119,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/reset-password`)
     }
 
-    // Default (signup, login) → redirect to chat
-    return NextResponse.redirect(`${origin}/chat`)
+    // Default (signup, login) → redirect to auth-complete page
+    // This client page checks for any stored redirect URL (e.g., shared trip)
+    return NextResponse.redirect(`${origin}/auth-complete`)
 
   } catch (err) {
     // -------------------------------------------------------------------------

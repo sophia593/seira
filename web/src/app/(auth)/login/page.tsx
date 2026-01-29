@@ -74,6 +74,7 @@ function LoginForm() {
 
   // Show message from redirect (e.g., after signup)
   const message = searchParams.get("message")
+  const redirectTo = searchParams.get("redirect")
 
   function validateForm() {
     const newErrors = { email: "", password: "" }
@@ -122,7 +123,8 @@ function LoginForm() {
         localStorage.removeItem('seira_remembered_email')
       }
 
-      router.push("/search")
+      // Redirect to specified URL or default to search
+      router.push(redirectTo || "/search")
       router.refresh()
     } catch {
       setFormError('something went wrong. please try again.')
@@ -136,6 +138,11 @@ function LoginForm() {
     setFormError('')
 
     try {
+      // Store redirect URL for post-OAuth redirect
+      if (redirectTo) {
+        localStorage.setItem('seira_auth_redirect', redirectTo)
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

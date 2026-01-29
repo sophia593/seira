@@ -255,7 +255,7 @@ async def me(user: User = Depends(get_current_user)):
 # Routers
 # -----------------------------------------------------------------------------
 
-from app.api.v1 import users, conversations, messages, chat, trips, metrics, events, flights, hotels
+from app.api.v1 import users, conversations, messages, chat, trips, metrics, events, flights, hotels, shared
 
 app.include_router(users.router, prefix="/api/v1", tags=["users"])
 app.include_router(conversations.router, prefix="/api/v1", tags=["conversations"])
@@ -266,3 +266,4 @@ app.include_router(metrics.router, prefix="/api/v1", tags=["metrics"])
 app.include_router(events.router, prefix="/api/v1", tags=["events"])
 app.include_router(flights.router, prefix="/api/v1", tags=["flights"])
 app.include_router(hotels.router, prefix="/api/v1", tags=["hotels"])
+app.include_router(shared.router, prefix="/api/v1", tags=["shared"])

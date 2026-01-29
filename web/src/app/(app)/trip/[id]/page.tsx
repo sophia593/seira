@@ -13,6 +13,7 @@ import { EventAnchor, type EventData } from './event-anchor'
 import { ProgressStrip, type TripComponentStatuses } from './progress-strip'
 import { FlightPicker, type FlightPickerConstraints } from './flight-picker'
 import { HotelPicker, type HotelPickerConstraints } from './hotel-picker'
+import { ShareModal } from './share-modal'
 import type { FlightOffer } from '@/hooks/use-flight-search'
 import type { HotelOffer } from '@/hooks/use-hotel-search'
 
@@ -61,6 +62,8 @@ interface TripData {
   estimated_total: number | null
   notes: string | null
   conversation_id: string | null
+  share_token: string | null
+  shared_by_name: string | null
   created_at: string
   updated_at: string
 }
@@ -489,14 +492,22 @@ export default function TripBuilderPage() {
   return (
     <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        {/* Back Link */}
-        <Link
-          href="/trips"
-          className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground mb-4 sm:mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          back to trips
-        </Link>
+        {/* Header with back link and share */}
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <Link
+            href="/trips"
+            className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            back to trips
+          </Link>
+
+          <ShareModal
+            tripId={trip.id}
+            existingShareToken={trip.share_token}
+            userName={trip.shared_by_name}
+          />
+        </div>
 
         {/* Event Anchor (Pinned at Top) */}
         {hasEvent && (

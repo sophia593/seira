@@ -79,6 +79,8 @@ export interface Trip {
 export interface TripDetail extends Trip {
   conversation_id: string | null
   notes: string | null
+  share_token: string | null
+  shared_by_name: string | null
   event_time: string | null
   event_provider: string | null
   event_provider_id: string | null
@@ -104,6 +106,47 @@ export interface TripDetail extends Trip {
   hotel_purchase_url: string | null
   quoted_at: string | null
   quote_expires_at: string | null
+}
+
+// Shared trip (read-only, public access)
+export interface SharedTrip {
+  id: string
+  title: string
+  status: string
+  shared_by_name: string | null
+  destination_city: string | null
+  destination_country: string | null
+  event_name: string | null
+  event_date: string | null
+  event_time: string | null
+  event_venue: string | null
+  event_venue_address: string | null
+  event_price_estimate: number | null
+  event_purchase_url: string | null
+  flight_origin: string | null
+  flight_destination: string | null
+  flight_outbound_date: string | null
+  flight_outbound_time: string | null
+  flight_return_date: string | null
+  flight_return_time: string | null
+  flight_price: number | null
+  flight_carrier: string | null
+  hotel_name: string | null
+  hotel_check_in: string | null
+  hotel_check_out: string | null
+  hotel_price: number | null
+  estimated_total: number | null
+  created_at: string
+}
+
+export interface ShareTripResponse {
+  share_token: string
+  share_url: string
+}
+
+export interface DuplicateTripResponse {
+  id: string
+  title: string
 }
 
 export interface CreateTripRequest {
@@ -399,6 +442,27 @@ export function createApiClient(config: ApiClientConfig) {
     return del<void>(`/api/v1/trips/${id}`)
   }
 
+  async function shareTrip(
+    id: string,
+    sharedByName?: string
+  ): Promise<ShareTripResponse> {
+    return post<ShareTripResponse>(`/api/v1/trips/${id}/share`, {
+      shared_by_name: sharedByName,
+    })
+  }
+
+  async function unshareTrip(id: string): Promise<void> {
+    return del<void>(`/api/v1/trips/${id}/share`)
+  }
+
+  async function getSharedTrip(token: string): Promise<SharedTrip> {
+    return get<SharedTrip>(`/api/v1/shared/${token}`)
+  }
+
+  async function duplicateSharedTrip(token: string): Promise<DuplicateTripResponse> {
+    return post<DuplicateTripResponse>(`/api/v1/shared/${token}/duplicate`)
+  }
+
   // ---------------------------------------------------------------------------
   // Return Client
   // ---------------------------------------------------------------------------
@@ -434,6 +498,12 @@ export function createApiClient(config: ApiClientConfig) {
     createTrip,
     updateTrip,
     deleteTrip,
+    shareTrip,
+    unshareTrip,
+
+    // Shared (public)
+    getSharedTrip,
+    duplicateSharedTrip,
   }
 }
 

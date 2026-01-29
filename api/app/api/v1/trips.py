@@ -40,6 +40,8 @@ class TripDetailResponse(TripResponse):
     """Full trip details."""
     conversation_id: Optional[str] = None
     notes: Optional[str] = None
+    share_token: Optional[str] = None
+    shared_by_name: Optional[str] = None
 
     # Event
     event_time: Optional[str] = None
@@ -256,5 +258,67 @@ async def delete_trip(
         )
 
     await trip_service.delete_trip(trip_id)
+
+
+# -----------------------------------------------------------------------------
+# Share endpoints
+# -----------------------------------------------------------------------------
+
+
+class ShareTripRequest(BaseModel):
+    """Request to share a trip."""
+    shared_by_name: Optional[str] = Field(default=None, max_length=50)
+
+
+class ShareTripResponse(BaseModel):
+    """Response with share token."""
+    share_token: str
+    share_url: str
+
+
+@router.post("/{trip_id}/share", response_model=ShareTripResponse)
+async def share_trip(
+    trip_id: str,
+    body: ShareTripRequest = ShareTripRequest(),
+    current: User = Depends(get_current_user),
+):
+    """Generate a share link for a trip."""
+    # Verify trip exists and user owns it
+    existing = await trip_service.get_trip(trip_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    if existing["user_id"] != current.id:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    # If already shared, return existing token
+    if existing.get("share_token"):
+        token = existing["share_token"]
+    else:
+        token = await trip_service.generate_share_token(
+            trip_id,
+            shared_by_name=body.shared_by_name
+        )
+
+    # Build share URL (frontend will construct full URL)
+    return ShareTripResponse(
+        share_token=token,
+        share_url=f"/shared/{token}"
+    )
+
+
+@router.delete("/{trip_id}/share", status_code=status.HTTP_204_NO_CONTENT)
+async def unshare_trip(
+    trip_id: str,
+    current: User = Depends(get_current_user),
+):
+    """Remove sharing from a trip."""
+    # Verify trip exists and user owns it
+    existing = await trip_service.get_trip(trip_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    if existing["user_id"] != current.id:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    await trip_service.remove_share_token(trip_id)
 
 
