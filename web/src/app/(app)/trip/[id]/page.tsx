@@ -67,6 +67,38 @@ interface TripData {
 
 type LoadingState = 'loading' | 'not-found' | 'error' | 'ready'
 
+type BadgeStatus = 'selected' | 'not-needed' | 'needs-decision'
+
+// =============================================================================
+// Status Badge Component
+// =============================================================================
+
+function StatusBadge({ status }: { status: BadgeStatus }) {
+  if (status === 'selected') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+        <Check className="w-3 h-3" />
+        Selected
+      </span>
+    )
+  }
+
+  if (status === 'not-needed') {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+        Not needed
+      </span>
+    )
+  }
+
+  // needs-decision
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+      Needs decision
+    </span>
+  )
+}
+
 // =============================================================================
 // Main Page
 // =============================================================================
@@ -453,10 +485,10 @@ export default function TripBuilderPage() {
                       <Plane className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div className="text-left">
-                      <h2 className="font-medium lowercase flex items-center gap-2">
-                        flights
-                        <Check className="w-4 h-4 text-green-600" />
-                      </h2>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h2 className="font-medium lowercase">flights</h2>
+                        <StatusBadge status="selected" />
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {trip.flight_origin} → {trip.flight_destination} · ${trip.flight_price}
                       </p>
@@ -512,10 +544,10 @@ export default function TripBuilderPage() {
                     <Plane className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div className="text-left">
-                    <h2 className="font-medium lowercase flex items-center gap-2">
-                      flights
-                      <span className="text-xs text-muted-foreground font-normal">(not needed)</span>
-                    </h2>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h2 className="font-medium lowercase">flights</h2>
+                      <StatusBadge status="not-needed" />
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       skipped for this trip
                     </p>
@@ -534,11 +566,14 @@ export default function TripBuilderPage() {
                     className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
-                        <Plane className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10 transition-colors">
+                        <Plane className="w-5 h-5 text-amber-600 dark:text-amber-400 group-hover:text-primary transition-colors" />
                       </div>
                       <div className="text-left">
-                        <h2 className="font-medium lowercase">flights</h2>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h2 className="font-medium lowercase">flights</h2>
+                          <StatusBadge status="needs-decision" />
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           not added yet
                         </p>
@@ -615,10 +650,10 @@ export default function TripBuilderPage() {
                       <Hotel className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div className="text-left">
-                      <h2 className="font-medium lowercase flex items-center gap-2">
-                        hotel
-                        <Check className="w-4 h-4 text-green-600" />
-                      </h2>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h2 className="font-medium lowercase">hotel</h2>
+                        <StatusBadge status="selected" />
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {trip.hotel_name} · ${trip.hotel_price}
                       </p>
@@ -667,10 +702,10 @@ export default function TripBuilderPage() {
                     <Hotel className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div className="text-left">
-                    <h2 className="font-medium lowercase flex items-center gap-2">
-                      hotel
-                      <span className="text-xs text-muted-foreground font-normal">(not needed)</span>
-                    </h2>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h2 className="font-medium lowercase">hotel</h2>
+                      <StatusBadge status="not-needed" />
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       skipped for this trip
                     </p>
@@ -689,11 +724,14 @@ export default function TripBuilderPage() {
                     className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
-                        <Hotel className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10 transition-colors">
+                        <Hotel className="w-5 h-5 text-amber-600 dark:text-amber-400 group-hover:text-primary transition-colors" />
                       </div>
                       <div className="text-left">
-                        <h2 className="font-medium lowercase">hotel</h2>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h2 className="font-medium lowercase">hotel</h2>
+                          <StatusBadge status="needs-decision" />
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           not added yet
                         </p>
