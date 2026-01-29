@@ -11,8 +11,8 @@ import { getApi } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { EventAnchor, type EventData } from './event-anchor'
 import { ProgressStrip, type TripComponentStatuses } from './progress-strip'
-import { FlightSearch } from '@/components/flights'
-import { HotelSearch } from '@/components/hotels'
+import { FlightPicker, type FlightPickerConstraints } from './flight-picker'
+import { HotelPicker, type HotelPickerConstraints } from './hotel-picker'
 import type { FlightOffer } from '@/hooks/use-flight-search'
 import type { HotelOffer } from '@/hooks/use-hotel-search'
 
@@ -115,6 +115,10 @@ export default function TripBuilderPage() {
   const [flightSectionOpen, setFlightSectionOpen] = useState(false)
   const [hotelSectionOpen, setHotelSectionOpen] = useState(false)
 
+  // Picker state
+  const [flightPickerOpen, setFlightPickerOpen] = useState(false)
+  const [hotelPickerOpen, setHotelPickerOpen] = useState(false)
+
   // Loading states for updates
   const [isUpdatingFlight, setIsUpdatingFlight] = useState(false)
   const [isUpdatingHotel, setIsUpdatingHotel] = useState(false)
@@ -184,6 +188,29 @@ export default function TripBuilderPage() {
   }, [fetchTrip])
 
   // ===========================================================================
+  // Status Update Helper
+  // ===========================================================================
+
+  const updateTripStatus = useCallback(async (
+    currentTrip: TripData,
+    flightResolved: boolean,
+    hotelResolved: boolean
+  ) => {
+    const hasEvent = !!currentTrip.event_name
+    const allResolved = hasEvent && flightResolved && hotelResolved
+
+    // Update to 'quoted' (ready) when all components are resolved
+    if (allResolved && currentTrip.status === 'draft') {
+      try {
+        const api = getApi()
+        await api.updateTrip(currentTrip.id, { status: 'quoted' })
+      } catch (error) {
+        console.error('Failed to update trip status:', error)
+      }
+    }
+  }, [])
+
+  // ===========================================================================
   // Flight Selection Handler
   // ===========================================================================
 
@@ -217,9 +244,15 @@ export default function TripBuilderPage() {
       // Refresh trip data
       await fetchTrip()
 
-      // Collapse flight section, open hotel
-      setFlightSectionOpen(false)
-      if (!trip.hotel_name) {
+      // Check if trip is now ready (all components resolved)
+      const hotelResolved = !!trip.hotel_name || hotelSkipped
+      await updateTripStatus(trip, true, hotelResolved)
+
+      // Close picker
+      setFlightPickerOpen(false)
+
+      // Open hotel section if not already selected
+      if (!trip.hotel_name && !hotelSkipped) {
         setHotelSectionOpen(true)
       }
 
@@ -286,8 +319,12 @@ export default function TripBuilderPage() {
       // Refresh trip data
       await fetchTrip()
 
-      // Collapse hotel section
-      setHotelSectionOpen(false)
+      // Check if trip is now ready (all components resolved)
+      const flightResolved = !!trip.flight_origin || flightSkipped
+      await updateTripStatus(trip, flightResolved, true)
+
+      // Close picker
+      setHotelPickerOpen(false)
 
     } catch (error) {
       console.error('Failed to update trip:', error)
@@ -327,29 +364,45 @@ export default function TripBuilderPage() {
   // Skip Handlers
   // ===========================================================================
 
-  const handleSkipFlight = () => {
+  const handleSkipFlight = async () => {
     setFlightSkipped(true)
     setFlightSectionOpen(false)
+    setFlightPickerOpen(false)
     localStorage.setItem(`trip-${tripId}-flight-skipped`, 'true')
     toast.success('flights marked as not needed')
+
+    // Check if trip is now ready
+    if (trip) {
+      const hotelResolved = !!trip.hotel_name || hotelSkipped
+      await updateTripStatus(trip, true, hotelResolved)
+    }
   }
 
   const handleUnskipFlight = () => {
     setFlightSkipped(false)
     setFlightSectionOpen(true)
+    setFlightPickerOpen(true)
     localStorage.removeItem(`trip-${tripId}-flight-skipped`)
   }
 
-  const handleSkipHotel = () => {
+  const handleSkipHotel = async () => {
     setHotelSkipped(true)
     setHotelSectionOpen(false)
+    setHotelPickerOpen(false)
     localStorage.setItem(`trip-${tripId}-hotel-skipped`, 'true')
     toast.success('hotel marked as not needed')
+
+    // Check if trip is now ready
+    if (trip) {
+      const flightResolved = !!trip.flight_origin || flightSkipped
+      await updateTripStatus(trip, flightResolved, true)
+    }
   }
 
   const handleUnskipHotel = () => {
     setHotelSkipped(false)
     setHotelSectionOpen(true)
+    setHotelPickerOpen(true)
     localStorage.removeItem(`trip-${tripId}-hotel-skipped`)
   }
 
@@ -559,77 +612,29 @@ export default function TripBuilderPage() {
               </button>
             ) : (
               <>
-                {/* Empty state - collapsed */}
-                {!flightSectionOpen ? (
-                  <button
-                    onClick={() => setFlightSectionOpen(true)}
-                    className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10 transition-colors">
-                        <Plane className="w-5 h-5 text-amber-600 dark:text-amber-400 group-hover:text-primary transition-colors" />
-                      </div>
-                      <div className="text-left">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h2 className="font-medium lowercase">flights</h2>
-                          <StatusBadge status="needs-decision" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          not added yet
-                        </p>
-                      </div>
+                {/* Empty state - opens picker */}
+                <button
+                  onClick={() => setFlightPickerOpen(true)}
+                  className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10 transition-colors">
+                      <Plane className="w-5 h-5 text-amber-600 dark:text-amber-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      + Add flights
-                    </span>
-                  </button>
-                ) : (
-                  <>
-                    {/* Header when expanded */}
-                    <button
-                      onClick={() => setFlightSectionOpen(false)}
-                      className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-muted/50 transition-colors border-b"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Plane className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="text-left">
-                          <h2 className="font-medium lowercase">add flights</h2>
-                          <p className="text-sm text-muted-foreground">
-                            search for flights to your event
-                          </p>
-                        </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h2 className="font-medium lowercase">flights</h2>
+                        <StatusBadge status="needs-decision" />
                       </div>
-                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                    </button>
-
-                    {/* Flight search */}
-                    <div className="p-4 sm:p-5 relative">
-                      {isUpdatingFlight && (
-                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        </div>
-                      )}
-                      <FlightSearch
-                        onFlightSelect={handleFlightSelect}
-                        defaultDestination={trip.destination_city ? getAirportCode(trip.destination_city) : ''}
-                        defaultDepartureDate={trip.event_date ? getDayBefore(trip.event_date) : ''}
-                        defaultReturnDate={trip.event_date ? getDayAfter(trip.event_date) : ''}
-                      />
-
-                      {/* Not needed option */}
-                      <div className="mt-6 pt-4 border-t">
-                        <button
-                          onClick={handleSkipFlight}
-                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          I don't need flights for this trip
-                        </button>
-                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        not added yet
+                      </p>
                     </div>
-                  </>
-                )}
+                  </div>
+                  <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    + Add flights
+                  </span>
+                </button>
               </>
             )}
           </section>
@@ -718,76 +723,29 @@ export default function TripBuilderPage() {
             ) : (
               <>
                 {/* Empty state - collapsed */}
-                {!hotelSectionOpen ? (
-                  <button
-                    onClick={() => setHotelSectionOpen(true)}
-                    className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10 transition-colors">
-                        <Hotel className="w-5 h-5 text-amber-600 dark:text-amber-400 group-hover:text-primary transition-colors" />
-                      </div>
-                      <div className="text-left">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h2 className="font-medium lowercase">hotel</h2>
-                          <StatusBadge status="needs-decision" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          not added yet
-                        </p>
-                      </div>
+                {/* Empty state - opens picker */}
+                <button
+                  onClick={() => setHotelPickerOpen(true)}
+                  className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10 transition-colors">
+                      <Hotel className="w-5 h-5 text-amber-600 dark:text-amber-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      + Add hotel
-                    </span>
-                  </button>
-                ) : (
-                  <>
-                    {/* Header when expanded */}
-                    <button
-                      onClick={() => setHotelSectionOpen(false)}
-                      className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-muted/50 transition-colors border-b"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Hotel className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="text-left">
-                          <h2 className="font-medium lowercase">add hotel</h2>
-                          <p className="text-sm text-muted-foreground">
-                            search for hotels near your event
-                          </p>
-                        </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h2 className="font-medium lowercase">hotel</h2>
+                        <StatusBadge status="needs-decision" />
                       </div>
-                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                    </button>
-
-                    {/* Hotel search */}
-                    <div className="p-4 sm:p-5 relative">
-                      {isUpdatingHotel && (
-                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        </div>
-                      )}
-                      <HotelSearch
-                        onHotelSelect={handleHotelSelect}
-                        defaultCity={trip.destination_city || ''}
-                        defaultCheckIn={trip.event_date ? getDayBefore(trip.event_date) : ''}
-                        defaultCheckOut={trip.event_date ? getDayAfter(trip.event_date) : ''}
-                      />
-
-                      {/* Not needed option */}
-                      <div className="mt-6 pt-4 border-t">
-                        <button
-                          onClick={handleSkipHotel}
-                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          I don't need a hotel for this trip
-                        </button>
-                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        not added yet
+                      </p>
                     </div>
-                  </>
-                )}
+                  </div>
+                  <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    + Add hotel
+                  </span>
+                </button>
               </>
             )}
           </section>
@@ -876,6 +834,41 @@ export default function TripBuilderPage() {
           </section>
         </div>
       </div>
+
+      {/* Flight Picker */}
+      <FlightPicker
+        open={flightPickerOpen}
+        onOpenChange={setFlightPickerOpen}
+        onFlightSelect={handleFlightSelect}
+        onSkip={handleSkipFlight}
+        constraints={{
+          eventCity: trip.destination_city,
+          eventDate: trip.event_date,
+          eventTime: trip.event_time,
+          eventVenue: trip.event_venue,
+          suggestedDestination: trip.destination_city ? getAirportCode(trip.destination_city) : '',
+          suggestedDepartureDate: trip.event_date ? getDayBefore(trip.event_date) : '',
+          suggestedReturnDate: trip.event_date ? getDayAfter(trip.event_date) : '',
+        }}
+        isUpdating={isUpdatingFlight}
+      />
+
+      {/* Hotel Picker */}
+      <HotelPicker
+        open={hotelPickerOpen}
+        onOpenChange={setHotelPickerOpen}
+        onHotelSelect={handleHotelSelect}
+        onSkip={handleSkipHotel}
+        constraints={{
+          eventCity: trip.destination_city,
+          eventDate: trip.event_date,
+          eventVenue: trip.event_venue,
+          suggestedCity: trip.destination_city || '',
+          suggestedCheckIn: trip.event_date ? getDayBefore(trip.event_date) : '',
+          suggestedCheckOut: trip.event_date ? getDayAfter(trip.event_date) : '',
+        }}
+        isUpdating={isUpdatingHotel}
+      />
     </div>
   )
 }

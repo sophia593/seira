@@ -13,6 +13,7 @@ interface FlightCardProps {
   offer: FlightOffer
   onSelect?: (offer: FlightOffer) => void
   selected?: boolean
+  compact?: boolean
   className?: string
 }
 
@@ -24,6 +25,7 @@ export function FlightCard({
   offer,
   onSelect,
   selected = false,
+  compact = false,
   className,
 }: FlightCardProps) {
   const {
