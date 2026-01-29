@@ -2,6 +2,7 @@
 
 import { Calendar, Clock, MapPin, ExternalLink, Ticket } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { OptimizedImage } from '@/components/ui/optimized-image'
 import { cn } from '@/lib/utils'
 
 // =============================================================================
@@ -48,11 +49,11 @@ export function EventAnchor({ event, className }: EventAnchorProps) {
       <div className="flex">
         {/* Image (if available) */}
         {imageUrl && (
-          <div className="hidden sm:block w-32 md:w-40 shrink-0">
-            <img
+          <div className="hidden sm:block w-32 md:w-40 shrink-0 relative">
+            <OptimizedImage
               src={imageUrl}
               alt={name}
-              className="w-full h-full object-cover"
+              fill
             />
           </div>
         )}

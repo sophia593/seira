@@ -2,6 +2,7 @@
 
 import { Calendar, MapPin, Ticket } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { OptimizedImage } from '@/components/ui/optimized-image'
 import { cn } from '@/lib/utils'
 import type { EventResult } from '@/hooks/use-event-search'
 
@@ -44,11 +45,12 @@ export function EventCard({
     >
       {/* Image */}
       {image_url && (
-        <div className="aspect-[16/9] overflow-hidden bg-muted">
-          <img
+        <div className="aspect-[16/9] overflow-hidden bg-muted relative">
+          <OptimizedImage
             src={image_url}
             alt={name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            fill
+            className="transition-transform duration-300 group-hover:scale-105"
           />
         </div>
       )}

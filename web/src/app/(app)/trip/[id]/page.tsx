@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { ArrowLeft, Loader2, Plane, Hotel, ChevronDown, ChevronUp, X, Check, Ticket, DollarSign } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/sonner'
@@ -11,11 +12,24 @@ import { getApi } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { EventAnchor, type EventData } from './event-anchor'
 import { ProgressStrip, type TripComponentStatuses } from './progress-strip'
-import { FlightPicker, type FlightPickerConstraints } from './flight-picker'
-import { HotelPicker, type HotelPickerConstraints } from './hotel-picker'
-import { ShareModal } from './share-modal'
+import type { FlightPickerConstraints } from './flight-picker'
+import type { HotelPickerConstraints } from './hotel-picker'
 import type { FlightOffer } from '@/hooks/use-flight-search'
 import type { HotelOffer } from '@/hooks/use-hotel-search'
+
+// Lazy load heavy picker components (only loaded when user opens them)
+const FlightPicker = dynamic(
+  () => import('./flight-picker').then((mod) => ({ default: mod.FlightPicker })),
+  { ssr: false }
+)
+const HotelPicker = dynamic(
+  () => import('./hotel-picker').then((mod) => ({ default: mod.HotelPicker })),
+  { ssr: false }
+)
+const ShareModal = dynamic(
+  () => import('./share-modal').then((mod) => ({ default: mod.ShareModal })),
+  { ssr: false }
+)
 
 // =============================================================================
 // Types

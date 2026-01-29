@@ -2,11 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { Loader2 } from 'lucide-react'
-import { EventSearch, EventDetailDrawer } from '@/components/events'
+import { EventSearch } from '@/components/events'
 import { getApi } from '@/lib/api'
 import { toast } from '@/components/ui/sonner'
 import type { EventResult } from '@/hooks/use-event-search'
+
+// Lazy load the detail drawer (only needed on event click)
+const EventDetailDrawer = dynamic(
+  () => import('@/components/events/event-detail-drawer').then((mod) => ({ default: mod.EventDetailDrawer })),
+  { ssr: false }
+)
 
 export default function SearchPage() {
   const router = useRouter()

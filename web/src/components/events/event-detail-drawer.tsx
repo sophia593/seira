@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import { Calendar, MapPin, Ticket, ExternalLink, X, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { OptimizedImage } from '@/components/ui/optimized-image'
 import { cn } from '@/lib/utils'
 import type { EventResult } from '@/hooks/use-event-search'
 
@@ -79,11 +79,12 @@ export function EventDetailDrawer({
         <div className="flex-1 overflow-y-auto px-6 pb-6">
           {/* Image */}
           {image_url && (
-            <div className="aspect-video rounded-xl overflow-hidden bg-muted mb-6 -mx-2">
-              <img
+            <div className="aspect-video rounded-xl overflow-hidden bg-muted mb-6 -mx-2 relative">
+              <OptimizedImage
                 src={image_url}
                 alt={name}
-                className="w-full h-full object-cover"
+                fill
+                priority
               />
             </div>
           )}
