@@ -19,8 +19,10 @@ export const EVENT_CATEGORIES = [
   { id: 'nfl', label: 'NFL', segment: 'Sports', genre: 'Football' },
   { id: 'mlb', label: 'MLB', segment: 'Sports', genre: 'Baseball' },
   { id: 'nhl', label: 'NHL', segment: 'Sports', genre: 'Hockey' },
+  { id: 'soccer', label: 'Soccer', segment: 'Sports', genre: 'Soccer' },
   { id: 'concerts', label: 'Concerts', segment: 'Music', genre: undefined },
   { id: 'theater', label: 'Theater', segment: 'Arts & Theatre', genre: undefined },
+  { id: 'comedy', label: 'Comedy', segment: 'Arts & Theatre', genre: 'Comedy' },
 ] as const
 
 export type CategoryId = typeof EVENT_CATEGORIES[number]['id']
@@ -63,6 +65,24 @@ export function EventSearch({
 
   // Track if we've searched
   const [hasSearched, setHasSearched] = useState(false)
+
+  // Auto-load featured events on initial render
+  useEffect(() => {
+    async function loadFeaturedEvents() {
+      // Only load featured events if no filters are set
+      if (!hasSearched && !urlCategory) {
+        const params: EventSearchParams = {
+          size: 12,
+          segment: 'Music', // Show concerts by default as they're most popular
+        }
+        await search(params)
+        setHasSearched(true)
+      }
+    }
+    loadFeaturedEvents()
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Sync category from URL changes
   useEffect(() => {
@@ -132,13 +152,13 @@ export function EventSearch({
   return (
     <div className={cn('space-y-6', className)}>
       {/* Category Tabs */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 -mx-4 px-4 overflow-x-auto pb-1 sm:mx-0 sm:px-0 sm:overflow-visible sm:pb-0">
         {EVENT_CATEGORIES.map((cat) => (
           <button
             key={cat.id}
             onClick={() => handleCategoryChange(cat.id)}
             className={cn(
-              'px-4 py-2 rounded-full text-sm font-medium transition-colors',
+              'min-h-[44px] px-4 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap',
               category === cat.id
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
@@ -251,10 +271,14 @@ export function EventSearch({
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               {results.totalCount === 0 ? (
-                'No events found'
+                'no events found'
+              ) : !query && !city && !dateFrom && category === 'all' ? (
+                <>
+                  <span className="font-medium text-foreground">featured events</span> · {results.totalCount} available
+                </>
               ) : (
                 <>
-                  Found <span className="font-medium text-foreground">{results.totalCount}</span> event{results.totalCount !== 1 ? 's' : ''}
+                  found <span className="font-medium text-foreground">{results.totalCount}</span> event{results.totalCount !== 1 ? 's' : ''}
                 </>
               )}
             </p>
@@ -286,11 +310,11 @@ export function EventSearch({
         </div>
       )}
 
-      {/* Initial state */}
-      {!hasSearched && !isLoading && (
+      {/* Loading initial events */}
+      {!hasSearched && isLoading && (
         <div className="text-center py-12 text-muted-foreground">
-          <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
-          <p>Search for concerts, sports games, theater, and more</p>
+          <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin opacity-50" />
+          <p>loading featured events...</p>
         </div>
       )}
     </div>

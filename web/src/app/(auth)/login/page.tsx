@@ -123,8 +123,8 @@ function LoginForm() {
         localStorage.removeItem('seira_remembered_email')
       }
 
-      // Redirect to specified URL or default to search
-      router.push(redirectTo || "/search")
+      // Redirect to specified URL or default to trips
+      router.push(redirectTo || "/trips")
       router.refresh()
     } catch {
       setFormError('something went wrong. please try again.')

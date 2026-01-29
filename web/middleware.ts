@@ -3,8 +3,8 @@
  *
  * This middleware runs on every request (except static assets) and:
  * 1. Refreshes the Supabase auth session (keeps cookies fresh)
- * 2. Redirects logged-in users away from /login and /signup to /chat
- * 3. Redirects logged-out users away from /chat and /trips to /login
+ * 2. Redirects logged-in users away from /login and /signup to /trips
+ * 3. Redirects logged-out users away from protected pages to /login
  */
 
 import { createServerClient } from "@supabase/ssr"
@@ -45,16 +45,21 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Logged-in user visiting auth pages -> redirect to /chat
+  // Logged-in user visiting auth pages -> redirect to /trips
   if (user) {
     if (pathname === "/login" || pathname === "/signup") {
-      return NextResponse.redirect(new URL("/chat", request.url))
+      return NextResponse.redirect(new URL("/trips", request.url))
     }
   }
 
   // Logged-out user visiting protected pages -> redirect to /login
   if (!user) {
-    if (pathname.startsWith("/chat") || pathname.startsWith("/trips") || pathname.startsWith("/settings")) {
+    if (
+      pathname.startsWith("/trip") ||
+      pathname.startsWith("/trips") ||
+      pathname.startsWith("/search") ||
+      pathname.startsWith("/settings")
+    ) {
       return NextResponse.redirect(new URL("/login", request.url))
     }
   }

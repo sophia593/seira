@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { EventSearch, EventDetailDrawer } from '@/components/events'
 import { getApi } from '@/lib/api'
+import { toast } from '@/components/ui/sonner'
 import type { EventResult } from '@/hooks/use-event-search'
 
 export default function SearchPage() {
@@ -59,6 +60,7 @@ export default function SearchPage() {
       router.push(`/trip/${trip.id}`)
     } catch (error) {
       console.error('Failed to create trip:', error)
+      toast.error('failed to create trip. please try again.')
       setIsCreating(false)
     }
   }

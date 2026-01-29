@@ -81,7 +81,7 @@ function StatusBadge({ status }: { status: BadgeStatus }) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
         <Check className="w-3 h-3" />
-        Selected
+        selected
       </span>
     )
   }
@@ -89,7 +89,7 @@ function StatusBadge({ status }: { status: BadgeStatus }) {
   if (status === 'not-needed') {
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-        Not needed
+        not needed
       </span>
     )
   }
@@ -97,7 +97,7 @@ function StatusBadge({ status }: { status: BadgeStatus }) {
   // needs-decision
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-      Needs decision
+      needs decision
     </span>
   )
 }
@@ -415,8 +415,34 @@ export default function TripBuilderPage() {
 
   if (loadingState === 'loading') {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          {/* Header skeleton */}
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+            <div className="h-8 w-20 bg-muted rounded animate-pulse" />
+          </div>
+
+          {/* Event anchor skeleton */}
+          <div className="rounded-xl border bg-card p-4 mb-3 sm:mb-4 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-3/4 bg-muted rounded" />
+                <div className="h-4 w-1/2 bg-muted rounded" />
+              </div>
+            </div>
+          </div>
+
+          {/* Progress strip skeleton */}
+          <div className="h-16 rounded-lg border bg-card mb-4 sm:mb-6 animate-pulse" />
+
+          {/* Sections skeleton */}
+          <div className="space-y-3 sm:space-y-4">
+            <div className="h-20 rounded-lg sm:rounded-xl border bg-card animate-pulse" style={{ animationDelay: '100ms' }} />
+            <div className="h-20 rounded-lg sm:rounded-xl border bg-card animate-pulse" style={{ animationDelay: '200ms' }} />
+          </div>
+        </div>
       </div>
     )
   }

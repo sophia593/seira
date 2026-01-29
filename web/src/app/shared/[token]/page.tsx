@@ -81,12 +81,13 @@ export default function SharedTripPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search)
-      if (urlParams.get('action') === 'duplicate' && trip) {
+      if (urlParams.get('action') === 'duplicate' && trip && !isDuplicating) {
         // Clear the action param and trigger duplicate
         window.history.replaceState({}, '', `/shared/${token}`)
         handleDuplicate()
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip, token])
 
   // ===========================================================================
@@ -95,8 +96,46 @@ export default function SharedTripPage() {
 
   if (loadingState === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="min-h-screen bg-background">
+        {/* Header skeleton */}
+        <header className="border-b bg-card/50">
+          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-14 bg-muted rounded animate-pulse" />
+              <span className="text-muted-foreground">·</span>
+              <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+            </div>
+            <div className="h-10 w-36 bg-muted rounded-lg animate-pulse" />
+          </div>
+        </header>
+
+        <main className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+          {/* Shared by skeleton */}
+          <div className="h-4 w-40 bg-muted rounded animate-pulse mb-4" />
+
+          {/* Title skeleton */}
+          <div className="h-8 w-3/4 bg-muted rounded animate-pulse mb-6" />
+
+          {/* Cards skeleton */}
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="rounded-xl border bg-card p-5 animate-pulse"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-5 w-1/2 bg-muted rounded" />
+                    <div className="h-4 w-2/3 bg-muted rounded" />
+                    <div className="h-4 w-1/3 bg-muted rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
       </div>
     )
   }

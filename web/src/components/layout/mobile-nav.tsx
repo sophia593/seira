@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
 // =============================================================================
 
 const PAGE_TITLES: Record<string, string> = {
-  '/chat': 'chat',
+  '/search': 'search',
   '/trips': 'trips',
   '/settings': 'settings',
   '/settings/profile': 'profile',
@@ -28,8 +28,12 @@ function getPageTitle(pathname: string): string | null {
   }
 
   // Check for dynamic routes
-  if (pathname.startsWith('/chat/')) {
-    return 'chat'
+  if (pathname.startsWith('/trip/')) {
+    // Check for review page
+    if (pathname.endsWith('/review')) {
+      return 'review'
+    }
+    return 'trip'
   }
 
   if (pathname.startsWith('/trips/')) {
@@ -53,11 +57,11 @@ export function MobileNav() {
   const { isMobileOpen, openMobile, closeMobile } = useSidebar()
 
   const pageTitle = getPageTitle(pathname)
-  const isOnChat = pathname === '/chat' || pathname.startsWith('/chat/')
+  const isOnSearch = pathname === '/search'
 
-  // Handle new chat / search
-  function handleNewChat() {
-    router.push('/chat')
+  // Handle new trip (go to search)
+  function handleNewTrip() {
+    router.push('/search')
   }
 
   return (
@@ -72,7 +76,7 @@ export function MobileNav() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-10 w-10 shrink-0"
+        className="h-11 w-11 shrink-0"
         onClick={() => (isMobileOpen ? closeMobile() : openMobile())}
         aria-label={isMobileOpen ? 'close menu' : 'open menu'}
       >
@@ -100,20 +104,18 @@ export function MobileNav() {
 
       {/* Right: Actions + User */}
       <div className="flex items-center gap-1 shrink-0">
-        {/* New Chat / Search (only show on chat pages or as global action) */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10"
-          onClick={handleNewChat}
-          aria-label="new chat"
-        >
-          {isOnChat ? (
+        {/* New Trip / Search */}
+        {!isOnSearch && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11"
+            onClick={handleNewTrip}
+            aria-label="new trip"
+          >
             <Plus className="h-5 w-5" />
-          ) : (
-            <Search className="h-5 w-5" />
-          )}
-        </Button>
+          </Button>
+        )}
 
         {/* User Menu */}
         <UserMenu isCollapsed />
@@ -139,7 +141,7 @@ export function MobileNavMinimal() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-10 w-10"
+        className="h-11 w-11"
         onClick={() => (isMobileOpen ? closeMobile() : openMobile())}
         aria-label={isMobileOpen ? 'close menu' : 'open menu'}
       >

@@ -249,13 +249,13 @@ function TripCard({ trip, onDelete, onShare, isDeleting }: TripCardProps) {
         </div>
       </Link>
 
-      {/* Quick Actions - positioned at bottom right */}
-      <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Quick Actions - positioned at bottom right, always visible on mobile */}
+      <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         {/* Primary action button */}
         <Button
           variant="default"
           size="sm"
-          className="h-8 gap-1.5 text-xs"
+          className="h-9 sm:h-8 gap-1.5 text-xs"
           onClick={(e) => {
             e.preventDefault()
             router.push(primaryAction.href)
@@ -271,25 +271,25 @@ function TripCard({ trip, onDelete, onShare, isDeleting }: TripCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-9 w-9 sm:h-8 sm:w-8 p-0"
               onClick={(e) => e.preventDefault()}
             >
               <MoreHorizontal className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem onClick={() => onShare(trip)}>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onClick={() => onShare(trip)} className="py-3 sm:py-2">
               <Share2 className="w-4 h-4 mr-2" />
               Share
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push(`/trip/${trip.id}`)}>
+            <DropdownMenuItem onClick={() => router.push(`/trip/${trip.id}`)} className="py-3 sm:py-2">
               <Pencil className="w-4 h-4 mr-2" />
               Edit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onDelete(trip.id)}
-              className="text-destructive focus:text-destructive"
+              className="text-destructive focus:text-destructive py-3 sm:py-2"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
@@ -679,7 +679,7 @@ export default function TripsPage() {
                 key={filter.value}
                 onClick={() => setActiveFilter(filter.value)}
                 className={cn(
-                  'px-3.5 py-2 text-sm rounded-full transition-all whitespace-nowrap',
+                  'min-h-[44px] px-4 py-2.5 text-sm rounded-full transition-all whitespace-nowrap',
                   activeFilter === filter.value
                     ? 'bg-primary text-primary-foreground font-medium'
                     : 'bg-muted hover:bg-muted/80 text-muted-foreground'

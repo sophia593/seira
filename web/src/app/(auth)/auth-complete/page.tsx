@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react'
  *
  * This page is shown briefly after OAuth authentication completes.
  * It checks for a stored redirect URL and navigates there, or
- * defaults to /search.
+ * defaults to /trips.
  */
 export default function AuthCompletePage() {
   const router = useRouter()
@@ -25,7 +25,7 @@ export default function AuthCompletePage() {
     if (redirectUrl) {
       router.replace(redirectUrl)
     } else {
-      router.replace('/search')
+      router.replace('/trips')
     }
   }, [router])
 

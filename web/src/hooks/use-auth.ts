@@ -254,23 +254,24 @@ export function useAuth(): UseAuthReturn {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.resend({
+      const { error: resendError } = await supabase.auth.resend({
         type: 'signup',
         email: user.email,
       })
 
-      if (error) {
-        const authError = { message: formatAuthError(error.message), code: error.code }
+      if (resendError) {
+        const authError = { message: formatAuthError(resendError.message), code: resendError.code }
         setError(authError)
         throw new Error(authError.message)
       }
     } catch (err) {
-      if (err instanceof Error && !error) {
-        setError({ message: err.message })
+      // Only set error if it wasn't already set by the block above
+      if (err instanceof Error) {
+        setError((prev) => prev ?? { message: err.message })
       }
       throw err
     }
-  }, [user?.email, error])
+  }, [user?.email])
 
   // ---------------------------------------------------------------------------
   // Computed Values
