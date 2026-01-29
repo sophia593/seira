@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, Loader2, Calendar, MapPin, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -46,7 +46,7 @@ function buildSearchParams(
   cat: CategoryId, q: string, c: string, from: string, to: string
 ): EventSearchParams {
   const config = EVENT_CATEGORIES.find(x => x.id === cat)
-  const params: EventSearchParams = { size: 20 }
+  const params: EventSearchParams = { size: 40 }
   if (q) params.q = q
   if (c) params.city = c
   if (from) params.dateFrom = from
@@ -56,7 +56,6 @@ function buildSearchParams(
   // "All" with no other filters → show featured
   if (cat === 'all' && !q && !c && !from) {
     params.segment = 'Music'
-    params.size = 12
   }
   return params
 }
@@ -85,6 +84,10 @@ export function EventSearch({
   // Track if we've searched
   const [hasSearched, setHasSearched] = useState(false)
 
+  // Debounce refs
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const isInitialMount = useRef(true)
+
   // Restore form state from URL and auto-search on mount
   useEffect(() => {
     const urlQ = searchParams.get('q') || ''
@@ -106,6 +109,25 @@ export function EventSearch({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Debounced live search when text inputs change
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      syncUrl(category, query, city, dateFrom, dateTo)
+      const params = buildSearchParams(category, query, city, dateFrom, dateTo)
+      search(params)
+      setHasSearched(true)
+    }, 350)
+
+    return () => clearTimeout(debounceRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, city, dateFrom, dateTo])
+
   const syncUrl = useCallback((
     cat: CategoryId, q: string, c: string, from: string, to: string
   ) => {
@@ -120,6 +142,7 @@ export function EventSearch({
   }, [router])
 
   const handleCategoryChange = useCallback((newCategory: CategoryId) => {
+    clearTimeout(debounceRef.current)
     setCategory(newCategory)
     syncUrl(newCategory, query, city, dateFrom, dateTo)
     const params = buildSearchParams(newCategory, query, city, dateFrom, dateTo)
@@ -129,6 +152,7 @@ export function EventSearch({
 
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault()
+    clearTimeout(debounceRef.current)
 
     if (!query && !city && !dateFrom && category === 'all') return
 
@@ -139,6 +163,7 @@ export function EventSearch({
   }, [query, city, dateFrom, dateTo, category, search, syncUrl])
 
   const handleClear = useCallback(() => {
+    clearTimeout(debounceRef.current)
     setQuery('')
     setCity('')
     setDateFrom('')
@@ -154,20 +179,23 @@ export function EventSearch({
   return (
     <div className={cn('space-y-6', className)}>
       {/* Category Tabs */}
-      <div className="flex flex-wrap gap-2 -mx-4 px-4 overflow-x-auto pb-1 sm:mx-0 sm:px-0 sm:overflow-visible sm:pb-0">
+      <div className="flex gap-1 -mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0 sm:overflow-visible border-b">
         {EVENT_CATEGORIES.map((cat) => (
           <button
             key={cat.id}
             onClick={() => handleCategoryChange(cat.id)}
             aria-pressed={category === cat.id}
             className={cn(
-              'min-h-[44px] px-4 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap',
+              'relative min-h-[44px] px-4 py-2.5 text-sm whitespace-nowrap transition-colors',
               category === cat.id
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
+                ? 'text-foreground font-semibold'
+                : 'text-muted-foreground hover:text-foreground font-medium'
             )}
           >
             {cat.label}
+            {category === cat.id && (
+              <span className="absolute inset-x-1 bottom-0 h-0.5 bg-foreground rounded-full" />
+            )}
           </button>
         ))}
       </div>
@@ -276,7 +304,10 @@ export function EventSearch({
         <div className="space-y-4" aria-live="polite">
           {/* Results header */}
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              {isLoading && (
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              )}
               {results.totalCount === 0 ? (
                 'no events found'
               ) : !query && !city && !dateFrom && category === 'all' ? (
@@ -293,7 +324,10 @@ export function EventSearch({
 
           {/* Results grid */}
           {results.events.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cn(
+              "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 transition-opacity duration-150",
+              isLoading && "opacity-60 pointer-events-none"
+            )}>
               {results.events.map((event) => (
                 <EventCard
                   key={event.id}
@@ -306,7 +340,7 @@ export function EventSearch({
           )}
 
           {/* Empty state */}
-          {results.events.length === 0 && (
+          {results.events.length === 0 && !isLoading && (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-2">No events match your search</p>
               <p className="text-sm text-muted-foreground">
@@ -317,16 +351,16 @@ export function EventSearch({
         </div>
       )}
 
-      {/* Loading skeleton */}
+      {/* Loading skeleton (initial load only) */}
       {!results && isLoading && (
         <div className="space-y-4">
           <div className="h-4 w-40 bg-muted rounded animate-pulse" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[...Array(12)].map((_, i) => (
               <div
                 key={i}
                 className="rounded-xl border bg-card overflow-hidden animate-pulse"
-                style={{ animationDelay: `${i * 80}ms` }}
+                style={{ animationDelay: `${i * 60}ms` }}
               >
                 <div className="aspect-[16/9] bg-muted" />
                 <div className="p-3 sm:p-4 space-y-3">
