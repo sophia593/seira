@@ -482,7 +482,32 @@ export function FlightPicker({
 
       {/* Results Area */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 relative">
-        {isUpdating && (
+        {isUpdating && !results && (
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="rounded-xl border bg-card p-4 animate-pulse"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="flex justify-between mb-3">
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 w-32 bg-muted rounded" />
+                    <div className="h-3 w-48 bg-muted rounded" />
+                  </div>
+                  <div className="h-5 w-16 bg-muted rounded" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="h-3 w-12 bg-muted rounded" />
+                  <div className="h-px flex-1 bg-muted" />
+                  <div className="h-3 w-12 bg-muted rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isUpdating && results && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
             <Loader2 className="w-6 h-6 animate-spin" />
           </div>

@@ -3,6 +3,7 @@
 import { memo } from 'react'
 import { Check, Calendar, MapPin, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { OptimizedImage } from '@/components/ui/optimized-image'
 import { type Event } from '@/types/event'
 
 // =============================================================================
@@ -100,7 +101,7 @@ export const EventCard = memo(function EventCard({
       {/* Image */}
       <div className="aspect-[16/9] bg-muted relative overflow-hidden">
         {image_url ? (
-          <img src={image_url} alt={name} className="w-full h-full object-cover" />
+          <OptimizedImage src={image_url} alt={name} fill />
         ) : (
           <EventImagePlaceholder />
         )}

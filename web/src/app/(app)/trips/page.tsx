@@ -44,6 +44,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // =============================================================================
+// Simple Cache
+// =============================================================================
+
+const tripsCache: { data: Trip[] | null; timestamp: number } = { data: null, timestamp: 0 }
+const CACHE_TTL_MS = 30_000 // 30 seconds
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -543,13 +550,23 @@ export default function TripsPage() {
   const [shareTrip, setShareTrip] = useState<Trip | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
 
-  async function fetchTrips() {
+  async function fetchTrips(skipCache = false) {
+    // Use cached data if fresh enough
+    const now = Date.now()
+    if (!skipCache && tripsCache.data && now - tripsCache.timestamp < CACHE_TTL_MS) {
+      setTrips(tripsCache.data)
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     try {
       const api = getApi()
       const data = await api.getTrips()
       setTrips(data)
+      tripsCache.data = data
+      tripsCache.timestamp = Date.now()
     } catch {
       setError('failed to load trips')
     } finally {
@@ -559,6 +576,7 @@ export default function TripsPage() {
 
   useEffect(() => {
     fetchTrips()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Handle delete
@@ -574,7 +592,12 @@ export default function TripsPage() {
     try {
       const api = getApi()
       await api.deleteTrip(deleteId)
-      setTrips((prev) => prev.filter((t) => t.id !== deleteId))
+      setTrips((prev) => {
+        const updated = prev.filter((t) => t.id !== deleteId)
+        tripsCache.data = updated
+        tripsCache.timestamp = Date.now()
+        return updated
+      })
       toast.success('trip deleted')
     } catch {
       toast.error('couldn\'t delete trip')

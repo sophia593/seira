@@ -12,6 +12,7 @@ import {
   Waves
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { OptimizedImage } from '@/components/ui/optimized-image'
 
 // =============================================================================
 // Types
@@ -147,10 +148,10 @@ export function HotelDetailCard({
       {/* Image */}
       {hasImage && !compact && (
         <div className="relative h-40 bg-muted">
-          <img
+          <OptimizedImage
             src={hotel.image_url!}
             alt={hotel.name}
-            className="w-full h-full object-cover"
+            fill
           />
           {/* Price badge */}
           {hotel.price_per_night && (
