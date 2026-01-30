@@ -52,6 +52,12 @@ import {
 const tripsCache: { data: Trip[] | null; timestamp: number } = { data: null, timestamp: 0 }
 const CACHE_TTL_MS = 30_000 // 30 seconds
 
+/** Invalidate trips cache so the next visit fetches fresh data */
+export function invalidateTripsCache() {
+  tripsCache.data = null
+  tripsCache.timestamp = 0
+}
+
 // =============================================================================
 // Types
 // =============================================================================

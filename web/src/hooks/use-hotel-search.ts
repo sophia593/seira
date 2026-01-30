@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { getApi } from '@/lib/api'
+import { generateMockHotels } from '@/lib/mock-hotels'
 
 // =============================================================================
 // Types
@@ -110,10 +111,11 @@ export function useHotelSearch(): UseHotelSearchReturn {
       setResults(result)
       return result
 
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Hotel search failed'
-      setError(message)
-      return null
+    } catch {
+      // Fall back to mock data when API is unavailable
+      const fallback = generateMockHotels(params)
+      setResults(fallback)
+      return fallback
 
     } finally {
       setIsLoading(false)

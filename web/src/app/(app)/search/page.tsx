@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react'
 import { EventSearch } from '@/components/events'
 import { getApi } from '@/lib/api'
 import { toast } from '@/components/ui/sonner'
+import { invalidateTripsCache } from '@/app/(app)/trips/page'
 import type { EventResult, Showtime } from '@/hooks/use-event-search'
 
 // Lazy load the detail drawer (only needed on event click)
@@ -61,6 +62,9 @@ export default function SearchPage() {
         event_price_estimate: event.price_range?.min ?? undefined,
         event_purchase_url: event.purchase_url,
       })
+
+      // Invalidate trips cache so /trips shows the new trip immediately
+      invalidateTripsCache()
 
       // Close drawer and navigate to trip builder
       setIsDrawerOpen(false)

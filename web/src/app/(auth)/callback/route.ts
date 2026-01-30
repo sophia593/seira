@@ -121,7 +121,11 @@ export async function GET(request: Request) {
 
     // Default (signup, login) → redirect to auth-complete page
     // This client page checks for any stored redirect URL (e.g., shared trip)
-    return NextResponse.redirect(`${origin}/auth-complete`)
+    // Pass the auth type so auth-complete can show contextual messaging
+    const authCompleteUrl = type
+      ? `${origin}/auth-complete?from=${type}`
+      : `${origin}/auth-complete`
+    return NextResponse.redirect(authCompleteUrl)
 
   } catch (err) {
     // -------------------------------------------------------------------------
