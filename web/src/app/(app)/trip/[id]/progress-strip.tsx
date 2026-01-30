@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Circle, ArrowRight } from 'lucide-react'
+import { Check, Circle, ArrowRight, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +26,17 @@ interface ProgressStripProps {
 }
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+function getNextAction(statuses: TripComponentStatuses): string {
+  if (!statuses.event.resolved) return 'select an event to get started'
+  if (!statuses.flights.resolved) return 'add flights or skip if you don\'t need them'
+  if (!statuses.hotel.resolved) return 'add a hotel or skip if you don\'t need one'
+  return 'ready to review your trip'
+}
+
+// =============================================================================
 // Component
 // =============================================================================
 
@@ -36,7 +47,6 @@ export function ProgressStrip({
 }: ProgressStripProps) {
   const { event, flights, hotel } = statuses
 
-  // Calculate progress
   const components = [
     { key: 'event', label: 'Event', status: event },
     { key: 'flights', label: 'Flights', status: flights },
@@ -44,61 +54,57 @@ export function ProgressStrip({
   ]
 
   const resolvedCount = components.filter((c) => c.status.resolved).length
-  const totalCount = components.length
-  const isReady = resolvedCount === totalCount
-
-  // Status message
-  const statusMessage = isReady
-    ? 'Ready to review'
-    : `${resolvedCount} of ${totalCount} decisions made`
+  const isReady = resolvedCount === components.length
+  const nextAction = getNextAction(statuses)
 
   return (
     <div
       className={cn(
-        'flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl border bg-card',
+        'p-3 sm:p-4 rounded-lg sm:rounded-xl border bg-card',
         className
       )}
     >
-      {/* Status indicators */}
-      <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto">
-        {components.map((component) => (
-          <StatusIndicator
-            key={component.key}
-            label={component.label}
-            resolved={component.status.resolved}
-            skipped={component.status.skipped}
-          />
-        ))}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        {/* Status indicators with arrows */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
+          {components.map((component, index) => (
+            <div key={component.key} className="flex items-center gap-1.5 sm:gap-2">
+              {index > 0 && (
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+              )}
+              <StatusIndicator
+                label={component.label}
+                resolved={component.status.resolved}
+                skipped={component.status.skipped}
+              />
+            </div>
+          ))}
+        </div>
 
-        {/* Divider */}
-        <div className="hidden lg:block w-px h-5 bg-border" />
-
-        {/* Status message */}
-        <span
+        {/* Review button */}
+        <Button
+          onClick={onReviewClick}
+          disabled={!isReady}
+          size="sm"
           className={cn(
-            'hidden lg:block text-sm font-medium whitespace-nowrap',
-            isReady ? 'text-green-600 dark:text-green-500' : 'text-muted-foreground'
+            'gap-2 transition-all w-full sm:w-auto shrink-0',
+            isReady
+              ? 'bg-green-600 hover:bg-green-700 text-white'
+              : 'opacity-50'
           )}
         >
-          {statusMessage}
-        </span>
+          Review & Book
+          <ArrowRight className="w-4 h-4" />
+        </Button>
       </div>
 
-      {/* Review button */}
-      <Button
-        onClick={onReviewClick}
-        disabled={!isReady}
-        size="sm"
-        className={cn(
-          'gap-2 transition-all w-full sm:w-auto',
-          isReady
-            ? 'bg-green-600 hover:bg-green-700 text-white'
-            : 'opacity-50'
-        )}
-      >
-        Review & Book
-        <ArrowRight className="w-4 h-4" />
-      </Button>
+      {/* Next action nudge */}
+      <p className={cn(
+        'text-xs mt-2.5 pt-2.5 border-t',
+        isReady ? 'text-green-600 dark:text-green-500 font-medium' : 'text-muted-foreground'
+      )}>
+        {isReady ? '✓ ' : 'next: '}{nextAction}
+      </p>
     </div>
   )
 }
@@ -115,7 +121,7 @@ interface StatusIndicatorProps {
 
 function StatusIndicator({ label, resolved, skipped }: StatusIndicatorProps) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5 shrink-0">
       {resolved ? (
         <div
           className={cn(

@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Share2,
   ArrowRight,
+  Pencil,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/sonner'
@@ -367,10 +368,21 @@ export default function TripReviewPage() {
           {/* ================================================================= */}
           <section className="rounded-2xl border bg-card overflow-hidden">
             <div className="px-5 py-4 border-b bg-muted/30">
-              <h2 className="font-semibold flex items-center gap-2.5">
-                <Calendar className="w-5 h-5 text-muted-foreground" />
-                trip timeline
-              </h2>
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="font-semibold flex items-center gap-2.5">
+                  <Calendar className="w-5 h-5 text-muted-foreground" />
+                  trip timeline
+                </h2>
+                {!isBooked && (
+                  <Link
+                    href={`/trip/${tripId}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    edit trip
+                  </Link>
+                )}
+              </div>
             </div>
             <div className="p-5 sm:p-6">
               <Timeline trip={trip} flightSkipped={flightSkipped} hotelSkipped={hotelSkipped} />
@@ -431,6 +443,7 @@ export default function TripReviewPage() {
                   title="event tickets"
                   subtitle={trip.event_name || 'event'}
                   amount={ticketCost}
+                  editHref={!isBooked ? `/trip/${tripId}` : undefined}
                 />
 
                 {/* Flights */}
@@ -447,6 +460,7 @@ export default function TripReviewPage() {
                   }
                   amount={flightCost}
                   muted={flightSkipped}
+                  editHref={!isBooked ? `/trip/${tripId}` : undefined}
                 />
 
                 {/* Hotel */}
@@ -464,6 +478,7 @@ export default function TripReviewPage() {
                   amount={hotelCost}
                   muted={hotelSkipped}
                   isLast
+                  editHref={!isBooked ? `/trip/${tripId}` : undefined}
                 />
 
                 {/* Total */}
@@ -817,15 +832,26 @@ interface CostRowProps {
   amount: number
   muted?: boolean
   isLast?: boolean
+  editHref?: string
 }
 
-function CostRow({ icon, iconBg, title, subtitle, amount, muted, isLast }: CostRowProps) {
+function CostRow({ icon, iconBg, title, subtitle, amount, muted, isLast, editHref }: CostRowProps) {
   return (
     <div className={cn('flex items-center justify-between py-4', !isLast && 'border-b')}>
       <div className="flex items-center gap-3 min-w-0">
         <div className={cn('p-2 rounded-lg shrink-0', iconBg)}>{icon}</div>
         <div className="min-w-0">
-          <p className="font-medium leading-tight">{title}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium leading-tight">{title}</p>
+            {editHref && (
+              <Link
+                href={editHref}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                change
+              </Link>
+            )}
+          </div>
           <p className={cn('text-sm leading-snug mt-0.5 truncate', muted ? 'text-muted-foreground/60' : 'text-muted-foreground')}>
             {subtitle}
           </p>

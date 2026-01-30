@@ -18,6 +18,8 @@ import {
   Copy,
   Check,
   MoreHorizontal,
+  Search,
+  Ticket,
 } from 'lucide-react'
 import { getApi, type Trip } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -324,48 +326,101 @@ function TripCard({ trip, onDelete, onShare, isDeleting }: TripCardProps) {
 // =============================================================================
 
 function EmptyState({ filter }: { filter: FilterType }) {
-  const messages: Record<FilterType, { title: string; description: string }> = {
-    all: {
-      title: 'no trips yet',
-      description: 'start planning your next adventure — find an event you want to attend',
-    },
-    planning: {
-      title: 'no trips in planning',
-      description: 'trips you\'re still working on will appear here',
-    },
-    ready: {
-      title: 'no trips ready to book',
-      description: 'complete your trip details to get them ready for booking',
-    },
-    booked: {
-      title: 'no booked trips',
-      description: 'trips you\'ve booked will appear here',
-    },
-    past: {
-      title: 'no past trips',
-      description: 'your completed trips will appear here',
-    },
+  // Filtered empty states (planning, ready, booked, past)
+  if (filter !== 'all') {
+    const messages: Record<string, { title: string; description: string }> = {
+      planning: {
+        title: 'no trips in planning',
+        description: 'trips you\'re still working on will appear here',
+      },
+      ready: {
+        title: 'no trips ready to book',
+        description: 'complete your trip details to get them ready for booking',
+      },
+      booked: {
+        title: 'no booked trips',
+        description: 'trips you\'ve booked will appear here',
+      },
+      past: {
+        title: 'no past trips',
+        description: 'your completed trips will appear here',
+      },
+    }
+
+    const { title, description } = messages[filter] || messages.planning
+
+    return (
+      <div className="text-center py-16">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+          <Plane className="w-8 h-8 text-muted-foreground/50" />
+        </div>
+        <h3 className="text-lg font-medium mb-2 lowercase">{title}</h3>
+        <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
+          {description}
+        </p>
+      </div>
+    )
   }
 
-  const { title, description } = messages[filter]
-
+  // First-run onboarding screen
   return (
-    <div className="text-center py-16">
-      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
-        <Plane className="w-8 h-8 text-muted-foreground/50" />
+    <div className="py-8 sm:py-12">
+      {/* Welcome */}
+      <div className="text-center mb-10">
+        <h2 className="text-xl sm:text-2xl font-bold mb-2 lowercase">plan your next trip</h2>
+        <p className="text-muted-foreground max-w-md mx-auto">
+          find a concert, game, or show — seira builds the rest.
+        </p>
       </div>
-      <h3 className="text-lg font-medium mb-2 lowercase">{title}</h3>
-      <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
-        {description}
-      </p>
-      {filter === 'all' && (
-        <Button asChild className="lowercase">
+
+      {/* 3-step flow */}
+      <div className="grid sm:grid-cols-3 gap-4 sm:gap-6 mb-10 max-w-2xl mx-auto">
+        <div className="flex sm:flex-col items-start sm:items-center gap-3 sm:gap-2 text-left sm:text-center p-4 rounded-xl border bg-card">
+          <div className="p-2.5 rounded-xl bg-primary/10 shrink-0">
+            <Search className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="font-medium text-sm">search for an event</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              concerts, sports, theater — anything live
+            </p>
+          </div>
+        </div>
+
+        <div className="flex sm:flex-col items-start sm:items-center gap-3 sm:gap-2 text-left sm:text-center p-4 rounded-xl border bg-card">
+          <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30 shrink-0">
+            <Ticket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <p className="font-medium text-sm">build your trip</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              add flights and hotels, or skip what you don't need
+            </p>
+          </div>
+        </div>
+
+        <div className="flex sm:flex-col items-start sm:items-center gap-3 sm:gap-2 text-left sm:text-center p-4 rounded-xl border bg-card">
+          <div className="p-2.5 rounded-xl bg-green-100 dark:bg-green-900/30 shrink-0">
+            <Share2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <p className="font-medium text-sm">share your plan</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              review costs, book, and share with friends
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="text-center">
+        <Button asChild size="lg" className="lowercase gap-2 h-12 px-8">
           <Link href="/search">
-            <Plus className="w-4 h-4 mr-2" />
-            plan your first trip
+            <Search className="w-4 h-4" />
+            find an event
           </Link>
         </Button>
-      )}
+      </div>
     </div>
   )
 }
