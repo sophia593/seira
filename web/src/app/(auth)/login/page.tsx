@@ -3,10 +3,11 @@
 import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, Loader2, AlertCircle, X } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import { parseAuthCallbackError } from "@/lib/auth-callback-error"
 
 // =============================================================================
 // Error Message Mapping
@@ -75,6 +76,10 @@ function LoginForm() {
   // Show message from redirect (e.g., after signup)
   const message = searchParams.get("message")
   const redirectTo = searchParams.get("redirect")
+
+  // Parse callback error params (e.g., ?error=expired from /callback)
+  const callbackError = parseAuthCallbackError(searchParams)
+  const [callbackDismissed, setCallbackDismissed] = useState(false)
 
   function validateForm() {
     const newErrors = { email: "", password: "" }
@@ -190,12 +195,51 @@ function LoginForm() {
             </p>
           </div>
 
-          {/* Message from redirect */}
+          {/* Message from redirect (e.g., after signup) */}
           {message === "check-email" && (
             <div className="mb-6 p-4 rounded-xl bg-primary/10 text-sm text-center">
               <p className="text-primary">
                 check your email to verify your account, then log in
               </p>
+            </div>
+          )}
+
+          {/* Callback error banner (e.g., expired verification link) */}
+          {callbackError && !callbackDismissed && (
+            <div className="mb-6 p-4 rounded-xl bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-destructive">{callbackError.title}</p>
+                    <p className="text-sm text-destructive/80 mt-0.5">{callbackError.message}</p>
+                    {callbackError.action === 'resend-verification' && (
+                      <Link
+                        href="/signup"
+                        className="inline-block text-sm font-medium text-destructive hover:underline mt-2"
+                      >
+                        resend verification email
+                      </Link>
+                    )}
+                    {callbackError.action === 'request-reset' && (
+                      <Link
+                        href="/forgot-password"
+                        className="inline-block text-sm font-medium text-destructive hover:underline mt-2"
+                      >
+                        request a new reset link
+                      </Link>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCallbackDismissed(true)}
+                  className="text-destructive/60 hover:text-destructive transition-colors shrink-0"
+                  aria-label="Dismiss"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
 

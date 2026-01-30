@@ -1,21 +1,28 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
-import { ArrowLeft, Loader2, Mail, RefreshCw } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { ArrowLeft, Loader2, Mail, RefreshCw, AlertCircle, X } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+import { parseAuthCallbackError } from "@/lib/auth-callback-error"
 
 const RESEND_COOLDOWN_SECONDS = 60
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [email, setEmail] = useState("")
   const [error, setError] = useState("")
   const [cooldown, setCooldown] = useState(0)
+
+  // Parse callback error params (e.g., ?error=expired from /callback)
+  const callbackError = parseAuthCallbackError(searchParams)
+  const [callbackDismissed, setCallbackDismissed] = useState(false)
 
   const supabase = createClient()
 
@@ -232,13 +239,38 @@ export default function ForgotPasswordPage() {
                 back to login
               </Link>
 
+              {/* Callback error banner (e.g., expired reset link) */}
+              {callbackError && !callbackDismissed && (
+                <div className="mb-6 p-4 rounded-xl bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-destructive">{callbackError.title}</p>
+                        <p className="text-sm text-destructive/80 mt-0.5">{callbackError.message}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCallbackDismissed(true)}
+                      className="text-destructive/60 hover:text-destructive transition-colors shrink-0"
+                      aria-label="Dismiss"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Header */}
               <div className="mb-8">
                 <h1 className="text-2xl font-semibold lowercase mb-2">
-                  forgot password?
+                  {callbackError && !callbackDismissed ? 'request a new link' : 'forgot password?'}
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  no worries — enter your email and we'll send you a reset link
+                  {callbackError && !callbackDismissed
+                    ? 'enter your email and we\'ll send a fresh reset link'
+                    : 'no worries — enter your email and we\'ll send you a reset link'}
                 </p>
               </div>
 
@@ -331,5 +363,17 @@ export default function ForgotPasswordPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <ForgotPasswordForm />
+    </Suspense>
   )
 }
