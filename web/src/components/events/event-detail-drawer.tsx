@@ -1,6 +1,7 @@
 'use client'
 
-import { Calendar, MapPin, Ticket, ExternalLink, Clock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Calendar, MapPin, Ticket, ExternalLink, Clock, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,7 +11,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { OptimizedImage } from '@/components/ui/optimized-image'
-import type { EventResult } from '@/hooks/use-event-search'
+import { cn } from '@/lib/utils'
+import type { EventResult, Showtime } from '@/hooks/use-event-search'
 
 // =============================================================================
 // Types
@@ -20,7 +22,7 @@ interface EventDetailDrawerProps {
   event: EventResult | null
   isOpen: boolean
   onClose: () => void
-  onConfirm: (event: EventResult) => void
+  onConfirm: (event: EventResult, showtime: Showtime) => void
   isLoading?: boolean
 }
 
@@ -35,18 +37,45 @@ export function EventDetailDrawer({
   onConfirm,
   isLoading = false,
 }: EventDetailDrawerProps) {
+  const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(null)
+
+  // Reset selection when event changes
+  useEffect(() => {
+    setSelectedShowtime(null)
+  }, [event?.id])
+
   if (!event) return null
 
-  const { name, date, time, venue, price_range, image_url, purchase_url, genre, segment } = event
+  const { name, venue, price_range, image_url, purchase_url, genre, segment, showtimes } = event
 
-  const formattedDate = formatDate(date)
-  const formattedTime = time ? formatTime(time) : null
   const venueDisplay = venue ? [venue.name, venue.city, venue.state].filter(Boolean).join(', ') : null
   const priceDisplay = price_range?.min
     ? price_range.max && price_range.max !== price_range.min
-      ? `$${Math.round(price_range.min)} - $${Math.round(price_range.max)}`
+      ? `$${Math.round(price_range.min)} – $${Math.round(price_range.max)}`
       : `$${Math.round(price_range.min)}+`
     : null
+
+  const hasShowtimes = showtimes && showtimes.length > 0
+
+  const handleConfirm = () => {
+    if (hasShowtimes && selectedShowtime) {
+      onConfirm(event, selectedShowtime)
+    } else if (!hasShowtimes) {
+      // Fallback: create synthetic showtime from event's date/time
+      onConfirm(event, {
+        id: `${event.id}_single`,
+        date: event.date,
+        time: event.time ?? '19:00:00',
+      })
+    }
+  }
+
+  const confirmDisabled = isLoading || (hasShowtimes && !selectedShowtime)
+  const confirmLabel = isLoading
+    ? 'creating trip...'
+    : hasShowtimes && !selectedShowtime
+      ? 'pick a date'
+      : 'select this showtime'
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
@@ -62,7 +91,7 @@ export function EventDetailDrawer({
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
           {/* Image */}
-          {image_url && (
+          {image_url ? (
             <div className="aspect-video overflow-hidden bg-muted relative">
               <OptimizedImage
                 src={image_url}
@@ -70,6 +99,10 @@ export function EventDetailDrawer({
                 fill
                 priority
               />
+            </div>
+          ) : (
+            <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+              <Calendar className="w-10 h-10 text-muted-foreground/40" />
             </div>
           )}
 
@@ -79,7 +112,7 @@ export function EventDetailDrawer({
               {name}
             </h2>
 
-            {/* Category badge */}
+            {/* Category badges */}
             {(genre || segment) && (
               <div className="flex gap-2 mb-4">
                 {segment && (
@@ -97,23 +130,66 @@ export function EventDetailDrawer({
 
             {/* Details */}
             <div className="space-y-3 mb-4">
-              {/* Date & Time */}
-              <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
-                <div className="flex items-start gap-3">
-                  <div className="p-1.5 rounded-lg bg-primary/10">
-                    <Calendar className="w-4 h-4 text-primary" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="font-semibold">{formattedDate}</p>
-                    {formattedTime && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                        <Clock className="w-3.5 h-3.5" aria-hidden="true" />
-                        {formattedTime}
-                      </p>
-                    )}
+              {/* Showtimes or single date */}
+              {hasShowtimes ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">select a date & time</p>
+                  <div className="grid gap-2">
+                    {showtimes.map((st) => {
+                      const isSelected = selectedShowtime?.id === st.id
+                      return (
+                        <button
+                          key={st.id}
+                          onClick={() => setSelectedShowtime(st)}
+                          className={cn(
+                            'flex items-center gap-3 p-3 rounded-xl border text-left transition-all',
+                            isSelected
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary'
+                              : 'border-border hover:border-primary/30 hover:bg-muted/50'
+                          )}
+                        >
+                          <div className={cn(
+                            'p-1.5 rounded-lg',
+                            isSelected ? 'bg-primary/10' : 'bg-muted'
+                          )}>
+                            <Calendar className={cn(
+                              'w-4 h-4',
+                              isSelected ? 'text-primary' : 'text-muted-foreground'
+                            )} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm">{formatDate(st.date)}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                              <Clock className="w-3.5 h-3.5" />
+                              {formatTime(st.time)}
+                            </p>
+                          </div>
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-lg bg-primary/10">
+                      <Calendar className="w-4 h-4 text-primary" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">{formatDate(event.date)}</p>
+                      {event.time && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                          <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                          {formatTime(event.time)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Venue */}
               {venueDisplay && (
@@ -172,11 +248,11 @@ export function EventDetailDrawer({
               cancel
             </Button>
             <Button
-              onClick={() => onConfirm(event)}
-              disabled={isLoading}
+              onClick={handleConfirm}
+              disabled={confirmDisabled}
               className="flex-1 h-11"
             >
-              {isLoading ? 'creating trip...' : 'select this event'}
+              {confirmLabel}
             </Button>
           </div>
         </div>

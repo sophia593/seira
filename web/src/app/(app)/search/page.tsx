@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react'
 import { EventSearch } from '@/components/events'
 import { getApi } from '@/lib/api'
 import { toast } from '@/components/ui/sonner'
-import type { EventResult } from '@/hooks/use-event-search'
+import type { EventResult, Showtime } from '@/hooks/use-event-search'
 
 // Lazy load the detail drawer (only needed on event click)
 const EventDetailDrawer = dynamic(
@@ -39,7 +39,7 @@ export default function SearchPage() {
   }
 
   // Confirm selection and create trip
-  const handleConfirmSelection = async (event: EventResult) => {
+  const handleConfirmSelection = async (event: EventResult, showtime: Showtime) => {
     if (isCreating) return
 
     setIsCreating(true)
@@ -47,13 +47,13 @@ export default function SearchPage() {
     try {
       const api = getApi()
 
-      // Create trip with event data
+      // Create trip with event data + selected showtime
       const trip = await api.createTrip({
         title: event.name,
         destination_city: event.venue?.city ?? undefined,
         event_name: event.name,
-        event_date: event.date,
-        event_time: event.time ?? undefined,
+        event_date: showtime.date,
+        event_time: showtime.time,
         event_provider: event.provider,
         event_provider_id: event.provider_id,
         event_venue: event.venue?.name ?? undefined,

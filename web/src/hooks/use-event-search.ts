@@ -21,6 +21,13 @@ export interface PriceRange {
   currency: string
 }
 
+export interface Showtime {
+  id: string
+  date: string
+  time: string
+  label?: string
+}
+
 export interface EventResult {
   id: string
   name: string
@@ -35,6 +42,7 @@ export interface EventResult {
   status: string | null
   provider: string
   provider_id: string
+  showtimes?: Showtime[]
 }
 
 export interface EventSearchParams {

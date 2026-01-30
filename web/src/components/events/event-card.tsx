@@ -1,7 +1,6 @@
 'use client'
 
 import { Calendar, MapPin, Ticket } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { OptimizedImage } from '@/components/ui/optimized-image'
 import { cn } from '@/lib/utils'
 import type { EventResult } from '@/hooks/use-event-search'
@@ -27,24 +26,35 @@ export function EventCard({
   selected = false,
   className,
 }: EventCardProps) {
-  const { name, date, time, venue, price_range, image_url } = event
+  const { name, date, time, venue, price_range, image_url, showtimes } = event
 
   const formattedDate = formatDate(date)
   const formattedTime = time ? formatTime(time) : null
   const venueDisplay = venue ? [venue.name, venue.city].filter(Boolean).join(', ') : null
   const priceDisplay = price_range?.min ? `$${Math.round(price_range.min)}+` : null
+  const showtimeCount = showtimes?.length ?? 0
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect?.(event)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect?.(event)
+        }
+      }}
       className={cn(
-        'group relative rounded-xl border bg-card overflow-hidden transition-all duration-200',
+        'group relative rounded-xl border bg-card overflow-hidden transition-all duration-200 cursor-pointer',
         'hover:shadow-md hover:border-primary/30',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         selected && 'ring-2 ring-primary border-primary',
         className
       )}
     >
       {/* Image */}
-      {image_url && (
+      {image_url ? (
         <div className="aspect-[16/9] overflow-hidden bg-muted relative">
           <OptimizedImage
             src={image_url}
@@ -52,6 +62,10 @@ export function EventCard({
             fill
             className="transition-transform duration-300 group-hover:scale-105"
           />
+        </div>
+      ) : (
+        <div className="aspect-[16/9] bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+          <Calendar className="w-8 h-8 text-muted-foreground/40" />
         </div>
       )}
 
@@ -63,14 +77,18 @@ export function EventCard({
         </h3>
 
         {/* Details */}
-        <div className="space-y-1.5 mb-4">
+        <div className="space-y-1.5">
           {/* Date & Time */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>
-              {formattedDate}
-              {formattedTime && <span className="ml-1">· {formattedTime}</span>}
-            </span>
+            {showtimeCount > 1 ? (
+              <span>{showtimeCount} upcoming dates</span>
+            ) : (
+              <span>
+                {formattedDate}
+                {formattedTime && <span className="ml-1">· {formattedTime}</span>}
+              </span>
+            )}
           </div>
 
           {/* Venue */}
@@ -89,16 +107,6 @@ export function EventCard({
             </div>
           )}
         </div>
-
-        {/* CTA */}
-        <Button
-          onClick={() => onSelect?.(event)}
-          variant={selected ? 'default' : 'outline'}
-          size="sm"
-          className="w-full h-10"
-        >
-          {selected ? 'selected' : 'select event'}
-        </Button>
       </div>
 
       {/* Selected badge */}

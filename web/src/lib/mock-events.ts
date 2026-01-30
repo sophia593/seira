@@ -1,4 +1,94 @@
-import type { EventResult, EventSearchParams, EventSearchResult } from '@/hooks/use-event-search'
+import type { EventResult, EventSearchParams, EventSearchResult, Showtime } from '@/hooks/use-event-search'
+
+// =============================================================================
+// Image pools by genre (stable Unsplash CDN URLs)
+// =============================================================================
+
+const CATEGORY_IMAGES: Record<string, string[]> = {
+  Basketball: [
+    'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1504450758481-7338bbe75005?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?w=400&h=225&fit=crop',
+  ],
+  Football: [
+    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1551958219-acbc608c6377?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1570498839593-e565b39455fc?w=400&h=225&fit=crop',
+  ],
+  Baseball: [
+    'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1529768167801-9173d94c2a42?w=400&h=225&fit=crop',
+  ],
+  Hockey: [
+    'https://images.unsplash.com/photo-1580692475446-c2fabbbbf835?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1515703407324-5f753afd8be8?w=400&h=225&fit=crop',
+  ],
+  Soccer: [
+    'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&h=225&fit=crop',
+  ],
+  Pop: [
+    'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=225&fit=crop',
+  ],
+  'Hip-Hop/Rap': [
+    'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=225&fit=crop',
+  ],
+  'R&B': [
+    'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&h=225&fit=crop',
+  ],
+  Latin: [
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=225&fit=crop',
+  ],
+  Alternative: [
+    'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&h=225&fit=crop',
+  ],
+  Country: [
+    'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=225&fit=crop',
+  ],
+  Theatre: [
+    'https://images.unsplash.com/photo-1503095396549-807759245b35?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=400&h=225&fit=crop',
+  ],
+  Comedy: [
+    'https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=400&h=225&fit=crop',
+    'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=400&h=225&fit=crop',
+  ],
+}
+
+function getImageForEvent(genre: string | null, index: number): string {
+  const pool = (genre && CATEGORY_IMAGES[genre]) || CATEGORY_IMAGES['Pop']
+  return pool[index % pool.length]
+}
+
+// =============================================================================
+// Showtime generation
+// =============================================================================
+
+function generateShowtimes(eventId: string, baseDate: string, baseTime: string): Showtime[] {
+  const base = new Date(baseDate + 'T00:00:00')
+  const offsets = [0, 3, 7, 14, 21]
+  // Deterministic count (3-5) based on last char of ID
+  const count = 3 + (eventId.charCodeAt(eventId.length - 1) % 3)
+  const times = [baseTime, '14:00:00', '19:30:00', '20:00:00', '13:00:00']
+
+  return offsets.slice(0, count).map((dayOffset, i) => {
+    const d = new Date(base)
+    d.setDate(d.getDate() + dayOffset)
+    const dateStr = d.toISOString().slice(0, 10)
+    return {
+      id: `${eventId}_st${i + 1}`,
+      date: dateStr,
+      time: i === 0 ? baseTime : times[i % times.length],
+    }
+  })
+}
 
 // =============================================================================
 // 50 mock events across all categories
@@ -437,6 +527,12 @@ export const MOCK_EVENTS: EventResult[] = [
     provider: 'mock', provider_id: 'mock_comedy_005',
   },
 ]
+
+// Enrich mock events with images and showtimes
+MOCK_EVENTS.forEach((event, i) => {
+  event.image_url = getImageForEvent(event.genre, i)
+  event.showtimes = generateShowtimes(event.id, event.date, event.time ?? '19:00:00')
+})
 
 // =============================================================================
 // Client-side filtering (mirrors API behavior)
