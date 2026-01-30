@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { ArrowLeft, Loader2, Plane, Hotel, ChevronDown, ChevronUp, X, Check, Ticket, DollarSign } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Plane, Hotel, ChevronDown, ChevronUp, X, Check, Ticket, DollarSign } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
@@ -221,6 +221,7 @@ export default function TripBuilderPage() {
       try {
         const api = getApi()
         await api.updateTrip(currentTrip.id, { status: 'quoted' })
+        toast.success('trip ready! review your plan when you\'re ready.')
       } catch (error) {
         console.error('Failed to update trip status:', error)
       }
@@ -518,6 +519,8 @@ export default function TripBuilderPage() {
     hotel: { resolved: hasHotel || hotelSkipped, skipped: hotelSkipped },
   }
 
+  const allResolved = componentStatuses.event.resolved && componentStatuses.flights.resolved && componentStatuses.hotel.resolved
+
   // Calculate estimated total
   const estimatedTotal = [
     trip.event_price_estimate,
@@ -531,7 +534,7 @@ export default function TripBuilderPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className={cn("max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6", allResolved && "pb-24")}>
         {/* Header with back link and share */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <Link
@@ -887,6 +890,24 @@ export default function TripBuilderPage() {
           </section>
         </div>
       </div>
+
+      {/* Sticky bottom CTA - appears when trip is ready */}
+      {allResolved && (
+        <div className="fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-sm lowercase">your trip is ready</p>
+              <p className="text-xs text-muted-foreground">
+                {estimatedTotal > 0 ? `$${estimatedTotal.toLocaleString()} estimated total` : 'all decisions made'}
+              </p>
+            </div>
+            <Button onClick={handleReviewClick} className="gap-2">
+              Review & Book
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Flight Picker */}
       <FlightPicker

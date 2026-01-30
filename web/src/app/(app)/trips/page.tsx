@@ -184,10 +184,20 @@ function TripCard({ trip, onDelete, onShare, isDeleting }: TripCardProps) {
   const destination = getDestination(trip)
   const isPast = isPastTrip(trip)
 
-  // Determine primary action
-  const primaryAction = isPast || trip.status === 'booked' || trip.status === 'completed'
-    ? { label: 'View', icon: Eye, href: `/trip/${trip.id}/review` }
-    : { label: 'Continue', icon: Pencil, href: `/trip/${trip.id}` }
+  // Determine primary action based on trip status
+  const primaryAction = (() => {
+    if (isPast || trip.status === 'completed' || trip.status === 'cancelled') {
+      return { label: 'View', icon: Eye, href: `/trip/${trip.id}/review` }
+    }
+    if (trip.status === 'booked') {
+      return { label: 'View', icon: Eye, href: `/trip/${trip.id}/review` }
+    }
+    if (trip.status === 'quoted') {
+      return { label: 'Review', icon: ArrowRight, href: `/trip/${trip.id}/review` }
+    }
+    // draft
+    return { label: 'Continue', icon: Pencil, href: `/trip/${trip.id}` }
+  })()
 
   return (
     <div

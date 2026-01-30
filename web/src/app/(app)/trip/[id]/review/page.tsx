@@ -21,6 +21,8 @@ import {
   Music,
   PartyPopper,
   CheckCircle2,
+  Share2,
+  ArrowRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/sonner'
@@ -558,6 +560,20 @@ export default function TripReviewPage() {
                 <p className="text-muted-foreground max-w-md mx-auto">
                   your trip is booked. we'll send you a reminder as the date approaches. have an amazing time!
                 </p>
+                <div className="flex flex-col sm:flex-row gap-3 mt-6 justify-center">
+                  <Button variant="outline" asChild>
+                    <Link href={`/trip/${tripId}`}>
+                      <Share2 className="w-4 h-4 mr-2" />
+                      share with friends
+                    </Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/trips">
+                      view all trips
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </div>
               </>
             ) : (
               <>
