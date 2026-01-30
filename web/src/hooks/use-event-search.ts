@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { getApi } from '@/lib/api'
+import { filterMockEvents } from '@/lib/mock-events'
 
 // =============================================================================
 // Types
@@ -111,10 +112,11 @@ export function useEventSearch(): UseEventSearchReturn {
       setResults(result)
       return result
 
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Search failed'
-      setError(message)
-      return null
+    } catch {
+      // Fall back to mock data when API is unavailable
+      const fallback = filterMockEvents(params)
+      setResults(fallback)
+      return fallback
 
     } finally {
       setIsLoading(false)
