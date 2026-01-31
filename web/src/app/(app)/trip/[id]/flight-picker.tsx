@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Search, Loader2, Plane, Calendar, Users, X, ArrowRightLeft, MapPin, Info, Check, AlertTriangle, XCircle, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -225,6 +225,26 @@ export function FlightPicker({
   className,
 }: FlightPickerProps) {
   const { search, results, isLoading, error, clear } = useFlightSearch()
+
+  // Skip confirmation state
+  const [skipConfirming, setSkipConfirming] = useState(false)
+  const skipTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
+
+  // Reset skip confirmation when picker closes
+  useEffect(() => {
+    if (!open) setSkipConfirming(false)
+    return () => { if (skipTimerRef.current) clearTimeout(skipTimerRef.current) }
+  }, [open])
+
+  const handleSkipClick = () => {
+    if (!skipConfirming) {
+      setSkipConfirming(true)
+      skipTimerRef.current = setTimeout(() => setSkipConfirming(false), 3000)
+      return
+    }
+    setSkipConfirming(false)
+    onSkip?.()
+  }
 
   // Search form state
   const [origin, setOrigin] = useState('')
@@ -600,10 +620,15 @@ export function FlightPicker({
       {onSkip && (
         <div className="border-t p-3 sm:p-4">
           <button
-            onClick={onSkip}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center min-h-[44px]"
+            onClick={handleSkipClick}
+            className={cn(
+              "text-sm transition-colors w-full text-center min-h-[44px] rounded-lg",
+              skipConfirming
+                ? "text-destructive font-medium bg-destructive/10"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            i don't need flights for this trip
+            {skipConfirming ? 'tap again to skip flights' : "i don't need flights for this trip"}
           </button>
         </div>
       )}

@@ -1025,31 +1025,71 @@ function getDayAfter(dateString: string): string {
   return date.toISOString().split('T')[0]
 }
 
-// Simple city to airport code mapping (could be expanded or use an API)
+// City to airport code mapping
 function getAirportCode(city: string): string {
   const cityToAirport: Record<string, string> = {
-    'los angeles': 'LAX',
-    'new york': 'JFK',
-    'chicago': 'ORD',
-    'san francisco': 'SFO',
-    'miami': 'MIA',
-    'boston': 'BOS',
-    'seattle': 'SEA',
-    'denver': 'DEN',
-    'atlanta': 'ATL',
-    'dallas': 'DFW',
-    'phoenix': 'PHX',
-    'las vegas': 'LAS',
-    'orlando': 'MCO',
-    'philadelphia': 'PHL',
-    'houston': 'IAH',
-    'minneapolis': 'MSP',
-    'detroit': 'DTW',
-    'san diego': 'SAN',
-    'tampa': 'TPA',
-    'portland': 'PDX',
+    // Major US cities
+    'los angeles': 'LAX', 'new york': 'JFK', 'chicago': 'ORD',
+    'san francisco': 'SFO', 'miami': 'MIA', 'boston': 'BOS',
+    'seattle': 'SEA', 'denver': 'DEN', 'atlanta': 'ATL',
+    'dallas': 'DFW', 'phoenix': 'PHX', 'las vegas': 'LAS',
+    'orlando': 'MCO', 'philadelphia': 'PHL', 'houston': 'IAH',
+    'minneapolis': 'MSP', 'detroit': 'DTW', 'san diego': 'SAN',
+    'tampa': 'TPA', 'portland': 'PDX', 'nashville': 'BNA',
+    'austin': 'AUS', 'charlotte': 'CLT', 'salt lake city': 'SLC',
+    'san antonio': 'SAT', 'jacksonville': 'JAX', 'columbus': 'CMH',
+    'indianapolis': 'IND', 'san jose': 'SJC', 'washington': 'DCA',
+    'raleigh': 'RDU', 'memphis': 'MEM', 'kansas city': 'MCI',
+    'new orleans': 'MSY', 'pittsburgh': 'PIT', 'st. louis': 'STL',
+    'st louis': 'STL', 'sacramento': 'SMF', 'oakland': 'OAK',
+    'milwaukee': 'MKE', 'cleveland': 'CLE', 'cincinnati': 'CVG',
+    'buffalo': 'BUF', 'hartford': 'BDL', 'richmond': 'RIC',
+    'baltimore': 'BWI', 'fort lauderdale': 'FLL', 'fort worth': 'DFW',
+    'honolulu': 'HNL', 'anchorage': 'ANC', 'tucson': 'TUS',
+    'el paso': 'ELP', 'albuquerque': 'ABQ', 'omaha': 'OMA',
+    'louisville': 'SDF', 'oklahoma city': 'OKC', 'boise': 'BOI',
+    'tulsa': 'TUL', 'birmingham': 'BHM', 'knoxville': 'TYS',
+    'charleston': 'CHS', 'savannah': 'SAV', 'norfolk': 'ORF',
+    'providence': 'PVD', 'greenville': 'GSP', 'little rock': 'LIT',
+    'des moines': 'DSM', 'spokane': 'GEG', 'madison': 'MSN',
+    'reno': 'RNO', 'palm springs': 'PSP', 'santa barbara': 'SBA',
+
+    // NFL/NBA/MLB/NHL venue cities (suburbs & smaller markets)
+    'east rutherford': 'EWR', 'inglewood': 'LAX', 'arlington': 'DFW',
+    'glendale': 'PHX', 'orchard park': 'BUF', 'foxborough': 'BOS',
+    'landover': 'DCA', 'paradise': 'LAS', 'santa clara': 'SJC',
+    'carson': 'LAX', 'miami gardens': 'MIA', 'green bay': 'GRB',
+    'auburn hills': 'DTW', 'anaheim': 'SNA', 'sunrise': 'FLL',
+    'brooklyn': 'JFK', 'the bronx': 'JFK', 'queens': 'JFK',
+    'oakland park': 'FLL', 'elmont': 'JFK', 'secaucus': 'EWR',
+    'canton': 'CAK', 'uncasville': 'BDL', 'university park': 'SCE',
+
+    // Canadian cities
+    'toronto': 'YYZ', 'vancouver': 'YVR', 'montreal': 'YUL',
+    'calgary': 'YYC', 'edmonton': 'YEG', 'ottawa': 'YOW',
+    'winnipeg': 'YWG',
+
+    // International (common destinations)
+    'london': 'LHR', 'paris': 'CDG', 'tokyo': 'NRT',
+    'sydney': 'SYD', 'dubai': 'DXB', 'singapore': 'SIN',
+    'amsterdam': 'AMS', 'rome': 'FCO', 'barcelona': 'BCN',
+    'berlin': 'BER', 'madrid': 'MAD', 'lisbon': 'LIS',
+    'dublin': 'DUB', 'zurich': 'ZRH', 'munich': 'MUC',
+    'frankfurt': 'FRA', 'copenhagen': 'CPH', 'stockholm': 'ARN',
+    'oslo': 'OSL', 'helsinki': 'HEL', 'vienna': 'VIE',
+    'prague': 'PRG', 'warsaw': 'WAW', 'budapest': 'BUD',
+    'istanbul': 'IST', 'athens': 'ATH', 'bangkok': 'BKK',
+    'hong kong': 'HKG', 'seoul': 'ICN', 'taipei': 'TPE',
+    'mexico city': 'MEX', 'cancun': 'CUN', 'são paulo': 'GRU',
+    'sao paulo': 'GRU', 'buenos aires': 'EZE', 'lima': 'LIM',
+    'bogota': 'BOG', 'santiago': 'SCL', 'cairo': 'CAI',
+    'johannesburg': 'JNB', 'cape town': 'CPT', 'nairobi': 'NBO',
+    'mumbai': 'BOM', 'delhi': 'DEL', 'new delhi': 'DEL',
+    'beijing': 'PEK', 'shanghai': 'PVG', 'kuala lumpur': 'KUL',
+    'manila': 'MNL', 'jakarta': 'CGK', 'auckland': 'AKL',
+    'melbourne': 'MEL', 'brisbane': 'BNE',
   }
 
-  const normalized = city.toLowerCase()
+  const normalized = city.toLowerCase().trim()
   return cityToAirport[normalized] || ''
 }

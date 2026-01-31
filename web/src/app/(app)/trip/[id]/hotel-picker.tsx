@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Search, Loader2, Hotel, Calendar, Users, Star, X, MapPin, Info, Check, AlertTriangle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -138,6 +138,26 @@ export function HotelPicker({
   className,
 }: HotelPickerProps) {
   const { search, results, isLoading, error, clear } = useHotelSearch()
+
+  // Skip confirmation state
+  const [skipConfirming, setSkipConfirming] = useState(false)
+  const skipTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
+
+  // Reset skip confirmation when picker closes
+  useEffect(() => {
+    if (!open) setSkipConfirming(false)
+    return () => { if (skipTimerRef.current) clearTimeout(skipTimerRef.current) }
+  }, [open])
+
+  const handleSkipClick = () => {
+    if (!skipConfirming) {
+      setSkipConfirming(true)
+      skipTimerRef.current = setTimeout(() => setSkipConfirming(false), 3000)
+      return
+    }
+    setSkipConfirming(false)
+    onSkip?.()
+  }
 
   // Search form state
   const [city, setCity] = useState(constraints.suggestedCity || '')
@@ -436,10 +456,15 @@ export function HotelPicker({
       {onSkip && (
         <div className="border-t p-3 sm:p-4">
           <button
-            onClick={onSkip}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center min-h-[44px]"
+            onClick={handleSkipClick}
+            className={cn(
+              "text-sm transition-colors w-full text-center min-h-[44px] rounded-lg",
+              skipConfirming
+                ? "text-destructive font-medium bg-destructive/10"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            i don't need a hotel for this trip
+            {skipConfirming ? 'tap again to skip hotel' : "i don't need a hotel for this trip"}
           </button>
         </div>
       )}

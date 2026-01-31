@@ -729,23 +729,34 @@ export default function SettingsPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-3 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm" className="text-sm">
-                        type <span className="font-mono font-semibold">DELETE</span> to confirm
-                      </Label>
-                      <Input
-                        id="confirm"
-                        type="text"
-                        value={deleteConfirmText}
-                        onChange={(e) => {
-                          setDeleteConfirmText(e.target.value)
-                          if (deleteError) setDeleteError(null)
-                        }}
-                        placeholder="DELETE"
-                        className="font-mono"
-                        disabled={isDeleting}
-                      />
-                    </div>
+                    {isDeleting ? (
+                      <div className="flex flex-col items-center gap-3 py-4 animate-in fade-in duration-200">
+                        <Loader2 className="h-6 w-6 animate-spin text-destructive" />
+                        <p className="text-sm text-muted-foreground text-center">
+                          deleting your account and all data...
+                          <br />
+                          <span className="text-xs">this may take a moment</span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm" className="text-sm">
+                          type <span className="font-mono font-semibold">DELETE</span> to confirm
+                        </Label>
+                        <Input
+                          id="confirm"
+                          type="text"
+                          value={deleteConfirmText}
+                          onChange={(e) => {
+                            setDeleteConfirmText(e.target.value)
+                            if (deleteError) setDeleteError(null)
+                          }}
+                          placeholder="DELETE"
+                          className="font-mono"
+                          disabled={isDeleting}
+                        />
+                      </div>
+                    )}
                     {deleteError && (
                       <p className="text-sm text-destructive flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4 shrink-0" />
