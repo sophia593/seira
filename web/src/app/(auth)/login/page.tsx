@@ -184,7 +184,7 @@ function LoginForm() {
 
       {/* Card */}
       <div className="w-full max-w-md animate-in fade-in duration-500">
-        <div className="rounded-3xl border bg-card p-10 shadow-lg">
+        <div className="rounded-3xl border bg-card p-6 sm:p-10 shadow-lg">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold lowercase mb-2">
@@ -364,7 +364,7 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-10 h-10 flex items-center justify-center rounded-lg"
                   tabIndex={-1}
                 >
                   {showPassword ? (

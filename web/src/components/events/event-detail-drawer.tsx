@@ -106,7 +106,7 @@ export function EventDetailDrawer({
             </div>
           )}
 
-          <div className="px-6 pt-5 pb-4">
+          <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4">
             {/* Event Name */}
             <h2 className="text-xl font-bold mb-3 lowercase leading-tight" aria-hidden="true">
               {name}
@@ -238,7 +238,7 @@ export function EventDetailDrawer({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 border-t bg-background">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t bg-background">
           <div className="flex gap-3">
             <Button
               variant="outline"

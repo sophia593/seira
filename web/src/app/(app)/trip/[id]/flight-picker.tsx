@@ -395,9 +395,9 @@ export function FlightPicker({
           </div>
 
           {/* Dates Row */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {/* Departure Date */}
-            <div className="relative flex-1 min-w-[140px]">
+            <div className="relative flex-1 sm:min-w-[140px]">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="date"
@@ -410,7 +410,7 @@ export function FlightPicker({
             </div>
 
             {/* Return Date */}
-            <div className="relative flex-1 min-w-[140px]">
+            <div className="relative flex-1 sm:min-w-[140px]">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="date"
@@ -423,7 +423,7 @@ export function FlightPicker({
             </div>
 
             {/* Passengers */}
-            <div className="relative w-[80px]">
+            <div className="relative w-full sm:w-[80px]">
               <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="number"
@@ -447,7 +447,7 @@ export function FlightPicker({
                   type="button"
                   onClick={() => setCabinClass(cabin.id)}
                   className={cn(
-                    'px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
+                    'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
                     cabinClass === cabin.id
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted hover:bg-muted/80 text-muted-foreground'

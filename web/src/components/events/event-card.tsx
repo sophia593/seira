@@ -55,7 +55,7 @@ export function EventCard({
     >
       {/* Image */}
       {image_url ? (
-        <div className="aspect-[16/9] overflow-hidden bg-muted relative">
+        <div className="aspect-[4/3] sm:aspect-[16/9] overflow-hidden bg-muted relative">
           <OptimizedImage
             src={image_url}
             alt={name}
@@ -64,7 +64,7 @@ export function EventCard({
           />
         </div>
       ) : (
-        <div className="aspect-[16/9] bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+        <div className="aspect-[4/3] sm:aspect-[16/9] bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
           <Calendar className="w-8 h-8 text-muted-foreground/40" />
         </div>
       )}

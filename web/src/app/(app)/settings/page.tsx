@@ -407,7 +407,7 @@ export default function SettingsPage() {
                   variant={mounted && theme === 'light' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setTheme('light')}
-                  className="flex-1 gap-2"
+                  className="flex-1 gap-2 h-11 sm:h-9"
                 >
                   <Sun className="h-4 w-4" />
                   <span className="hidden sm:inline">light</span>
@@ -416,7 +416,7 @@ export default function SettingsPage() {
                   variant={mounted && theme === 'dark' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setTheme('dark')}
-                  className="flex-1 gap-2"
+                  className="flex-1 gap-2 h-11 sm:h-9"
                 >
                   <Moon className="h-4 w-4" />
                   <span className="hidden sm:inline">dark</span>
@@ -425,7 +425,7 @@ export default function SettingsPage() {
                   variant={mounted && theme === 'system' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setTheme('system')}
-                  className="flex-1 gap-2"
+                  className="flex-1 gap-2 h-11 sm:h-9"
                 >
                   <Monitor className="h-4 w-4" />
                   <span className="hidden sm:inline">system</span>
@@ -574,7 +574,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                       tabIndex={-1}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-10 h-10 flex items-center justify-center rounded-lg"
                     >
                       {showCurrentPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -606,7 +606,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       tabIndex={-1}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-10 h-10 flex items-center justify-center rounded-lg"
                     >
                       {showNewPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -638,7 +638,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       tabIndex={-1}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-10 h-10 flex items-center justify-center rounded-lg"
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -752,7 +752,7 @@ export default function SettingsPage() {
                             if (deleteError) setDeleteError(null)
                           }}
                           placeholder="DELETE"
-                          className="font-mono"
+                          className="font-mono h-11"
                           disabled={isDeleting}
                         />
                       </div>

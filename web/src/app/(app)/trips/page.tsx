@@ -246,9 +246,9 @@ function TripCard({ trip, onDelete, onShare, isDeleting }: TripCardProps) {
         {/* Meta row */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground mb-4">
           {destination && (
-            <span className="flex items-center gap-1.5 lowercase">
+            <span className="flex items-center gap-1.5 lowercase min-w-0">
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{destination}</span>
+              <span className="truncate max-w-[200px]">{destination}</span>
             </span>
           )}
           {eventDate && (
@@ -280,7 +280,7 @@ function TripCard({ trip, onDelete, onShare, isDeleting }: TripCardProps) {
         <Button
           variant="default"
           size="sm"
-          className="h-9 sm:h-8 gap-1.5 text-xs"
+          className="h-10 sm:h-8 gap-1.5 text-xs"
           onClick={(e) => {
             e.preventDefault()
             router.push(primaryAction.href)
@@ -296,7 +296,7 @@ function TripCard({ trip, onDelete, onShare, isDeleting }: TripCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-9 sm:h-8 sm:w-8 p-0"
+              className="h-10 w-10 sm:h-8 sm:w-8 p-0"
               onClick={(e) => e.preventDefault()}
               aria-label="More actions"
             >
