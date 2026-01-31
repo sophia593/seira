@@ -520,6 +520,7 @@ export default function TripReviewPage() {
                   subtitle={trip.event_name || 'event'}
                   price={ticketCost}
                   url={trip.event_purchase_url}
+                  editHref={!isBooked ? `/trip/${tripId}` : undefined}
                 />
 
                 {/* Step 2: Flights */}
@@ -532,6 +533,7 @@ export default function TripReviewPage() {
                     subtitle={`${trip.flight_origin} → ${trip.flight_destination}${trip.flight_carrier ? ` · ${trip.flight_carrier}` : ''}`}
                     price={flightCost}
                     url={trip.flight_purchase_url}
+                    editHref={!isBooked ? `/trip/${tripId}` : undefined}
                   />
                 )}
 
@@ -545,6 +547,7 @@ export default function TripReviewPage() {
                     subtitle={trip.hotel_name || 'hotel'}
                     price={hotelCost}
                     url={trip.hotel_purchase_url}
+                    editHref={!isBooked ? `/trip/${tripId}` : undefined}
                   />
                 )}
               </div>
@@ -876,6 +879,7 @@ interface BookingLinkCardProps {
   subtitle: string
   price: number
   url: string | null
+  editHref?: string
 }
 
 function BookingLinkCard({
@@ -886,6 +890,7 @@ function BookingLinkCard({
   subtitle,
   price,
   url,
+  editHref,
 }: BookingLinkCardProps) {
   const hasUrl = !!url
 
@@ -895,7 +900,7 @@ function BookingLinkCard({
         'flex items-center gap-3 sm:gap-4 p-4 rounded-xl border transition-all',
         hasUrl
           ? 'hover:bg-muted/50 hover:border-primary/30 cursor-pointer'
-          : 'opacity-60'
+          : ''
       )}
     >
       {/* Step number */}
@@ -919,6 +924,14 @@ function BookingLinkCard({
         )}
         {hasUrl ? (
           <ExternalLink className="w-4 h-4 text-muted-foreground" />
+        ) : editHref ? (
+          <Link
+            href={editHref}
+            className="text-xs font-medium text-primary hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            edit trip
+          </Link>
         ) : (
           <span className="text-xs text-muted-foreground hidden sm:inline">No link</span>
         )}

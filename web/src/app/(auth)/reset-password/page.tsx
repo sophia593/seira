@@ -94,12 +94,11 @@ export default function ResetPasswordPage() {
           if (session?.user?.email) {
             setUserEmail(session.user.email)
           }
-        } else if (event === "SIGNED_IN" && pageState === "loading") {
-          // Check if this is a password recovery session
-          // (user may have refreshed the page after clicking link)
+        } else if (event === "SIGNED_IN") {
+          // Recovery flow may fire SIGNED_IN instead of PASSWORD_RECOVERY
           const { data: { user } } = await supabase.auth.getUser()
           if (user) {
-            setPageState("ready")
+            setPageState((current) => current === "loading" ? "ready" : current)
             if (user.email) {
               setUserEmail(user.email)
             }
@@ -108,20 +107,25 @@ export default function ResetPasswordPage() {
       }
     )
 
-    // Check if user already has a session (page refresh case)
+    // Check if user already has a session (callback redirect case)
+    // Use getUser() which validates server-side — more reliable than
+    // getSession() when cookies just arrived from a redirect
     async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
         setPageState("ready")
-        if (session.user?.email) {
-          setUserEmail(session.user.email)
+        if (user.email) {
+          setUserEmail(user.email)
         }
-      } else {
-        // Give some time for the auth state to be processed from URL
-        setTimeout(() => {
-          setPageState((current) => current === "loading" ? "invalid" : current)
-        }, 2000)
+        return
       }
+
+      // No session yet — give onAuthStateChange time to process.
+      // Generous timeout handles slow networks without flashing
+      // the form before the error state.
+      setTimeout(() => {
+        setPageState((current) => current === "loading" ? "invalid" : current)
+      }, 5000)
     }
 
     checkSession()
@@ -129,7 +133,8 @@ export default function ResetPasswordPage() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase, pageState])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase])
 
   // Password validation
   function validatePassword(): string | null {
