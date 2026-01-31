@@ -191,11 +191,13 @@ export default function TripBuilderPage() {
     setTrip(data)
     setLoadingState('ready')
 
-    // Auto-expand sections that need attention
-    if (!data.flight_origin) {
-      setFlightSectionOpen(true)
-    } else if (!data.hotel_name) {
-      setHotelSectionOpen(true)
+    // Auto-expand sections that need attention (only if event exists)
+    if (data.event_name) {
+      if (!data.flight_origin) {
+        setFlightSectionOpen(true)
+      } else if (!data.hotel_name) {
+        setHotelSectionOpen(true)
+      }
     }
   }, [tripId, router])
 
@@ -383,6 +385,11 @@ export default function TripBuilderPage() {
   // ===========================================================================
 
   const handleSkipFlight = async () => {
+    if (!trip?.event_name) {
+      toast.error('add an event first before skipping flights')
+      return
+    }
+
     setFlightSkipped(true)
     setFlightSectionOpen(false)
     setFlightPickerOpen(false)
@@ -404,6 +411,11 @@ export default function TripBuilderPage() {
   }
 
   const handleSkipHotel = async () => {
+    if (!trip?.event_name) {
+      toast.error('add an event first before skipping hotel')
+      return
+    }
+
     setHotelSkipped(true)
     setHotelSectionOpen(false)
     setHotelPickerOpen(false)
@@ -669,26 +681,47 @@ export default function TripBuilderPage() {
               <>
                 {/* Empty state - opens picker */}
                 <button
-                  onClick={() => setFlightPickerOpen(true)}
-                  className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
+                  onClick={() => {
+                    if (!hasEvent) {
+                      toast.error('add an event first to get flight suggestions')
+                      return
+                    }
+                    setFlightPickerOpen(true)
+                  }}
+                  className={cn(
+                    "w-full p-5 flex items-center justify-between transition-colors group",
+                    hasEvent ? "hover:bg-muted/50" : "opacity-60 cursor-not-allowed"
+                  )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10 transition-colors">
-                      <Plane className="w-5 h-5 text-amber-600 dark:text-amber-400 group-hover:text-primary transition-colors" />
+                    <div className={cn(
+                      "p-2 rounded-lg transition-colors",
+                      hasEvent
+                        ? "bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10"
+                        : "bg-muted"
+                    )}>
+                      <Plane className={cn(
+                        "w-5 h-5 transition-colors",
+                        hasEvent
+                          ? "text-amber-600 dark:text-amber-400 group-hover:text-primary"
+                          : "text-muted-foreground"
+                      )} />
                     </div>
                     <div className="text-left">
                       <div className="flex items-center gap-2 mb-0.5">
                         <h2 className="font-medium lowercase">flights</h2>
-                        <StatusBadge status="needs-decision" />
+                        {hasEvent && <StatusBadge status="needs-decision" />}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        not added yet
+                        {hasEvent ? 'not added yet' : 'add an event first'}
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
-                    + Add flights
-                  </span>
+                  {hasEvent && (
+                    <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
+                      + Add flights
+                    </span>
+                  )}
                 </button>
               </>
             )}
@@ -778,29 +811,49 @@ export default function TripBuilderPage() {
               </button>
             ) : (
               <>
-                {/* Empty state - collapsed */}
                 {/* Empty state - opens picker */}
                 <button
-                  onClick={() => setHotelPickerOpen(true)}
-                  className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group"
+                  onClick={() => {
+                    if (!hasEvent) {
+                      toast.error('add an event first to get hotel suggestions')
+                      return
+                    }
+                    setHotelPickerOpen(true)
+                  }}
+                  className={cn(
+                    "w-full p-5 flex items-center justify-between transition-colors group",
+                    hasEvent ? "hover:bg-muted/50" : "opacity-60 cursor-not-allowed"
+                  )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10 transition-colors">
-                      <Hotel className="w-5 h-5 text-amber-600 dark:text-amber-400 group-hover:text-primary transition-colors" />
+                    <div className={cn(
+                      "p-2 rounded-lg transition-colors",
+                      hasEvent
+                        ? "bg-amber-100 dark:bg-amber-900/30 group-hover:bg-primary/10"
+                        : "bg-muted"
+                    )}>
+                      <Hotel className={cn(
+                        "w-5 h-5 transition-colors",
+                        hasEvent
+                          ? "text-amber-600 dark:text-amber-400 group-hover:text-primary"
+                          : "text-muted-foreground"
+                      )} />
                     </div>
                     <div className="text-left">
                       <div className="flex items-center gap-2 mb-0.5">
                         <h2 className="font-medium lowercase">hotel</h2>
-                        <StatusBadge status="needs-decision" />
+                        {hasEvent && <StatusBadge status="needs-decision" />}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        not added yet
+                        {hasEvent ? 'not added yet' : 'add an event first'}
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
-                    + Add hotel
-                  </span>
+                  {hasEvent && (
+                    <span className="text-sm font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
+                      + Add hotel
+                    </span>
+                  )}
                 </button>
               </>
             )}
@@ -914,7 +967,7 @@ export default function TripBuilderPage() {
         open={flightPickerOpen}
         onOpenChange={setFlightPickerOpen}
         onFlightSelect={handleFlightSelect}
-        onSkip={handleSkipFlight}
+        onSkip={hasEvent ? handleSkipFlight : undefined}
         constraints={{
           eventCity: trip.destination_city,
           eventDate: trip.event_date,
@@ -932,7 +985,7 @@ export default function TripBuilderPage() {
         open={hotelPickerOpen}
         onOpenChange={setHotelPickerOpen}
         onHotelSelect={handleHotelSelect}
-        onSkip={handleSkipHotel}
+        onSkip={hasEvent ? handleSkipHotel : undefined}
         constraints={{
           eventCity: trip.destination_city,
           eventDate: trip.event_date,

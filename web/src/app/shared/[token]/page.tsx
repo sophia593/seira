@@ -69,8 +69,14 @@ export default function SharedTripPage() {
       console.error('Failed to duplicate trip:', error)
       const status = (error as { status?: number })?.status
       if (status === 401) {
+        toast('sign in to save this trip', {
+          description: "we'll save it to your account automatically after you log in.",
+        })
         const returnUrl = `/shared/${token}?action=duplicate`
-        router.push(`/login?redirect=${encodeURIComponent(returnUrl)}`)
+        // Brief delay so the toast is visible before navigation
+        setTimeout(() => {
+          router.push(`/login?redirect=${encodeURIComponent(returnUrl)}`)
+        }, 1200)
       } else {
         toast.error('failed to save trip')
       }
