@@ -45,14 +45,16 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Logged-in user visiting auth pages -> redirect to /trips
+  // Logged-in user visiting auth pages -> redirect to intended destination or /trips
   if (user) {
     if (pathname === "/login" || pathname === "/signup") {
-      return NextResponse.redirect(new URL("/trips", request.url))
+      const redirect = request.nextUrl.searchParams.get("redirect")
+      const destination = redirect && redirect.startsWith("/") ? redirect : "/trips"
+      return NextResponse.redirect(new URL(destination, request.url))
     }
   }
 
-  // Logged-out user visiting protected pages -> redirect to /login
+  // Logged-out user visiting protected pages -> redirect to /login with return URL
   if (!user) {
     if (
       pathname.startsWith("/trip") ||
@@ -60,7 +62,9 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/search") ||
       pathname.startsWith("/settings")
     ) {
-      return NextResponse.redirect(new URL("/login", request.url))
+      const loginUrl = new URL("/login", request.url)
+      loginUrl.searchParams.set("redirect", pathname)
+      return NextResponse.redirect(loginUrl)
     }
   }
 

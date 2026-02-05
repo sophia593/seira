@@ -13,13 +13,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -33,20 +26,6 @@ import {
 // Constants
 // =============================================================================
 
-const CABIN_CLASSES = [
-  { value: 'economy', label: 'Economy' },
-  { value: 'premium_economy', label: 'Premium Economy' },
-  { value: 'business', label: 'Business' },
-  { value: 'first', label: 'First Class' },
-]
-
-const SEAT_PREFERENCES = [
-  { value: 'window', label: 'Window' },
-  { value: 'aisle', label: 'Aisle' },
-  { value: 'middle', label: 'Middle' },
-  { value: 'no_preference', label: 'No Preference' },
-]
-
 // =============================================================================
 // Main Page
 // =============================================================================
@@ -54,9 +33,7 @@ const SEAT_PREFERENCES = [
 export default function SettingsPage() {
   const router = useRouter()
   const user = useUserStore((state) => state.user)
-  const preferences = useUserStore((state) => state.preferences)
   const setUser = useUserStore((state) => state.setUser)
-  const setPreferences = useUserStore((state) => state.setPreferences)
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -67,22 +44,14 @@ export default function SettingsPage() {
 
   // Form state
   const [name, setName] = useState('')
-  const [homeAirport, setHomeAirport] = useState('')
-  const [cabinClass, setCabinClass] = useState('')
-  const [seatPreference, setSeatPreference] = useState('')
   // Initial values (for dirty checking)
   const [initialName, setInitialName] = useState('')
-  const [initialHomeAirport, setInitialHomeAirport] = useState('')
-  const [initialCabinClass, setInitialCabinClass] = useState('')
-  const [initialSeatPreference, setInitialSeatPreference] = useState('')
 
   // Loading states
   const [isSavingProfile, setIsSavingProfile] = useState(false)
-  const [isSavingPrefs, setIsSavingPrefs] = useState(false)
 
   // Success states (for inline feedback)
   const [profileSaved, setProfileSaved] = useState(false)
-  const [prefsSaved, setPrefsSaved] = useState(false)
 
   // Delete account dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -106,21 +75,6 @@ export default function SettingsPage() {
     return name.trim() !== initialName.trim()
   }, [name, initialName])
 
-  const isPreferencesDirty = useMemo(() => {
-    return (
-      homeAirport.trim().toUpperCase() !== initialHomeAirport.trim().toUpperCase() ||
-      cabinClass !== initialCabinClass ||
-      seatPreference !== initialSeatPreference
-    )
-  }, [
-    homeAirport,
-    initialHomeAirport,
-    cabinClass,
-    initialCabinClass,
-    seatPreference,
-    initialSeatPreference,
-  ])
-
   // Initialize form from store
   useEffect(() => {
     if (user) {
@@ -128,20 +82,7 @@ export default function SettingsPage() {
       setName(userName)
       setInitialName(userName)
     }
-    if (preferences) {
-      const airport = preferences.home_airport || ''
-      const cabin = preferences.cabin_class || ''
-      const seat = preferences.seat_preference || ''
-
-      setHomeAirport(airport)
-      setCabinClass(cabin)
-      setSeatPreference(seat)
-
-      setInitialHomeAirport(airport)
-      setInitialCabinClass(cabin)
-      setInitialSeatPreference(seat)
-    }
-  }, [user, preferences])
+  }, [user])
 
   // Reset success state when form changes
   useEffect(() => {
@@ -149,12 +90,6 @@ export default function SettingsPage() {
       setProfileSaved(false)
     }
   }, [isProfileDirty])
-
-  useEffect(() => {
-    if (isPreferencesDirty) {
-      setPrefsSaved(false)
-    }
-  }, [isPreferencesDirty])
 
   async function handleSaveProfile() {
     if (!isProfileDirty) return
@@ -180,39 +115,6 @@ export default function SettingsPage() {
       toast.error('couldn\'t update profile')
     } finally {
       setIsSavingProfile(false)
-    }
-  }
-
-  async function handleSavePreferences() {
-    if (!isPreferencesDirty) return
-
-    setIsSavingPrefs(true)
-    setPrefsSaved(false)
-
-    try {
-      const api = getApi()
-      const updated = await api.updatePreferences({
-        home_airport: homeAirport.trim().toUpperCase() || null,
-        cabin_class: cabinClass || null,
-        seat_preference: seatPreference || null,
-      })
-      setPreferences(updated)
-
-      // Update initial values so dirty check resets
-      setInitialHomeAirport(homeAirport.trim().toUpperCase())
-      setInitialCabinClass(cabinClass)
-      setInitialSeatPreference(seatPreference)
-
-      // Show success
-      setPrefsSaved(true)
-      toast.success('preferences saved')
-
-      // Reset success icon after delay
-      setTimeout(() => setPrefsSaved(false), 3000)
-    } catch {
-      toast.error('couldn\'t save preferences')
-    } finally {
-      setIsSavingPrefs(false)
     }
   }
 
@@ -341,7 +243,7 @@ export default function SettingsPage() {
         <div className="mb-6 sm:mb-8">
           <h1 className="text-xl sm:text-page-title">settings</h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">
-            manage your profile and travel preferences
+            manage your profile and account
           </p>
         </div>
 
@@ -435,79 +337,6 @@ export default function SettingsPage() {
                   : 'choose your preferred color scheme'}
               </p>
             </div>
-          </div>
-        </section>
-
-        {/* Travel Preferences Section */}
-        <section className="mb-8 sm:mb-10">
-          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">
-            travel preferences
-          </h2>
-          <div className="space-y-3 sm:space-y-4 p-4 sm:p-6 bg-card rounded-xl border">
-            <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="homeAirport" className="text-sm">
-                home airport
-              </Label>
-              <Input
-                id="homeAirport"
-                type="text"
-                value={homeAirport}
-                onChange={(e) => setHomeAirport(e.target.value.toUpperCase())}
-                placeholder="LAX"
-                maxLength={4}
-                className="uppercase text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                3-letter airport code (e.g., LAX, JFK, ORD)
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5 sm:space-y-2">
-                <Label htmlFor="cabinClass" className="text-sm">
-                  preferred cabin
-                </Label>
-                <Select value={cabinClass} onValueChange={setCabinClass}>
-                  <SelectTrigger className="text-sm">
-                    <SelectValue placeholder="select cabin class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CABIN_CLASSES.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>
-                        {c.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5 sm:space-y-2">
-                <Label htmlFor="seatPreference" className="text-sm">
-                  seat preference
-                </Label>
-                <Select value={seatPreference} onValueChange={setSeatPreference}>
-                  <SelectTrigger className="text-sm">
-                    <SelectValue placeholder="select seat preference" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SEAT_PREFERENCES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <SaveButton
-              onClick={handleSavePreferences}
-              isLoading={isSavingPrefs}
-              isSaved={prefsSaved}
-              isDirty={isPreferencesDirty}
-              label="save preferences"
-              savedLabel="saved"
-            />
           </div>
         </section>
 
@@ -723,7 +552,7 @@ export default function SettingsPage() {
                     </DialogTitle>
                     <DialogDescription>
                       this will permanently delete your account, including all your
-                      conversations, trips, and preferences. this action cannot be undone.
+                      trips and account data. this action cannot be undone.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-3 py-4">

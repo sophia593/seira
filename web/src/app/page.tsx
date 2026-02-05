@@ -100,8 +100,8 @@ export default function Home() {
           {/* Subtext */}
           <FadeInSection delay={200}>
             <p className="text-sm sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8">
-              Tell seira about a concert, game, or show you want to attend.
-              We&apos;ll find flights, hotels, and tickets — all in one conversation.
+              search for a concert, game, or show you want to attend.
+              we&apos;ll find flights, hotels, and tickets — all in one place.
             </p>
           </FadeInSection>
 

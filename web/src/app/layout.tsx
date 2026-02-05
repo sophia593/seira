@@ -23,7 +23,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "seira",
+  title: {
+    default: "seira",
+    template: "%s · seira",
+  },
   description: "plan trips around the events you love",
   icons: {
     icon: [
