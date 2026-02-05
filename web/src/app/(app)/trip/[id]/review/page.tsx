@@ -47,8 +47,12 @@ interface TripData {
   event_time: string | null
   event_venue: string | null
   event_venue_address: string | null
+  event_venue_lat: number | null
+  event_venue_lng: number | null
   event_price_estimate: number | null
   event_purchase_url: string | null
+  event_image_url: string | null
+  event_ticketmaster_id: string | null
 
   // Flight
   flight_origin: string | null
@@ -67,6 +71,13 @@ interface TripData {
   hotel_check_out: string | null
   hotel_price: number | null
   hotel_purchase_url: string | null
+
+  // Origin
+  origin_city: string | null
+  origin_airport_code: string | null
+
+  // Ground Transport
+  ground_transport: Record<string, unknown> | null
 
   // Meta
   destination_city: string | null

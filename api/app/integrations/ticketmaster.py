@@ -243,7 +243,23 @@ class TicketmasterClient:
         events_data = embedded.get("events", [])
         page_info = data.get("page", {})
 
-        events = [self._parse_event(e) for e in events_data]
+        # Filter to on-sale events only
+        filtered_events_data = []
+        for raw_event in events_data:
+            status_code = (
+                raw_event.get("dates", {}).get("status", {}).get("code", "")
+            ).lower()
+            if status_code == "onsale":
+                filtered_events_data.append(raw_event)
+            else:
+                logger.debug(
+                    "Filtered out event %s (id=%s): status=%s",
+                    raw_event.get("name", "unknown"),
+                    raw_event.get("id", "unknown"),
+                    status_code or "missing",
+                )
+
+        events = [self._parse_event(e) for e in filtered_events_data]
 
         result = EventSearchResult(
             events=events,

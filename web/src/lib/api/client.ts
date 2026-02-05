@@ -56,10 +56,14 @@ export interface TripDetail extends Trip {
   event_time: string | null
   event_provider: string | null
   event_provider_id: string | null
+  event_ticketmaster_id: string | null
   event_venue: string | null
   event_venue_address: string | null
+  event_venue_lat: number | null
+  event_venue_lng: number | null
   event_price_estimate: number | null
   event_purchase_url: string | null
+  event_image_url: string | null
   flight_offer_id: string | null
   flight_origin: string | null
   flight_destination: string | null
@@ -76,6 +80,9 @@ export interface TripDetail extends Trip {
   hotel_check_out: string | null
   hotel_price: number | null
   hotel_purchase_url: string | null
+  origin_city: string | null
+  origin_airport_code: string | null
+  ground_transport: Record<string, unknown> | null
   quoted_at: string | null
   quote_expires_at: string | null
 }
@@ -93,8 +100,11 @@ export interface SharedTrip {
   event_time: string | null
   event_venue: string | null
   event_venue_address: string | null
+  event_venue_lat: number | null
+  event_venue_lng: number | null
   event_price_estimate: number | null
   event_purchase_url: string | null
+  event_image_url: string | null
   flight_origin: string | null
   flight_destination: string | null
   flight_outbound_date: string | null
@@ -132,10 +142,16 @@ export interface CreateTripRequest {
   event_time?: string
   event_provider?: string
   event_provider_id?: string
+  event_ticketmaster_id?: string
   event_venue?: string
   event_venue_address?: string
+  event_venue_lat?: number
+  event_venue_lng?: number
   event_price_estimate?: number
   event_purchase_url?: string
+  event_image_url?: string
+  origin_city?: string
+  origin_airport_code?: string
 }
 
 export interface UserProfile {
