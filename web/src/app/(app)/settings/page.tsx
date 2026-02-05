@@ -8,7 +8,6 @@ import Link from 'next/link'
 import { getApi } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { useUserStore } from '@/stores/user-store'
-import { useConversationStore } from '@/stores/conversation-store'
 import { toast } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -227,7 +226,6 @@ export default function SettingsPage() {
 
       // Clear all local stores FIRST
       useUserStore.getState().clear()
-      useConversationStore.getState().clear()
 
       // Sign out from Supabase (session already invalid, but clean up cookies)
       const supabase = createClient()

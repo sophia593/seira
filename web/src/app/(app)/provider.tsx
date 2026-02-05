@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, createContext, useContext } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useUserStore } from "@/stores/user-store"
-import { useConversationStore } from "@/stores/conversation-store"
 import { getApi } from "@/lib/api"
 import { createClient } from "@/lib/supabase/client"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -281,7 +280,6 @@ export function AppShellProvider({
         if (event === 'SIGNED_OUT') {
           // Clear all stores
           useUserStore.getState().clear()
-          useConversationStore.getState().clear()
 
           // Redirect to landing page
           router.replace('/')

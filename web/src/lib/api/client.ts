@@ -35,34 +35,6 @@ export class ApiError extends Error {
 }
 
 // Response types matching backend contracts
-export interface Conversation {
-  id: string
-  user_id: string
-  title: string | null
-  context: Record<string, unknown>
-  message_count: number
-  is_archived: boolean
-  created_at: string
-  updated_at: string
-}
-
-export interface Message {
-  id: string
-  conversation_id: string
-  role: "user" | "assistant" | "system" | "tool"
-  content: string
-  tool_calls?: unknown[]
-  tool_call_id?: string
-  tokens_used?: number | null
-  model_version?: string | null
-  created_at: string
-}
-
-export interface ConversationWithMessages {
-  conversation: Conversation
-  messages: Message[]
-}
-
 export interface Trip {
   id: string
   title: string
@@ -307,43 +279,6 @@ export function createApiClient(config: ApiClientConfig) {
     return request<T>("DELETE", path, undefined, options)
   }
 
-  async function stream(
-    path: string,
-    body: unknown,
-    options: RequestOptions & { idempotencyKey?: string } = {}
-  ): Promise<Response> {
-    const token = await getToken()
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Accept: "text/event-stream",
-      ...options.headers,
-    }
-
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`
-    }
-
-    if (options.idempotencyKey) {
-      headers["Idempotency-Key"] = options.idempotencyKey
-    }
-
-    const url = `${baseUrl}${path}`
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: options.signal,
-    })
-
-    if (!response.ok) {
-      await handleErrorResponse(response)
-    }
-
-    return response
-  }
-
   // ---------------------------------------------------------------------------
   // Typed Endpoint Methods
   // ---------------------------------------------------------------------------
@@ -369,53 +304,6 @@ export function createApiClient(config: ApiClientConfig) {
 
   async function deleteAccount(): Promise<{ message: string; deleted: Record<string, number> }> {
     return del<{ message: string; deleted: Record<string, number> }>("/api/v1/users/me")
-  }
-
-  // Conversations
-  async function getConversations(): Promise<Conversation[]> {
-    return get<Conversation[]>("/api/v1/conversations")
-  }
-
-  async function getConversation(id: string): Promise<ConversationWithMessages> {
-    return get<ConversationWithMessages>(`/api/v1/conversations/${id}`)
-  }
-
-  async function createConversation(data?: {
-    title?: string
-  }): Promise<Conversation> {
-    return post<Conversation>("/api/v1/conversations", data)
-  }
-
-  async function updateConversation(
-    id: string,
-    data: { title?: string; context?: Record<string, unknown> }
-  ): Promise<Conversation> {
-    return patch<Conversation>(`/api/v1/conversations/${id}`, data)
-  }
-
-  async function deleteConversation(id: string): Promise<void> {
-    return del<void>(`/api/v1/conversations/${id}`)
-  }
-
-  async function sendMessage(
-    conversationId: string,
-    content: string,
-    options: { idempotencyKey?: string; signal?: AbortSignal } = {}
-  ): Promise<Response> {
-    return stream(`/api/v1/conversations/${conversationId}/messages`, {
-      content,
-    }, options)
-  }
-
-  async function sendChatMessage(
-    message: string,
-    options: { conversationId?: string; signal?: AbortSignal } = {}
-  ): Promise<Response> {
-    const body: Record<string, unknown> = { message }
-    if (options.conversationId) {
-      body.conversation_id = options.conversationId
-    }
-    return stream("/api/v1/chat", body, { signal: options.signal })
   }
 
   // Trips
@@ -474,7 +362,6 @@ export function createApiClient(config: ApiClientConfig) {
     patch,
     put,
     delete: del,
-    stream,
 
     // User
     getMe,
@@ -482,15 +369,6 @@ export function createApiClient(config: ApiClientConfig) {
     getPreferences,
     updatePreferences,
     deleteAccount,
-
-    // Conversations
-    getConversations,
-    getConversation,
-    createConversation,
-    updateConversation,
-    deleteConversation,
-    sendMessage,
-    sendChatMessage,
 
     // Trips
     getTrips,

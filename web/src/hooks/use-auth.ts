@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { useUserStore } from '@/stores/user-store'
-import { useConversationStore } from '@/stores/conversation-store'
 
 // =============================================================================
 // Types
@@ -200,7 +199,6 @@ export function useAuth(): UseAuthReturn {
     // Clear local state FIRST so UI feels instant
     // Use getState() to access store without hooks
     useUserStore.getState().clear()
-    useConversationStore.getState().clear()
 
     // Clear local user state
     setUser(null)

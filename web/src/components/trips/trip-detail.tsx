@@ -1,11 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import {
   Calendar,
   MapPin,
   Building2,
-  MessageSquare,
   RefreshCw,
   TrendingUp,
   TrendingDown,
@@ -138,15 +136,6 @@ export function TripDetailComponent({
       {/* Notes */}
       {trip.notes && <NotesSection notes={trip.notes} />}
 
-      {/* Continue in Chat */}
-      {trip.conversation_id && (
-        <Button asChild variant="outline" className="w-full lowercase text-xs sm:text-sm">
-          <Link href={`/chat/${trip.conversation_id}`}>
-            <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-            continue planning in chat
-          </Link>
-        </Button>
-      )}
     </div>
   )
 }
