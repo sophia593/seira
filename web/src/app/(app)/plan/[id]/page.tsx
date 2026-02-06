@@ -1,4 +1,5 @@
 import { samplePlan } from "@/lib/sample-data"
+import { FeasibilityBadge } from "@/components/ui/feasibility-badge"
 
 export default async function PlanPage({
   params,
@@ -78,17 +79,16 @@ export default async function PlanPage({
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-lg ${
+                  <FeasibilityBadge
+                    label={flight.timingTag.label}
+                    severity={
                       flight.timingTag.severity === "comfortable"
-                        ? "badge-safe"
+                        ? "comfortable"
                         : flight.timingTag.severity === "tight"
-                          ? "badge-risky"
-                          : "badge-impossible"
-                    }`}
-                  >
-                    {flight.timingTag.label}
-                  </span>
+                          ? "tight"
+                          : "risky"
+                    }
+                  />
                   <span className="text-data font-medium">${flight.price}</span>
                 </div>
               </div>
