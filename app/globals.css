@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand palette */
+  --color-background: oklch(0.985 0 0);
+  --color-foreground: oklch(0.145 0.014 285.82);
+  --color-muted: oklch(0.967 0.003 264.54);
+  --color-muted-foreground: oklch(0.553 0.014 264.54);
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.145 0.014 285.82);
+  --color-border: oklch(0.922 0.004 264.54);
+  --color-input: oklch(0.922 0.004 264.54);
+  --color-ring: oklch(0.37 0.044 257.29);
+  --color-primary: oklch(0.205 0.019 285.82);
+  --color-primary-foreground: oklch(0.985 0 0);
+  --color-secondary: oklch(0.967 0.003 264.54);
+  --color-secondary-foreground: oklch(0.205 0.019 285.82);
+  --color-accent: oklch(0.967 0.003 264.54);
+  --color-accent-foreground: oklch(0.205 0.019 285.82);
+  --color-destructive: oklch(0.577 0.245 27.33);
+  --color-destructive-foreground: oklch(0.985 0 0);
+  --color-sidebar: oklch(0.985 0 0);
+  --color-sidebar-foreground: oklch(0.37 0.044 257.29);
+  --color-sidebar-muted: oklch(0.967 0.003 264.54);
+  --color-sidebar-accent: oklch(0.949 0.003 264.54);
+  --color-sidebar-accent-foreground: oklch(0.205 0.019 285.82);
+  --color-sidebar-border: oklch(0.922 0.004 264.54);
+
+  /* Constraint system */
+  --color-safe: oklch(0.546 0.143 163.23);
+  --color-safe-foreground: oklch(0.985 0 0);
+  --color-risky: oklch(0.769 0.188 70.08);
+  --color-risky-foreground: oklch(0.205 0.019 285.82);
+  --color-impossible: oklch(0.592 0.249 16.44);
+  --color-impossible-foreground: oklch(0.985 0 0);
+
+  /* Radius */
+  --radius: 0.75rem;
+
+  /* Fonts */
+  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@utility data-value {
+  font-family: var(--font-mono);
+  font-size: 1.05em;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility badge-safe {
+  background-color: color-mix(in oklch, var(--color-safe) 12%, transparent);
+  color: var(--color-safe);
+}
+
+@utility badge-risky {
+  background-color: color-mix(in oklch, var(--color-risky) 14%, transparent);
+  color: var(--color-risky);
+}
+
+@utility badge-impossible {
+  background-color: color-mix(in oklch, var(--color-impossible) 12%, transparent);
+  color: var(--color-impossible);
+}
