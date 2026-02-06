@@ -13,14 +13,16 @@ export function MobileHeader() {
     <header
       className={cn(
         "md:hidden flex items-center justify-between",
-        "h-14 border-b bg-background px-4",
+        "h-14 border-b border-border/40 bg-background px-5",
         "pt-[env(safe-area-inset-top)]"
       )}
     >
       {/* Left: Logo */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <LogoIcon size="sm" className="text-foreground" />
-        <span className="font-semibold text-sm lowercase">seira</span>
+        <span className="font-semibold text-[15px] lowercase tracking-tight">
+          seira
+        </span>
       </div>
 
       {/* Right: User avatar */}

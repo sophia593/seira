@@ -58,13 +58,13 @@ function MenuItem({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'cursor-pointer transition-colors duration-150',
-        'hover:bg-muted/80',
+        'cursor-pointer transition-colors duration-200',
+        'hover:bg-muted/50',
         variant === 'destructive' && 'text-destructive focus:text-destructive',
       )}
     >
-      <Icon className="mr-2 h-4 w-4 transition-transform duration-150 group-hover:scale-110" />
-      <span className="lowercase">{label}</span>
+      <Icon className="mr-2.5 h-4 w-4 stroke-[1.5]" />
+      <span className="lowercase tracking-tight">{label}</span>
     </DropdownMenuItem>
   )
 }
@@ -137,11 +137,11 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
         <Button
           variant="ghost"
           className={cn(
-            'transition-all duration-150',
-            'hover:bg-muted/80',
+            'transition-all duration-200',
+            'hover:bg-muted/50',
             isCollapsed
-              ? 'h-11 w-11 p-0'
-              : 'h-auto w-full justify-start gap-3 px-2 py-2'
+              ? 'h-11 w-11 p-0 rounded-lg'
+              : 'h-auto w-full justify-start gap-3 px-3 py-2.5 rounded-lg'
           )}
         >
           <div className="relative">
@@ -161,18 +161,18 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
           {!isCollapsed && (
             <div className="flex-1 text-left min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium truncate">
+                <p className="text-sm font-medium lowercase tracking-tight truncate">
                   {user.name || 'User'}
                 </p>
                 {/* Pro badge (inline) */}
                 {isPro && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium lowercase">
                     <Crown className="w-2.5 h-2.5" />
                     pro
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-xs text-muted-foreground/60 truncate">
                 {user.email}
               </p>
             </div>
@@ -196,17 +196,17 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium truncate">
+                <p className="text-sm font-medium lowercase tracking-tight truncate">
                   {user.name || 'User'}
                 </p>
                 {isPro && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium lowercase">
                     <Crown className="w-2.5 h-2.5" />
                     pro
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-xs text-muted-foreground/60 truncate">
                 {user.email}
               </p>
             </div>
@@ -244,17 +244,17 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
         <DropdownMenuItem
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="cursor-pointer transition-colors duration-150 hover:bg-muted/80"
+          className="cursor-pointer transition-colors duration-200 hover:bg-muted/50"
         >
           {isLoggingOut ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              <span className="lowercase">logging out...</span>
+              <Loader2 className="mr-2.5 h-4 w-4 animate-spin stroke-[1.5]" />
+              <span className="lowercase tracking-tight">logging out...</span>
             </>
           ) : (
             <>
-              <LogOut className="mr-2 h-4 w-4 transition-transform duration-150" />
-              <span className="lowercase">log out</span>
+              <LogOut className="mr-2.5 h-4 w-4 stroke-[1.5]" />
+              <span className="lowercase tracking-tight">log out</span>
             </>
           )}
         </DropdownMenuItem>

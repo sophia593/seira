@@ -33,7 +33,7 @@ export function TabBar() {
       className={cn(
         "md:hidden fixed bottom-0 left-0 right-0 z-50",
         "flex items-center justify-around",
-        "h-16 border-t bg-background/95 backdrop-blur-md",
+        "h-16 border-t border-border/30 bg-background/95 backdrop-blur-md",
         "pb-[env(safe-area-inset-bottom)]"
       )}
       aria-label="Main navigation"
@@ -45,19 +45,20 @@ export function TabBar() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5",
+              "flex flex-col items-center justify-center gap-1",
               "w-16 h-full",
-              "text-[10px] font-medium lowercase",
-              "transition-colors duration-150",
+              "text-[10px] font-medium lowercase tracking-tight",
+              "transition-all duration-200",
               active
                 ? "text-foreground"
-                : "text-muted-foreground"
+                : "text-muted-foreground/50"
             )}
           >
             <tab.icon
               className={cn(
-                "h-5 w-5",
-                active && "text-primary"
+                "h-5 w-5 stroke-[1.5]",
+                active && "text-primary scale-105",
+                !active && "scale-100"
               )}
             />
             <span>{tab.label}</span>

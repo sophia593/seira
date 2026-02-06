@@ -35,17 +35,17 @@ export function Sidebar() {
       className={cn(
         "hidden lg:flex flex-col h-full",
         "w-[220px] xl:w-[240px]",
-        "border-r bg-sidebar text-sidebar-foreground",
-        "py-6 px-3"
+        "border-r border-border/40 bg-sidebar text-sidebar-foreground",
+        "py-8 px-4"
       )}
     >
       {/* Logo */}
-      <div className="px-3 mb-8">
+      <div className="px-2 mb-12">
         <LogoFull size="default" animated />
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1" aria-label="Main navigation">
+      <nav className="flex-1 space-y-2" aria-label="Main navigation">
         {navItems.map((item) => {
           const active = isActive(pathname, item.href)
           return (
@@ -53,15 +53,15 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5",
-                "text-sm font-medium lowercase",
-                "transition-colors duration-150",
+                "flex items-center gap-3 rounded-lg px-3 py-3",
+                "text-[15px] font-medium lowercase tracking-tight",
+                "transition-all duration-200",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  : "text-sidebar-foreground/50 hover:text-sidebar-foreground/90 hover:bg-sidebar-accent/30"
               )}
             >
-              <item.icon className="h-[18px] w-[18px] shrink-0" />
+              <item.icon className="h-[19px] w-[19px] shrink-0 stroke-[1.5]" />
               <span>{item.label}</span>
             </Link>
           )
@@ -69,7 +69,7 @@ export function Sidebar() {
       </nav>
 
       {/* User menu at bottom */}
-      <div className="mt-auto pt-4 border-t border-sidebar-border">
+      <div className="mt-auto pt-6 border-t border-border/30">
         <UserMenu />
       </div>
     </aside>
@@ -88,17 +88,17 @@ export function SidebarCollapsed() {
       className={cn(
         "hidden md:flex lg:hidden flex-col items-center h-full",
         "w-16",
-        "border-r bg-sidebar text-sidebar-foreground",
-        "py-6 px-2"
+        "border-r border-border/40 bg-sidebar text-sidebar-foreground",
+        "py-8 px-2"
       )}
     >
       {/* Logo icon */}
-      <div className="mb-8">
+      <div className="mb-12">
         <LogoIcon size="default" animated />
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-2" aria-label="Main navigation">
+      <nav className="flex-1 space-y-3" aria-label="Main navigation">
         {navItems.map((item) => {
           const active = isActive(pathname, item.href)
           return (
@@ -107,14 +107,14 @@ export function SidebarCollapsed() {
               href={item.href}
               title={item.label}
               className={cn(
-                "flex items-center justify-center rounded-xl w-10 h-10",
-                "transition-colors duration-150",
+                "flex items-center justify-center rounded-lg w-11 h-11",
+                "transition-all duration-200",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  : "text-sidebar-foreground/50 hover:text-sidebar-foreground/90 hover:bg-sidebar-accent/30"
               )}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-5 w-5 stroke-[1.5]" />
               <span className="sr-only">{item.label}</span>
             </Link>
           )
@@ -122,7 +122,7 @@ export function SidebarCollapsed() {
       </nav>
 
       {/* User menu at bottom */}
-      <div className="mt-auto pt-4 border-t border-sidebar-border">
+      <div className="mt-auto pt-6 border-t border-border/30">
         <UserMenu isCollapsed />
       </div>
     </aside>
