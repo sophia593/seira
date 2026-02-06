@@ -39,18 +39,26 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* Seira brand colors */
-  --color-seira-50: #f0f9ff;
-  --color-seira-100: #e0f2fe;
-  --color-seira-200: #bae6fd;
-  --color-seira-300: #7dd3fc;
-  --color-seira-400: #38bdf8;
-  --color-seira-500: #0ea5e9;
-  --color-seira-600: #0284c7;
-  --color-seira-700: #0369a1;
-  --color-seira-800: #075985;
-  --color-seira-900: #0c4a6e;
-  --color-seira-950: #082f49;
+  /* Seira brand colors — deep indigo */
+  --color-seira-50: #eef2ff;
+  --color-seira-100: #e0e7ff;
+  --color-seira-200: #c7d2fe;
+  --color-seira-300: #a5b4fc;
+  --color-seira-400: #818cf8;
+  --color-seira-500: #6366f1;
+  --color-seira-600: #4f46e5;
+  --color-seira-700: #4338ca;
+  --color-seira-800: #3730a3;
+  --color-seira-900: #312e81;
+  --color-seira-950: #1e1b4b;
+
+  /* Status colors */
+  --color-status-safe: #059669;
+  --color-status-safe-light: #d1fae5;
+  --color-status-warning: #d97706;
+  --color-status-warning-light: #fef3c7;
+  --color-status-danger: #dc2626;
+  --color-status-danger-light: #fee2e2;
 
   /* Border radius - 12px base for rounded-xl */
   --radius-sm: calc(var(--radius) - 8px);
