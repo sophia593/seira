@@ -655,7 +655,7 @@ export function DemoPreview() {
               </AnimatePresence>
             </div>
             <Link
-              href="/search"
+              href="/events"
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors",
                 showTotal
@@ -692,7 +692,7 @@ export function DemoPreview() {
             {EXAMPLE_TAGS.map((tag) => (
               <Link
                 key={tag.label}
-                href="/search"
+                href="/events"
                 className="px-4 py-2.5 text-xs font-medium rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[40px] flex items-center"
               >
                 {tag.label}
@@ -775,7 +775,7 @@ export function DemoPreviewStatic() {
         {examples.map((example, index) => (
           <Link
             key={index}
-            href="/search"
+            href="/events"
             className="rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="text-xs text-muted-foreground mb-2">

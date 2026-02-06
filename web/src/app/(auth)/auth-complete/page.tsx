@@ -65,7 +65,7 @@ function AuthCompleteContent() {
 
       {showFallback && (
         <Link
-          href="/trips"
+          href="/saved"
           className="block mt-6 text-sm text-primary hover:underline animate-in fade-in duration-300"
         >
           click here if you&apos;re not redirected

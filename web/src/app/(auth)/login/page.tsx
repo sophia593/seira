@@ -129,7 +129,7 @@ function LoginForm() {
       }
 
       // Redirect to specified URL or default to trips
-      router.push(redirectTo || "/trips")
+      router.push(redirectTo || "/saved")
       router.refresh()
     } catch {
       setFormError('something went wrong. please try again.')

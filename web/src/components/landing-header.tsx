@@ -99,14 +99,14 @@ function UserDropdown({ userEmail }: UserDropdownProps) {
         )}
 
         <DropdownMenuItem asChild>
-          <Link href="/search" className="cursor-pointer">
+          <Link href="/events" className="cursor-pointer">
             <ArrowRight className="w-4 h-4 mr-2" />
             try seira
           </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem asChild>
-          <Link href="/trips" className="cursor-pointer">
+          <Link href="/saved" className="cursor-pointer">
             <Map className="w-4 h-4 mr-2" />
             my trips
           </Link>
@@ -217,7 +217,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
               )}
 
               <Link
-                href="/search"
+                href="/events"
                 onClick={onClose}
                 className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
@@ -226,7 +226,7 @@ function MobileMenu({ isOpen, onClose, user, loading, userEmail }: MobileMenuPro
               </Link>
 
               <Link
-                href="/trips"
+                href="/saved"
                 onClick={onClose}
                 className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm hover:bg-accent transition-colors"
               >
@@ -341,7 +341,7 @@ export function LandingHeader() {
               <div className="flex items-center gap-2">
                 {/* Primary action stays visible */}
                 <Button asChild className="h-9">
-                  <Link href="/search">
+                  <Link href="/events">
                     try seira
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
@@ -359,7 +359,7 @@ export function LandingHeader() {
                   <Link href="/signup">sign up</Link>
                 </Button>
                 <Button asChild className="h-9">
-                  <Link href="/search">
+                  <Link href="/events">
                     try seira
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>

@@ -307,7 +307,7 @@ function EmptyState() {
 
       {/* Prominent CTA button */}
       <Button asChild size="lg" className="lowercase gap-2 px-6 sm:px-8">
-        <Link href="/search">
+        <Link href="/events">
           <Sparkles className="w-4 h-4" />
           start planning
         </Link>

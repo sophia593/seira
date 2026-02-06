@@ -3,7 +3,7 @@
  *
  * This middleware runs on every request (except static assets) and:
  * 1. Refreshes the Supabase auth session (keeps cookies fresh)
- * 2. Redirects logged-in users away from /login and /signup to /trips
+ * 2. Redirects logged-in users away from /login and /signup to /saved
  * 3. Redirects logged-out users away from protected pages to /login
  */
 
@@ -45,11 +45,11 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Logged-in user visiting auth pages -> redirect to intended destination or /trips
+  // Logged-in user visiting auth pages -> redirect to intended destination or /saved
   if (user) {
     if (pathname === "/login" || pathname === "/signup") {
       const redirect = request.nextUrl.searchParams.get("redirect")
-      const destination = redirect && redirect.startsWith("/") ? redirect : "/trips"
+      const destination = redirect && redirect.startsWith("/") ? redirect : "/saved"
       return NextResponse.redirect(new URL(destination, request.url))
     }
   }
@@ -57,9 +57,9 @@ export async function middleware(request: NextRequest) {
   // Logged-out user visiting protected pages -> redirect to /login with return URL
   if (!user) {
     if (
-      pathname.startsWith("/trip") ||
-      pathname.startsWith("/trips") ||
-      pathname.startsWith("/search") ||
+      pathname.startsWith("/plan") ||
+      pathname.startsWith("/saved") ||
+      pathname.startsWith("/events") ||
       pathname.startsWith("/settings")
     ) {
       const loginUrl = new URL("/login", request.url)

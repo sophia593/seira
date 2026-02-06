@@ -30,7 +30,7 @@ const FOOTER_SECTIONS: FooterSection[] = [
   {
     title: "product",
     links: [
-      { label: "search", href: "/search" },
+      { label: "events", href: "/events" },
       { label: "pricing", href: "/pricing" },
       { label: "how it works", href: "/#how-it-works" },
     ],

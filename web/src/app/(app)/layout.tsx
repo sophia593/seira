@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
-import { Sidebar } from "@/components/layout/sidebar"
 import { MobileNav } from "@/components/layout/mobile-nav"
-import { MobileSidebar } from "@/components/layout/mobile-sidebar"
 import { AppShellProvider } from "./provider"
 import { createServerClient } from "@supabase/ssr"
 
@@ -52,17 +50,9 @@ export default async function AppLayout({
 
   return (
     <AppShellProvider initialUser={user}>
-      <div className="flex h-screen flex-col lg:flex-row">
+      <div className="flex h-screen flex-col">
         {/* Mobile Header */}
         <MobileNav />
-
-        {/* Mobile Sidebar (drawer) */}
-        <MobileSidebar />
-
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:block">
-          <Sidebar />
-        </div>
 
         {/* Main Content */}
         <main className="flex-1 min-h-0 overflow-hidden">{children}</main>

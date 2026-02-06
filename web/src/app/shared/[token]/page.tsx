@@ -64,7 +64,7 @@ export default function SharedTripPage() {
       const api = getApi()
       const result = await api.duplicateSharedTrip(token)
       toast.success('trip saved to your account')
-      router.push(`/trip/${result.id}`)
+      router.push(`/plan/${result.id}`)
     } catch (error: unknown) {
       console.error('Failed to duplicate trip:', error)
       const status = (error as { status?: number })?.status
@@ -430,7 +430,7 @@ export default function SharedTripPage() {
                 )}
               </Button>
               <Button variant="outline" asChild className="gap-2">
-                <Link href="/search">
+                <Link href="/events">
                   start a new trip
                   <ArrowRight className="w-4 h-4" />
                 </Link>

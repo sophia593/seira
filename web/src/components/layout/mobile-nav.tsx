@@ -1,10 +1,9 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, Search, Plus } from 'lucide-react'
-import { useSidebar } from '@/hooks/use-sidebar'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Logo, LogoIcon } from '@/components/logo'
+import { LogoIcon } from '@/components/logo'
 import { UserMenu } from './user-menu'
 import { cn } from '@/lib/utils'
 
@@ -13,12 +12,9 @@ import { cn } from '@/lib/utils'
 // =============================================================================
 
 const PAGE_TITLES: Record<string, string> = {
-  '/search': 'search',
-  '/trips': 'trips',
+  '/events': 'events',
+  '/saved': 'saved',
   '/settings': 'settings',
-  '/settings/profile': 'profile',
-  '/settings/preferences': 'preferences',
-  '/settings/notifications': 'notifications',
 }
 
 function getPageTitle(pathname: string): string | null {
@@ -28,16 +24,22 @@ function getPageTitle(pathname: string): string | null {
   }
 
   // Check for dynamic routes
-  if (pathname.startsWith('/trip/')) {
-    // Check for review page
+  if (pathname.startsWith('/plan/')) {
     if (pathname.endsWith('/review')) {
       return 'review'
     }
-    return 'trip'
+    if (pathname.endsWith('/share')) {
+      return 'shared'
+    }
+    return 'plan'
   }
 
-  if (pathname.startsWith('/trips/')) {
-    return 'trip details'
+  if (pathname.startsWith('/events/')) {
+    return 'event'
+  }
+
+  if (pathname.startsWith('/saved/')) {
+    return 'plan'
   }
 
   if (pathname.startsWith('/settings')) {
@@ -54,40 +56,22 @@ function getPageTitle(pathname: string): string | null {
 export function MobileNav() {
   const pathname = usePathname()
   const router = useRouter()
-  const { isMobileOpen, openMobile, closeMobile } = useSidebar()
 
   const pageTitle = getPageTitle(pathname)
-  const isOnSearch = pathname === '/search'
+  const isOnEvents = pathname === '/events'
 
-  // Handle new trip (go to search)
-  function handleNewTrip() {
-    router.push('/search')
+  function handleNewPlan() {
+    router.push('/events')
   }
 
   return (
     <header
       className={cn(
-        'flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden',
-        // Safe area for iPhone notch
+        'flex h-14 items-center justify-between border-b bg-background px-4',
         'pt-[env(safe-area-inset-top)]'
       )}
     >
-      {/* Left: Menu toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-11 w-11 shrink-0"
-        onClick={() => (isMobileOpen ? closeMobile() : openMobile())}
-        aria-label={isMobileOpen ? 'close menu' : 'open menu'}
-      >
-        {isMobileOpen ? (
-          <X className="h-5 w-5" />
-        ) : (
-          <Menu className="h-5 w-5" />
-        )}
-      </Button>
-
-      {/* Center: Logo + Page Title */}
+      {/* Left: Logo + Page Title */}
       <div className="flex items-center gap-2 min-w-0">
         <LogoIcon size="sm" className="shrink-0 text-foreground" />
         {pageTitle ? (
@@ -104,57 +88,20 @@ export function MobileNav() {
 
       {/* Right: Actions + User */}
       <div className="flex items-center gap-1 shrink-0">
-        {/* New Trip / Search */}
-        {!isOnSearch && (
+        {!isOnEvents && (
           <Button
             variant="ghost"
             size="icon"
             className="h-11 w-11"
-            onClick={handleNewTrip}
-            aria-label="new trip"
+            onClick={handleNewPlan}
+            aria-label="new plan"
           >
             <Plus className="h-5 w-5" />
           </Button>
         )}
 
-        {/* User Menu */}
         <UserMenu isCollapsed />
       </div>
-    </header>
-  )
-}
-
-// =============================================================================
-// Minimal Variant (just logo, no context)
-// =============================================================================
-
-export function MobileNavMinimal() {
-  const { isMobileOpen, openMobile, closeMobile } = useSidebar()
-
-  return (
-    <header
-      className={cn(
-        'flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden',
-        'pt-[env(safe-area-inset-top)]'
-      )}
-    >
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-11 w-11"
-        onClick={() => (isMobileOpen ? closeMobile() : openMobile())}
-        aria-label={isMobileOpen ? 'close menu' : 'open menu'}
-      >
-        {isMobileOpen ? (
-          <X className="h-5 w-5" />
-        ) : (
-          <Menu className="h-5 w-5" />
-        )}
-      </Button>
-
-      <Logo linkToHome={false} animated={false} />
-
-      <UserMenu isCollapsed />
     </header>
   )
 }

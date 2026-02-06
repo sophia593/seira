@@ -312,7 +312,7 @@ export function AppShellProvider({
       // Cmd/Ctrl + K: New search
       if (modifier && e.key === "k") {
         e.preventDefault()
-        router.push("/search")
+        router.push("/events")
       }
 
       // Cmd/Ctrl + /: Go to settings (help/preferences)
@@ -324,7 +324,7 @@ export function AppShellProvider({
       // Cmd/Ctrl + Shift + T: Go to trips
       if (modifier && e.shiftKey && e.key === "T") {
         e.preventDefault()
-        router.push("/trips")
+        router.push("/saved")
       }
     }
 
