@@ -1,116 +1,34 @@
-'use client'
+import { sampleEvents } from "@/lib/sample-data"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
-import { Loader2 } from 'lucide-react'
-import { EventSearch } from '@/components/events'
-import { getApi } from '@/lib/api'
-import { toast } from '@/components/ui/sonner'
-import { invalidateTripsCache } from '@/app/(app)/saved/page'
-import type { EventResult, Showtime } from '@/hooks/use-event-search'
-
-// Lazy load the detail drawer (only needed on event click)
-const EventDetailDrawer = dynamic(
-  () => import('@/components/events/event-detail-drawer').then((mod) => ({ default: mod.EventDetailDrawer })),
-  { ssr: false }
-)
-
-export default function SearchPage() {
-  const router = useRouter()
-  const [isCreating, setIsCreating] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<EventResult | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-
-  // Open drawer when event card is clicked
-  const handleEventClick = (event: EventResult) => {
-    setSelectedEvent(event)
-    setIsDrawerOpen(true)
-  }
-
-  // Close drawer
-  const handleCloseDrawer = () => {
-    setIsDrawerOpen(false)
-    // Small delay to allow animation before clearing event
-    setTimeout(() => {
-      if (!isCreating) {
-        setSelectedEvent(null)
-      }
-    }, 300)
-  }
-
-  // Confirm selection and create trip
-  const handleConfirmSelection = async (event: EventResult, showtime: Showtime) => {
-    if (isCreating) return
-
-    setIsCreating(true)
-
-    try {
-      const api = getApi()
-
-      // Create trip with event data + selected showtime
-      const trip = await api.createTrip({
-        title: event.name,
-        destination_city: event.venue?.city ?? undefined,
-        event_name: event.name,
-        event_date: showtime.date,
-        event_time: showtime.time,
-        event_provider: event.provider,
-        event_provider_id: event.provider_id,
-        event_venue: event.venue?.name ?? undefined,
-        event_venue_address: event.venue?.address ?? undefined,
-        event_price_estimate: event.price_range?.min ?? undefined,
-        event_purchase_url: event.purchase_url,
-      })
-
-      // Invalidate trips cache so /trips shows the new trip immediately
-      invalidateTripsCache()
-
-      // Close drawer and navigate to trip builder
-      setIsDrawerOpen(false)
-      router.push(`/plan/${trip.id}`)
-    } catch (error) {
-      console.error('Failed to create trip:', error)
-      toast.error('failed to create trip. please try again.')
-      setIsCreating(false)
-    }
-  }
-
+export default function EventsPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2 lowercase">find your event</h1>
-          <p className="text-muted-foreground">
-            search for concerts, sports, theater, and more
-          </p>
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+      <h1 className="text-page-title text-center mb-3">find your next event</h1>
+      <p className="text-muted-body text-center max-w-md">
+        search across sports, music, theater, festivals, and film
+      </p>
 
-        {/* Creating overlay */}
-        {isCreating && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center" role="status" aria-live="assertive">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-lg font-medium">creating your trip...</p>
+      {/* Sample events grid to verify data + font treatment */}
+      <div className="mt-10 w-full max-w-2xl grid gap-3">
+        {sampleEvents.map((event) => (
+          <div
+            key={event.id}
+            className="flex items-center justify-between rounded-xl border bg-card px-4 py-3"
+          >
+            <div className="min-w-0">
+              <p className="text-card-title truncate">{event.name}</p>
+              <p className="text-muted-body">
+                {event.venue.city}, {event.venue.state}
+              </p>
+            </div>
+            <div className="text-right shrink-0 ml-4">
+              <p className="text-data text-sm">{event.date}</p>
+              <p className="text-data text-xs text-muted-foreground">
+                {event.startTime}
+              </p>
             </div>
           </div>
-        )}
-
-        {/* Search Component */}
-        <EventSearch
-          onEventSelect={handleEventClick}
-          selectedEventId={selectedEvent?.id}
-        />
-
-        {/* Event Detail Drawer */}
-        <EventDetailDrawer
-          event={selectedEvent}
-          isOpen={isDrawerOpen}
-          onClose={handleCloseDrawer}
-          onConfirm={handleConfirmSelection}
-          isLoading={isCreating}
-        />
+        ))}
       </div>
     </div>
   )

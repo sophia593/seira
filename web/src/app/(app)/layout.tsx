@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
-import { MobileNav } from "@/components/layout/mobile-nav"
-import { AppShellProvider } from "./provider"
 import { createServerClient } from "@supabase/ssr"
+import { AppShellProvider } from "./provider"
+import { Sidebar, SidebarCollapsed } from "@/components/layout/sidebar"
+import { MobileHeader } from "@/components/layout/mobile-header"
+import { TabBar } from "@/components/layout/tab-bar"
 
 export default async function AppLayout({
   children,
@@ -30,6 +32,7 @@ export default async function AppLayout({
       },
     }
   )
+
   // Use getUser() for server-side auth check (confirms token with Supabase Auth)
   const { data, error } = await supabase.auth.getUser()
 
@@ -50,12 +53,28 @@ export default async function AppLayout({
 
   return (
     <AppShellProvider initialUser={user}>
-      <div className="flex h-screen flex-col">
-        {/* Mobile Header */}
-        <MobileNav />
+      <div className="flex h-screen">
+        {/* Desktop sidebar (full) */}
+        <Sidebar />
 
-        {/* Main Content */}
-        <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
+        {/* Tablet sidebar (collapsed / icon-only) */}
+        <SidebarCollapsed />
+
+        {/* Main area */}
+        <div className="flex flex-1 flex-col min-w-0">
+          {/* Mobile top bar */}
+          <MobileHeader />
+
+          {/* Content */}
+          <main className="flex-1 min-h-0 overflow-y-auto pb-16 md:pb-0">
+            <div className="mx-auto max-w-5xl w-full">
+              {children}
+            </div>
+          </main>
+
+          {/* Mobile bottom tab bar */}
+          <TabBar />
+        </div>
       </div>
     </AppShellProvider>
   )

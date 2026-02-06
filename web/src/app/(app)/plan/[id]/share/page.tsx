@@ -1,4 +1,4 @@
-export default async function EventDetailPage({
+export default async function SharePage({
   params,
 }: {
   params: Promise<{ id: string }>
@@ -7,12 +7,12 @@ export default async function EventDetailPage({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-      <h1 className="text-page-title text-center mb-3">plan your trip</h1>
+      <h1 className="text-page-title text-center mb-3">shared trip plan</h1>
       <p className="text-muted-body text-center max-w-md">
-        choose flights, hotels, and ground transport for this event
+        view a shared trip plan with flights, hotels, and cost breakdown
       </p>
       <p className="mt-6 text-label">
-        event <span className="text-data">{id}</span>
+        plan <span className="text-data">{id}</span>
       </p>
     </div>
   )
