@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
-import { createPartner, deletePartner } from '@/lib/db/partners'
+import { createPartner, updatePartner, deletePartner } from '@/lib/db/partners'
 
 async function getAuthenticatedOrg() {
   const supabase = await createClient()
@@ -58,6 +58,35 @@ export async function createPartnerAction(
   } catch (err) {
     console.error('createPartnerAction error:', err)
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to create partner' }
+  }
+}
+
+export async function updatePartnerAction(
+  partnerId: string,
+  eventId: string,
+  formData: FormData
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+
+    const name = str(formData, 'name')
+    if (!name) return { ok: false, error: 'Partner name is required' }
+
+    await updatePartner(partnerId, {
+      name,
+      contact_name: str(formData, 'contact_name'),
+      contact_email: str(formData, 'contact_email'),
+      contract_notes: str(formData, 'contract_notes'),
+    })
+
+    revalidatePath(`/events/${eventId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+
+    return { ok: true }
+  } catch (err) {
+    console.error('updatePartnerAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to update partner' }
   }
 }
 
