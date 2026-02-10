@@ -128,8 +128,8 @@ function LoginForm() {
         localStorage.removeItem('seira_remembered_email')
       }
 
-      // Redirect to specified URL or default to trips
-      router.push(redirectTo || "/saved")
+      // Redirect to specified URL or default to dashboard
+      router.push(redirectTo || "/dashboard")
       router.refresh()
     } catch {
       setFormError('something went wrong. please try again.')
@@ -191,7 +191,7 @@ function LoginForm() {
               welcome back
             </h1>
             <p className="text-muted-foreground text-sm">
-              sign in to continue planning
+              sign in to your workspace
             </p>
           </div>
 
