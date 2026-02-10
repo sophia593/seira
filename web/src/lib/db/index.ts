@@ -52,6 +52,7 @@ export {
   getDeliverableWithPartner,
   listDeliverablesWithPartner,
   getOverdueDeliverables,
+  getOrgOverdueDeliverables,
   createDeliverable,
   updateDeliverable,
   updateDeliverableStatus,

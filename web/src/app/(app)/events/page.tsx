@@ -1,117 +1,41 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { getUserMembership } from '@/lib/db/client'
+import { listEventsWithCompletion } from '@/lib/db/events'
+import { EventList } from '@/components/events'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
-import { Loader2 } from 'lucide-react'
-import { EventSearch } from '@/components/events'
-import { getApi } from '@/lib/api'
-import { toast } from '@/components/ui/sonner'
-import { invalidateTripsCache } from '@/app/(app)/saved/page'
-import type { EventResult, Showtime } from '@/hooks/use-event-search'
+export default async function EventsPage() {
+  const supabase = await createClient()
 
-// Lazy load the detail drawer (only needed on event click)
-const EventDetailDrawer = dynamic(
-  () => import('@/components/events/event-detail-drawer').then((mod) => ({ default: mod.EventDetailDrawer })),
-  { ssr: false }
-)
+  // Get user and org
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-export default function SearchPage() {
-  const router = useRouter()
-  const [isCreating, setIsCreating] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<EventResult | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const membership = await getUserMembership(supabase as Parameters<typeof getUserMembership>[0], user.id)
+  if (!membership) redirect('/login')
 
-  // Open drawer when event card is clicked
-  const handleEventClick = (event: EventResult) => {
-    setSelectedEvent(event)
-    setIsDrawerOpen(true)
-  }
+  const orgId = membership.org_id
 
-  // Close drawer
-  const handleCloseDrawer = () => {
-    setIsDrawerOpen(false)
-    // Small delay to allow animation before clearing event
-    setTimeout(() => {
-      if (!isCreating) {
-        setSelectedEvent(null)
-      }
-    }, 300)
-  }
-
-  // Confirm selection and create trip
-  const handleConfirmSelection = async (event: EventResult, showtime: Showtime) => {
-    if (isCreating) return
-
-    setIsCreating(true)
-
-    try {
-      const api = getApi()
-
-      // Create trip with event data + selected showtime
-      const trip = await api.createTrip({
-        title: event.name,
-        destination_city: event.venue?.city ?? undefined,
-        event_name: event.name,
-        event_date: showtime.date,
-        event_time: showtime.time,
-        event_provider: event.provider,
-        event_provider_id: event.provider_id,
-        event_venue: event.venue?.name ?? undefined,
-        event_venue_address: event.venue?.address ?? undefined,
-        event_price_estimate: event.price_range?.min ?? undefined,
-        event_purchase_url: event.purchase_url,
-      })
-
-      // Invalidate trips cache so /trips shows the new trip immediately
-      invalidateTripsCache()
-
-      // Close drawer and navigate to trip builder
-      setIsDrawerOpen(false)
-      router.push(`/plan/${trip.id}`)
-    } catch (error) {
-      console.error('Failed to create trip:', error)
-      toast.error('failed to create trip. please try again.')
-      setIsCreating(false)
-    }
-  }
+  // Fetch events
+  const events = await listEventsWithCompletion(
+    supabase as Parameters<typeof listEventsWithCompletion>[0],
+    orgId
+  )
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2 lowercase">find your event</h1>
-          <p className="text-muted-foreground">
-            search for concerts, sports, theater, and more
-          </p>
-        </div>
-
-        {/* Creating overlay */}
-        {isCreating && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center" role="status" aria-live="assertive">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-lg font-medium">creating your trip...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Search Component */}
-        <EventSearch
-          onEventSelect={handleEventClick}
-          selectedEventId={selectedEvent?.id}
-        />
-
-        {/* Event Detail Drawer */}
-        <EventDetailDrawer
-          event={selectedEvent}
-          isOpen={isDrawerOpen}
-          onClose={handleCloseDrawer}
-          onConfirm={handleConfirmSelection}
-          isLoading={isCreating}
-        />
+    <div className="px-6 py-8 md:px-10 md:py-12 max-w-6xl">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+          Events
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          Manage your sponsored events and deliverables
+        </p>
       </div>
+
+      {/* Event list with filters */}
+      <EventList events={events} orgId={orgId} />
     </div>
   )
 }

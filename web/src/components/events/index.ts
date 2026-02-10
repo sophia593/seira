@@ -1,4 +1,4 @@
 export { EventCard } from './event-card'
-export { EventDetailDrawer } from './event-detail-drawer'
-export { EventSearch, EVENT_CATEGORIES } from './event-search'
-export type { CategoryId } from './event-search'
+export { EventFilters } from './event-filters'
+export { EventList } from './event-list'
+export { EventFormDialog } from './event-form-dialog'

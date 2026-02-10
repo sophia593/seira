@@ -171,6 +171,52 @@ export async function getOverdueDeliverables(
   })
 }
 
+/**
+ * Get all overdue deliverables for an organization (across all events).
+ * For dashboard display.
+ */
+export async function getOrgOverdueDeliverables(
+  supabase: SupabaseClient,
+  orgId: string,
+  limit?: number
+): Promise<(DeliverableWithPartner & { event_name: string })[]> {
+  const today = new Date().toISOString().split('T')[0]
+
+  let query = supabase
+    .from('deliverables')
+    .select(`
+      *,
+      partners!inner (id, name, org_id),
+      events!inner (id, name, org_id)
+    `)
+    .eq('partners.org_id', orgId)
+    .lt('due_date', today)
+    .not('status', 'in', '("done","proved")')
+    .order('due_date', { ascending: true })
+
+  if (limit) {
+    query = query.limit(limit)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    handleDbError(error, 'Failed to get org overdue deliverables')
+  }
+
+  return (data ?? []).map((row) => {
+    const { partners, events, ...deliverable } = row as Deliverable & {
+      partners: { id: string; name: string; org_id: string }
+      events: { id: string; name: string; org_id: string }
+    }
+    return {
+      ...deliverable,
+      partner: { id: partners.id, name: partners.name },
+      event_name: events.name,
+    } as DeliverableWithPartner & { event_name: string }
+  })
+}
+
 // =============================================================================
 // Write Operations
 // =============================================================================
