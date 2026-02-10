@@ -33,10 +33,8 @@ export {
 
 // Partners
 export {
-  listPartners,
+  listPartnersByEvent,
   getPartnerById,
-  getPartnerWithCompletion,
-  listPartnersWithCompletion,
   createPartner,
   updatePartner,
   deletePartner,

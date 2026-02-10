@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation'
 import { getEventById } from '@/lib/db/events'
+import { listPartnersByEvent } from '@/lib/db/partners'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { EventHeader, EventActions } from '@/components/event-detail'
+import { PartnerSection } from './partner-section'
 
 interface EventDetailPageProps {
   params: Promise<{ id: string }>
@@ -14,6 +16,8 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   if (!event) {
     notFound()
   }
+
+  const partners = await listPartnersByEvent(eventId)
 
   return (
     <div className="px-6 py-8 md:px-10 md:py-12 max-w-5xl mx-auto">
@@ -32,7 +36,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
         <EventActions event={event} />
       </div>
 
-      <p className="text-muted-foreground mt-8">Partners will appear here (Step 3)</p>
+      <PartnerSection partners={partners} eventId={eventId} />
     </div>
   )
 }

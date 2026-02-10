@@ -4,18 +4,12 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import {
-  createPartner,
-  updatePartner,
-  deletePartner,
-} from '@/lib/db/partners'
-import {
   createDeliverable,
   updateDeliverable,
   updateDeliverableStatus,
   deleteDeliverable,
 } from '@/lib/db/deliverables'
 import type {
-  CreatePartnerInput,
   CreateDeliverableInput,
   DeliverableStatus,
 } from '@/lib/types/database'
@@ -44,78 +38,6 @@ async function getAuthenticatedOrg(): Promise<{ supabase: Awaited<ReturnType<typ
   }
 
   return { supabase, orgId: membership.org_id }
-}
-
-// =============================================================================
-// Partner Actions
-// =============================================================================
-
-export async function createPartnerAction(input: CreatePartnerInput): Promise<ActionResult<{ id: string }>> {
-  try {
-    const auth = await getAuthenticatedOrg()
-    if ('error' in auth) return { ok: false, error: auth.error }
-
-    const partner = await createPartner(
-      auth.supabase as Parameters<typeof createPartner>[0],
-      auth.orgId,
-      input
-    )
-
-    revalidatePath('/')
-    revalidatePath(`/events/${input.event_id}`)
-
-    return { ok: true, data: { id: partner.id } }
-  } catch (err) {
-    console.error('createPartnerAction error:', err)
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to create partner' }
-  }
-}
-
-export async function updatePartnerAction(
-  partnerId: string,
-  eventId: string,
-  updates: Partial<Omit<CreatePartnerInput, 'event_id'>>
-): Promise<ActionResult> {
-  try {
-    const auth = await getAuthenticatedOrg()
-    if ('error' in auth) return { ok: false, error: auth.error }
-
-    await updatePartner(
-      auth.supabase as Parameters<typeof updatePartner>[0],
-      partnerId,
-      auth.orgId,
-      updates
-    )
-
-    revalidatePath(`/events/${eventId}`)
-    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
-
-    return { ok: true }
-  } catch (err) {
-    console.error('updatePartnerAction error:', err)
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to update partner' }
-  }
-}
-
-export async function deletePartnerAction(partnerId: string, eventId: string): Promise<ActionResult> {
-  try {
-    const auth = await getAuthenticatedOrg()
-    if ('error' in auth) return { ok: false, error: auth.error }
-
-    await deletePartner(
-      auth.supabase as Parameters<typeof deletePartner>[0],
-      partnerId,
-      auth.orgId
-    )
-
-    revalidatePath('/')
-    revalidatePath(`/events/${eventId}`)
-
-    return { ok: true }
-  } catch (err) {
-    console.error('deletePartnerAction error:', err)
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to delete partner' }
-  }
 }
 
 // =============================================================================
