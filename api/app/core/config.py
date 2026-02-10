@@ -5,14 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Railway will provide PORT at runtime (you don't need it locally unless you want)
     ENV: str = "development"
 
-    # CORS - accepts comma-separated string from env or list
+    # CORS
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "https://seira.global",
-        "https://seira-e1iv.vercel.app",
     ]
 
     @field_validator("CORS_ORIGINS", mode="before")
@@ -27,36 +25,12 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str
     SUPABASE_JWT_SECRET: str
 
-    # Optional (for later)
+    # Redis (optional caching)
     UPSTASH_REDIS_REST_URL: str | None = None
     UPSTASH_REDIS_REST_TOKEN: str | None = None
 
-    # LLM keys
-    ANTHROPIC_API_KEY: str | None = None
-    GEMINI_API_KEY: str | None = None
-
-    # External APIs
-    TICKETMASTER_API_KEY: str | None = None
-    AMADEUS_API_KEY: str | None = None
-    AMADEUS_API_SECRET: str | None = None
-    AMADEUS_BASE_URL: str = "https://api.amadeus.com"
-
-    # Claude settings
-    CLAUDE_MODEL: str = "claude-haiku-4-5-20251001"
-    CLAUDE_MAX_TOKENS: int = 4096
-    CLAUDE_TIMEOUT: int = 60  # seconds
-
-    # Orchestrator settings
-    MAX_TOOL_ROUNDS: int = 6
-    MAX_CONTEXT_TOKENS: int = 180_000  # Leave headroom from 200k limit
-
-    # Gemini settings
-    GEMINI_MODEL: str = "gemini-3-flash-preview"
-    GEMINI_MAX_TOKENS: int = 1024
-    GEMINI_TIMEOUT: int = 10  # seconds (max for web search)
-
     model_config = SettingsConfigDict(
-        env_file=".env",          # local only (Railway uses real env vars)
+        env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )

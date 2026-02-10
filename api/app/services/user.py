@@ -139,21 +139,7 @@ async def delete_all_user_data(user_id: str) -> Dict[str, int]:
     Returns count of deleted items per table.
     """
     sb = get_supabase()
-    deleted = {"conversations": 0, "trips": 0, "preferences": 0, "user": 0, "auth": 0}
-
-    # Delete conversations (messages cascade via FK)
-    try:
-        res = sb.table("conversations").delete().eq("user_id", user_id).execute()
-        deleted["conversations"] = len(res.data) if res.data else 0
-    except Exception:
-        pass
-
-    # Delete trips
-    try:
-        res = sb.table("trips").delete().eq("user_id", user_id).execute()
-        deleted["trips"] = len(res.data) if res.data else 0
-    except Exception:
-        pass
+    deleted = {"preferences": 0, "user": 0, "auth": 0}
 
     # Delete user preferences
     try:

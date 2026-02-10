@@ -12,7 +12,7 @@ import { LogoIcon } from '@/components/logo'
 // =============================================================================
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/events', label: 'Events', icon: CalendarDays },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
@@ -28,7 +28,7 @@ function Sidebar() {
     <aside className="hidden lg:flex flex-col w-56 border-r bg-background h-full">
       {/* Logo */}
       <div className="h-14 flex items-center px-4 border-b">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <LogoIcon size="sm" className="text-foreground" />
           <span className="font-semibold text-lg">seira</span>
         </Link>
@@ -38,8 +38,7 @@ function Sidebar() {
       <nav className="flex-1 px-3 py-4">
         <ul className="space-y-1">
           {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href ||
-              (item.href !== '/' && pathname.startsWith(item.href))
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
 
             return (
               <li key={item.href}>
@@ -87,7 +86,7 @@ function MobileHeader() {
 
   // Get current page label
   const currentItem = NAV_ITEMS.find(item =>
-    pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+    pathname === item.href || pathname.startsWith(item.href + '/')
   )
   const pageLabel = currentItem?.label || 'seira'
 
@@ -114,8 +113,7 @@ function MobileBottomNav() {
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 border-t bg-background/95 backdrop-blur-sm z-50">
       <ul className="flex h-full">
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href ||
-            (item.href !== '/' && pathname.startsWith(item.href))
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
 
           return (
             <li key={item.href} className="flex-1">

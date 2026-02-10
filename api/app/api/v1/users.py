@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional, List, Dict
+from typing import Any, Optional, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app.core.auth import User, get_current_user
 from app.services import user as user_service
@@ -25,36 +25,8 @@ class UserResponse(BaseModel):
 
 class UserPreferencesResponse(BaseModel):
     user_id: str
-    home_airport: Optional[str] = None
-    preferred_airlines: Optional[List[str]] = None
-    seat_preference: Optional[str] = None
-    cabin_class: Optional[str] = "economy"
-    budget_default: Optional[int] = None
+    notification_email: bool = True
     updated_at: Optional[datetime] = None
-
-    @field_validator("home_airport")
-    @classmethod
-    def validate_home_airport(cls, v: Optional[str]) -> Optional[str]:
-        if v is None:
-            return v
-        v = v.strip().upper()
-        if len(v) != 3:
-            raise ValueError("home_airport must be a 3-letter IATA code")
-        return v
-
-    @field_validator("preferred_airlines")
-    @classmethod
-    def validate_airlines(cls, v: Optional[List[str]]) -> Optional[List[str]]:
-        if v is None:
-            return v
-        cleaned = []
-        for a in v:
-            if a is None:
-                continue
-            a2 = a.strip().upper()
-            if a2:
-                cleaned.append(a2)
-        return cleaned
 
 
 class UserWithPreferencesResponse(BaseModel):
@@ -67,35 +39,7 @@ class UpdateUserRequest(BaseModel):
 
 
 class UpdatePreferencesRequest(BaseModel):
-    home_airport: Optional[str] = None
-    preferred_airlines: Optional[List[str]] = None
-    seat_preference: Optional[str] = None
-    cabin_class: Optional[str] = None
-    budget_default: Optional[int] = Field(default=None, ge=0)
-
-    @field_validator("home_airport")
-    @classmethod
-    def validate_home_airport(cls, v: Optional[str]) -> Optional[str]:
-        if v is None:
-            return v
-        v = v.strip().upper()
-        if len(v) != 3:
-            raise ValueError("home_airport must be a 3-letter IATA code")
-        return v
-
-    @field_validator("preferred_airlines")
-    @classmethod
-    def validate_airlines(cls, v: Optional[List[str]]) -> Optional[List[str]]:
-        if v is None:
-            return v
-        cleaned = []
-        for a in v:
-            if a is None:
-                continue
-            a2 = a.strip().upper()
-            if a2:
-                cleaned.append(a2)
-        return cleaned
+    notification_email: Optional[bool] = None
 
 
 # -----------------------------------------------------------------------------
@@ -187,13 +131,6 @@ async def put_my_preferences(
 
     updates = body.model_dump(exclude_unset=True)
 
-    # Normalize strings (optional but nice)
-    if "seat_preference" in updates and updates["seat_preference"] is not None:
-        updates["seat_preference"] = updates["seat_preference"].strip()
-
-    if "cabin_class" in updates and updates["cabin_class"] is not None:
-        updates["cabin_class"] = updates["cabin_class"].strip()
-
     prefs = await user_service.upsert_preferences_row(current.id, updates)
     return prefs
 
@@ -208,8 +145,6 @@ class DeleteAccountResponse(BaseModel):
 async def delete_my_account(current: User = Depends(get_current_user)):
     """
     Delete all user data including Supabase Auth account.
-    This removes conversations, messages, trips, preferences, user profile,
-    and the authentication record.
     """
     deleted = await user_service.delete_all_user_data(current.id)
 
