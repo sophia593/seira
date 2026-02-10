@@ -155,7 +155,8 @@ export async function getOverdueDeliverables(
     `)
     .eq('event_id', eventId)
     .lt('due_date', today)
-    .not('status', 'in', '("done","proved")')
+    .neq('status', 'done')
+    .neq('status', 'proved')
     .order('due_date', { ascending: true })
 
   if (error) {
@@ -182,16 +183,34 @@ export async function getOrgOverdueDeliverables(
 ): Promise<(DeliverableWithPartner & { event_name: string })[]> {
   const today = new Date().toISOString().split('T')[0]
 
+  // First get all events for this org
+  const { data: events, error: eventsError } = await supabase
+    .from('events')
+    .select('id, name')
+    .eq('org_id', orgId)
+
+  if (eventsError) {
+    handleDbError(eventsError, 'Failed to get org events for overdue deliverables')
+  }
+
+  if (!events || events.length === 0) {
+    return []
+  }
+
+  const eventIds = events.map(e => e.id)
+  const eventMap = new Map(events.map(e => [e.id, e.name]))
+
+  // Then get overdue deliverables for those events
   let query = supabase
     .from('deliverables')
     .select(`
       *,
-      partners!inner (id, name, org_id),
-      events!inner (id, name, org_id)
+      partners!inner (id, name)
     `)
-    .eq('partners.org_id', orgId)
+    .in('event_id', eventIds)
     .lt('due_date', today)
-    .not('status', 'in', '("done","proved")')
+    .neq('status', 'done')
+    .neq('status', 'proved')
     .order('due_date', { ascending: true })
 
   if (limit) {
@@ -205,14 +224,13 @@ export async function getOrgOverdueDeliverables(
   }
 
   return (data ?? []).map((row) => {
-    const { partners, events, ...deliverable } = row as Deliverable & {
-      partners: { id: string; name: string; org_id: string }
-      events: { id: string; name: string; org_id: string }
+    const { partners, ...deliverable } = row as Deliverable & {
+      partners: { id: string; name: string }
     }
     return {
       ...deliverable,
       partner: { id: partners.id, name: partners.name },
-      event_name: events.name,
+      event_name: eventMap.get(deliverable.event_id) ?? '',
     } as DeliverableWithPartner & { event_name: string }
   })
 }
