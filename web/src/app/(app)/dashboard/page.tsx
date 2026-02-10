@@ -52,12 +52,15 @@ export default async function DashboardPage() {
   )
 
   if (!membership) {
+    // Layout should have auto-created the org. If we still have no membership,
+    // something is misconfigured (e.g. missing SUPABASE_SERVICE_ROLE_KEY).
+    console.error('[Dashboard] No membership found after layout bootstrap')
     return (
       <div className="px-6 py-8 md:px-10 md:py-12 max-w-6xl mx-auto">
         <EmptyState
           icon={CalendarDays}
-          title="No workspace found"
-          description="Please log out and sign in again to set up your workspace."
+          title="Workspace setup incomplete"
+          description="Your workspace couldn't be created automatically. Please check server logs or contact support."
         />
       </div>
     )

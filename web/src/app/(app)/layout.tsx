@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { getUserMembership } from "@/lib/db/client"
-import { getOrganization, createOrganization } from "@/lib/db/organizations"
+import { getOrganization } from "@/lib/db/organizations"
 import { AppShell } from "@/components/app-shell"
 import { AppShellProvider } from "./provider"
 import type { OrgRole } from "@/lib/types/database"
@@ -39,15 +40,27 @@ export default async function AppLayout({
     )
 
     if (!membership) {
-      await createOrganization(
-        supabase as Parameters<typeof createOrganization>[0],
-        user.id,
-        "My Workspace"
-      )
-      membership = await getUserMembership(
-        supabase as Parameters<typeof getUserMembership>[0],
-        user.id
-      )
+      // Use admin client to bypass RLS for first-time org creation.
+      // The DB trigger `handle_new_org` automatically creates the
+      // organization_members row — do NOT insert it manually.
+      const admin = createAdminClient()
+
+      const { error: orgError } = await admin
+        .from("organizations")
+        .insert({ name: "My Workspace", created_by: user.id })
+
+      if (orgError) {
+        console.error("[Org bootstrap] Failed to create organization:", orgError)
+      } else {
+        // Trigger has fired — membership should now exist
+        membership = await getUserMembership(
+          supabase as Parameters<typeof getUserMembership>[0],
+          user.id
+        )
+        if (!membership) {
+          console.error("[Org bootstrap] Org created but membership not found — trigger may have failed")
+        }
+      }
     }
 
     if (membership) {
@@ -60,8 +73,7 @@ export default async function AppLayout({
       }
     }
   } catch (e) {
-    console.error("Org bootstrap failed:", e)
-    // Continue with initialOrg = null — sidebar will show "Workspace" fallback
+    console.error("[Org bootstrap] Unexpected error:", e)
   }
 
   return (

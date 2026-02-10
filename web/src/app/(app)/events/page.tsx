@@ -18,12 +18,13 @@ export default async function EventsPage() {
   )
 
   if (!membership) {
+    console.error('[Events] No membership found after layout bootstrap')
     return (
       <div className="px-6 py-8 md:px-10 md:py-12 max-w-5xl mx-auto">
         <EmptyState
           icon={CalendarDays}
-          title="No workspace found"
-          description="Please log out and sign in again to set up your workspace."
+          title="Workspace setup incomplete"
+          description="Your workspace couldn't be created automatically. Please check server logs or contact support."
         />
       </div>
     )

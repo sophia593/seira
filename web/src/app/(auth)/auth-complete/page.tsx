@@ -28,7 +28,7 @@ function AuthCompleteContent() {
     const redirectUrl = localStorage.getItem('seira_auth_redirect')
     localStorage.removeItem('seira_auth_redirect')
 
-    const destination = redirectUrl || '/trips'
+    const destination = redirectUrl || '/dashboard'
 
     // Brief delay so the user sees the success message
     const redirectTimer = setTimeout(() => {
@@ -54,7 +54,7 @@ function AuthCompleteContent() {
             <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-500" />
           </div>
           <p className="text-base font-medium mb-1">email verified</p>
-          <p className="text-sm text-muted-foreground">taking you to your trips...</p>
+          <p className="text-sm text-muted-foreground">taking you to your dashboard...</p>
         </>
       ) : (
         <>
@@ -65,7 +65,7 @@ function AuthCompleteContent() {
 
       {showFallback && (
         <Link
-          href="/saved"
+          href="/dashboard"
           className="block mt-6 text-sm text-primary hover:underline animate-in fade-in duration-300"
         >
           click here if you&apos;re not redirected
