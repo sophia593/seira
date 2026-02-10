@@ -1,67 +1,81 @@
 // lib/db/deliverables.ts
-// Deliverable CRUD operations
+// Deliverable CRUD — self-contained server functions
 
-import { handleDbError, type SupabaseClient } from './client'
+import { createClient } from '@/lib/supabase/server'
+import { handleDbError } from './client'
 import type {
   Deliverable,
   DeliverableStatus,
-  DeliverableWithPartner,
   CreateDeliverableInput,
 } from '@/lib/types/database'
 import { DEFAULT_DELIVERABLE_STATUS, DEFAULT_PROOF_REQUIRED } from '@/lib/constants'
 
 // =============================================================================
-// Read Operations
+// Read
 // =============================================================================
 
-export async function listDeliverables(
-  supabase: SupabaseClient,
-  options: {
-    eventId?: string
-    partnerId?: string
-    status?: DeliverableStatus
-    limit?: number
-    orderBy?: 'due_date' | 'created_at' | 'title'
-    ascending?: boolean
-  }
-): Promise<Deliverable[]> {
-  let query = supabase.from('deliverables').select('*')
+/**
+ * List deliverables for a partner.
+ * Ordered: overdue first (not done/proved + due_date < today), then due_date asc, nulls last.
+ */
+export async function listDeliverablesByPartner(partnerId: string): Promise<Deliverable[]> {
+  const supabase = await createClient()
 
-  if (options.eventId) {
-    query = query.eq('event_id', options.eventId)
-  }
+  const { data, error } = await supabase
+    .from('deliverables')
+    .select('*')
+    .eq('partner_id', partnerId)
+    .order('due_date', { ascending: true, nullsFirst: false })
 
-  if (options.partnerId) {
-    query = query.eq('partner_id', options.partnerId)
-  }
+  if (error) handleDbError(error, 'Failed to list deliverables for partner')
 
-  if (options.status) {
-    query = query.eq('status', options.status)
-  }
+  const rows = (data ?? []) as Deliverable[]
 
-  const orderColumn = options.orderBy ?? 'due_date'
-  query = query.order(orderColumn, {
-    ascending: options.ascending ?? true,
-    nullsFirst: false,
+  // Sort: overdue items first, then by due_date asc (nulls last)
+  const today = new Date(new Date().toDateString())
+
+  return rows.sort((a, b) => {
+    const aOverdue =
+      a.due_date &&
+      a.status !== 'done' &&
+      a.status !== 'proved' &&
+      new Date(a.due_date) < today
+    const bOverdue =
+      b.due_date &&
+      b.status !== 'done' &&
+      b.status !== 'proved' &&
+      new Date(b.due_date) < today
+
+    if (aOverdue && !bOverdue) return -1
+    if (!aOverdue && bOverdue) return 1
+
+    // Within the same group, sort by due_date asc, nulls last
+    if (!a.due_date && !b.due_date) return 0
+    if (!a.due_date) return 1
+    if (!b.due_date) return -1
+    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
   })
+}
 
-  if (options.limit) {
-    query = query.limit(options.limit)
-  }
+/** List all deliverables for an event, ordered by due_date asc (nulls last). */
+export async function listDeliverablesByEvent(eventId: string): Promise<Deliverable[]> {
+  const supabase = await createClient()
 
-  const { data, error } = await query
+  const { data, error } = await supabase
+    .from('deliverables')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('due_date', { ascending: true, nullsFirst: false })
 
-  if (error) {
-    handleDbError(error, 'Failed to list deliverables')
-  }
+  if (error) handleDbError(error, 'Failed to list deliverables for event')
 
   return (data ?? []) as Deliverable[]
 }
 
-export async function getDeliverableById(
-  supabase: SupabaseClient,
-  deliverableId: string
-): Promise<Deliverable | null> {
+/** Get a single deliverable by ID, or null if not found. */
+export async function getDeliverableById(deliverableId: string): Promise<Deliverable | null> {
+  const supabase = await createClient()
+
   const { data, error } = await supabase
     .from('deliverables')
     .select('*')
@@ -76,173 +90,14 @@ export async function getDeliverableById(
   return data as Deliverable
 }
 
-/**
- * Get deliverable with partner info.
- */
-export async function getDeliverableWithPartner(
-  supabase: SupabaseClient,
-  deliverableId: string
-): Promise<DeliverableWithPartner | null> {
-  const { data, error } = await supabase
-    .from('deliverables')
-    .select(`
-      *,
-      partners!inner (id, name)
-    `)
-    .eq('id', deliverableId)
-    .single()
-
-  if (error) {
-    if (error.code === 'PGRST116') return null
-    handleDbError(error, 'Failed to get deliverable with partner')
-  }
-
-  if (!data) return null
-
-  // Transform the join result
-  const { partners, ...deliverable } = data as Deliverable & { partners: { id: string; name: string } }
-
-  return {
-    ...deliverable,
-    partner: partners,
-  } as DeliverableWithPartner
-}
-
-/**
- * List deliverables with partner info for an event.
- */
-export async function listDeliverablesWithPartner(
-  supabase: SupabaseClient,
-  eventId: string
-): Promise<DeliverableWithPartner[]> {
-  const { data, error } = await supabase
-    .from('deliverables')
-    .select(`
-      *,
-      partners!inner (id, name)
-    `)
-    .eq('event_id', eventId)
-    .order('due_date', { ascending: true, nullsFirst: false })
-
-  if (error) {
-    handleDbError(error, 'Failed to list deliverables with partner')
-  }
-
-  // Transform join results
-  return (data ?? []).map((row) => {
-    const { partners, ...deliverable } = row as Deliverable & { partners: { id: string; name: string } }
-    return {
-      ...deliverable,
-      partner: partners,
-    } as DeliverableWithPartner
-  })
-}
-
-/**
- * Get overdue deliverables for an event.
- */
-export async function getOverdueDeliverables(
-  supabase: SupabaseClient,
-  eventId: string
-): Promise<DeliverableWithPartner[]> {
-  const today = new Date().toISOString().split('T')[0]
-
-  const { data, error } = await supabase
-    .from('deliverables')
-    .select(`
-      *,
-      partners!inner (id, name)
-    `)
-    .eq('event_id', eventId)
-    .lt('due_date', today)
-    .neq('status', 'done')
-    .neq('status', 'proved')
-    .order('due_date', { ascending: true })
-
-  if (error) {
-    handleDbError(error, 'Failed to get overdue deliverables')
-  }
-
-  return (data ?? []).map((row) => {
-    const { partners, ...deliverable } = row as Deliverable & { partners: { id: string; name: string } }
-    return {
-      ...deliverable,
-      partner: partners,
-    } as DeliverableWithPartner
-  })
-}
-
-/**
- * Get all overdue deliverables for an organization (across all events).
- * For dashboard display.
- */
-export async function getOrgOverdueDeliverables(
-  supabase: SupabaseClient,
-  orgId: string,
-  limit?: number
-): Promise<(DeliverableWithPartner & { event_name: string })[]> {
-  const today = new Date().toISOString().split('T')[0]
-
-  // First get all events for this org
-  const { data: events, error: eventsError } = await supabase
-    .from('events')
-    .select('id, name')
-    .eq('org_id', orgId)
-
-  if (eventsError) {
-    handleDbError(eventsError, 'Failed to get org events for overdue deliverables')
-  }
-
-  if (!events || events.length === 0) {
-    return []
-  }
-
-  const eventIds = events.map(e => e.id)
-  const eventMap = new Map(events.map(e => [e.id, e.name]))
-
-  // Then get overdue deliverables for those events
-  let query = supabase
-    .from('deliverables')
-    .select(`
-      *,
-      partners!inner (id, name)
-    `)
-    .in('event_id', eventIds)
-    .lt('due_date', today)
-    .neq('status', 'done')
-    .neq('status', 'proved')
-    .order('due_date', { ascending: true })
-
-  if (limit) {
-    query = query.limit(limit)
-  }
-
-  const { data, error } = await query
-
-  if (error) {
-    handleDbError(error, 'Failed to get org overdue deliverables')
-  }
-
-  return (data ?? []).map((row) => {
-    const { partners, ...deliverable } = row as Deliverable & {
-      partners: { id: string; name: string }
-    }
-    return {
-      ...deliverable,
-      partner: { id: partners.id, name: partners.name },
-      event_name: eventMap.get(deliverable.event_id) ?? '',
-    } as DeliverableWithPartner & { event_name: string }
-  })
-}
-
 // =============================================================================
-// Write Operations
+// Write
 // =============================================================================
 
-export async function createDeliverable(
-  supabase: SupabaseClient,
-  input: CreateDeliverableInput
-): Promise<Deliverable> {
+/** Create a new deliverable. Applies defaults for status and proof_required. */
+export async function createDeliverable(input: CreateDeliverableInput): Promise<Deliverable> {
+  const supabase = await createClient()
+
   const { data, error } = await supabase
     .from('deliverables')
     .insert({
@@ -259,18 +114,18 @@ export async function createDeliverable(
     .select()
     .single()
 
-  if (error) {
-    handleDbError(error, 'Failed to create deliverable')
-  }
+  if (error) handleDbError(error, 'Failed to create deliverable')
 
   return data as Deliverable
 }
 
+/** Update a deliverable. Cannot change partner_id or event_id. */
 export async function updateDeliverable(
-  supabase: SupabaseClient,
   deliverableId: string,
-  updates: Partial<Omit<Deliverable, 'id' | 'partner_id' | 'event_id' | 'created_at' | 'updated_at'>>
+  updates: Partial<Omit<CreateDeliverableInput, 'partner_id' | 'event_id'>>
 ): Promise<Deliverable> {
+  const supabase = await createClient()
+
   const { data, error } = await supabase
     .from('deliverables')
     .update(updates)
@@ -278,69 +133,27 @@ export async function updateDeliverable(
     .select()
     .single()
 
-  if (error) {
-    handleDbError(error, 'Failed to update deliverable')
-  }
+  if (error) handleDbError(error, 'Failed to update deliverable')
 
   return data as Deliverable
 }
 
+/** Update only the status of a deliverable. */
 export async function updateDeliverableStatus(
-  supabase: SupabaseClient,
   deliverableId: string,
   status: DeliverableStatus
 ): Promise<Deliverable> {
-  return updateDeliverable(supabase, deliverableId, { status })
+  return updateDeliverable(deliverableId, { status })
 }
 
-export async function deleteDeliverable(
-  supabase: SupabaseClient,
-  deliverableId: string
-): Promise<void> {
+/** Delete a deliverable. */
+export async function deleteDeliverable(deliverableId: string): Promise<void> {
+  const supabase = await createClient()
+
   const { error } = await supabase
     .from('deliverables')
     .delete()
     .eq('id', deliverableId)
 
-  if (error) {
-    handleDbError(error, 'Failed to delete deliverable')
-  }
-}
-
-/**
- * Bulk create deliverables from a template.
- */
-export async function createDeliverablesFromTemplate(
-  supabase: SupabaseClient,
-  partnerId: string,
-  eventId: string,
-  template: Array<{
-    title: string
-    category: CreateDeliverableInput['category']
-    proof_required: CreateDeliverableInput['proof_required']
-    notes?: string
-  }>
-): Promise<Deliverable[]> {
-  const inserts = template.map((item) => ({
-    partner_id: partnerId,
-    event_id: eventId,
-    title: item.title,
-    category: item.category,
-    status: DEFAULT_DELIVERABLE_STATUS,
-    proof_required: item.proof_required ?? DEFAULT_PROOF_REQUIRED,
-    notes: item.notes ?? null,
-    due_date: null,
-    owner_id: null,
-  }))
-
-  const { data, error } = await supabase
-    .from('deliverables')
-    .insert(inserts)
-    .select()
-
-  if (error) {
-    handleDbError(error, 'Failed to create deliverables from template')
-  }
-
-  return (data ?? []) as Deliverable[]
+  if (error) handleDbError(error, 'Failed to delete deliverable')
 }

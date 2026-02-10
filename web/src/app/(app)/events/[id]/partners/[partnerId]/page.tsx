@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation'
 import { getEventById } from '@/lib/db/events'
 import { getPartnerById } from '@/lib/db/partners'
+import { listDeliverablesByPartner } from '@/lib/db/deliverables'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { PartnerActions } from './partner-actions'
+import { DeliverableSection } from './deliverable-section'
 
 interface PartnerDetailPageProps {
   params: Promise<{ id: string; partnerId: string }>
@@ -11,9 +13,10 @@ interface PartnerDetailPageProps {
 export default async function PartnerDetailPage({ params }: PartnerDetailPageProps) {
   const { id: eventId, partnerId } = await params
 
-  const [event, partner] = await Promise.all([
+  const [event, partner, deliverables] = await Promise.all([
     getEventById(eventId),
     getPartnerById(partnerId),
+    listDeliverablesByPartner(partnerId),
   ])
 
   if (!event || !partner) notFound()
@@ -59,7 +62,11 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
         <PartnerActions partner={partner} eventId={eventId} />
       </div>
 
-      <p className="text-muted-foreground mt-8">Deliverables will appear here (Step 4)</p>
+      <DeliverableSection
+        deliverables={deliverables}
+        eventId={eventId}
+        partnerId={partnerId}
+      />
     </div>
   )
 }

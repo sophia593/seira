@@ -42,18 +42,23 @@ export {
 
 // Deliverables
 export {
-  listDeliverables,
+  listDeliverablesByPartner,
+  listDeliverablesByEvent,
   getDeliverableById,
-  getDeliverableWithPartner,
-  listDeliverablesWithPartner,
-  getOverdueDeliverables,
-  getOrgOverdueDeliverables,
   createDeliverable,
   updateDeliverable,
   updateDeliverableStatus,
   deleteDeliverable,
-  createDeliverablesFromTemplate,
 } from './deliverables'
+
+// Dashboard
+export {
+  getDashboardStats,
+  getUpcomingEvents,
+  getOverdueDeliverables,
+  getNeedsProofDeliverables,
+  type DashboardStats,
+} from './dashboard'
 
 // Proofs
 export {
