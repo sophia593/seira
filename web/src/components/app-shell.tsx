@@ -6,6 +6,7 @@ import { LayoutDashboard, CalendarDays, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserMenu } from '@/components/layout/user-menu'
 import { LogoIcon } from '@/components/logo'
+import { useOrgStore } from '@/stores/org-store'
 
 // =============================================================================
 // Navigation Items
@@ -23,14 +24,15 @@ const NAV_ITEMS = [
 
 function Sidebar() {
   const pathname = usePathname()
+  const orgName = useOrgStore((state) => state.orgName)
 
   return (
     <aside className="hidden lg:flex flex-col w-56 border-r bg-background h-full">
-      {/* Logo */}
+      {/* Org name */}
       <div className="h-14 flex items-center px-4 border-b">
         <Link href="/dashboard" className="flex items-center gap-2">
           <LogoIcon size="sm" className="text-foreground" />
-          <span className="font-semibold text-lg">seira</span>
+          <span className="font-semibold text-lg truncate">{orgName || 'Workspace'}</span>
         </Link>
       </div>
 
@@ -59,6 +61,11 @@ function Sidebar() {
           })}
         </ul>
       </nav>
+
+      {/* User menu at bottom */}
+      <div className="border-t px-3 py-3">
+        <UserMenu />
+      </div>
     </aside>
   )
 }
