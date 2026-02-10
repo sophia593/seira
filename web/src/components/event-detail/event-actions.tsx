@@ -1,19 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, Pencil, Trash2, RefreshCw } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-} from '@/components/ui/dropdown-menu'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,110 +31,170 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from '@/components/ui/sonner'
-import { createClient } from '@/lib/supabase/client'
-import { updateEventStatus, deleteEvent } from '@/lib/db/events'
+import { updateEventAction, deleteEventAction } from '@/app/(app)/actions/events'
 import { EVENT_STATUS_FLOW, EVENT_STATUS_CONFIG } from '@/lib/constants'
-import { EventFormDialog } from '@/components/events/event-form-dialog'
 import type { Event, EventStatus } from '@/lib/types/database'
 
 interface EventActionsProps {
   event: Event
-  orgId: string
 }
 
-export function EventActions({ event, orgId }: EventActionsProps) {
+export function EventActions({ event }: EventActionsProps) {
   const router = useRouter()
+  const formRef = useRef<HTMLFormElement>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editStatus, setEditStatus] = useState<EventStatus>(event.status)
+  const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
 
-  const handleStatusChange = async (newStatus: EventStatus) => {
-    if (newStatus === event.status) return
+  const handleEdit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setEditError(null)
 
-    setIsUpdatingStatus(true)
-    try {
-      const supabase = createClient()
-      await updateEventStatus(supabase, event.id, orgId, newStatus)
-      toast.success(`Status updated to ${EVENT_STATUS_CONFIG[newStatus].label}`)
+    const formData = new FormData(e.currentTarget)
+    formData.set('status', editStatus)
+
+    startTransition(async () => {
+      const result = await updateEventAction(event.id, formData)
+      if (!result.ok) {
+        setEditError(result.error ?? 'Failed to update event')
+        return
+      }
+      toast.success('Event updated')
+      setShowEditDialog(false)
       router.refresh()
-    } catch (error) {
-      toast.error('Failed to update status')
-      console.error(error)
-    } finally {
-      setIsUpdatingStatus(false)
-    }
+    })
   }
 
   const handleDelete = async () => {
     setIsDeleting(true)
     try {
-      const supabase = createClient()
-      await deleteEvent(supabase, event.id, orgId)
+      const result = await deleteEventAction(event.id)
+      if (!result.ok) {
+        toast.error(result.error ?? 'Failed to delete event')
+        setIsDeleting(false)
+        return
+      }
       toast.success('Event deleted')
       router.push('/events')
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete event')
-      console.error(error)
       setIsDeleting(false)
     }
   }
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" disabled={isUpdatingStatus}>
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
-            <Pencil className="w-4 h-4 mr-2" />
-            Edit Event
-          </DropdownMenuItem>
-
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Change Status
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              {EVENT_STATUS_FLOW.map((status) => (
-                <DropdownMenuItem
-                  key={status}
-                  onClick={() => handleStatusChange(status)}
-                  disabled={status === event.status}
-                >
-                  <span className="mr-2">{EVENT_STATUS_CONFIG[status].icon}</span>
-                  {EVENT_STATUS_CONFIG[status].label}
-                  {status === event.status && (
-                    <span className="ml-auto text-xs text-muted-foreground">Current</span>
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-
-          <DropdownMenuSeparator />
-
-          <DropdownMenuItem
-            onClick={() => setShowDeleteDialog(true)}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete Event
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+          <Pencil className="w-4 h-4 mr-1" />
+          Edit
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowDeleteDialog(true)}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4 mr-1" />
+          Delete
+        </Button>
+      </div>
 
       {/* Edit dialog */}
-      <EventFormDialog
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        orgId={orgId}
-        event={event}
-      />
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Event</DialogTitle>
+          </DialogHeader>
+
+          <form ref={formRef} onSubmit={handleEdit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Event Name *</Label>
+              <Input
+                id="edit-name"
+                name="name"
+                defaultValue={event.name}
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-date">Date</Label>
+                <Input
+                  id="edit-date"
+                  name="date"
+                  type="date"
+                  defaultValue={event.date ?? ''}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select value={editStatus} onValueChange={(v) => setEditStatus(v as EventStatus)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_STATUS_FLOW.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        <span className="flex items-center gap-2">
+                          <span>{EVENT_STATUS_CONFIG[s].icon}</span>
+                          <span>{EVENT_STATUS_CONFIG[s].label}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-venue">Venue</Label>
+              <Input
+                id="edit-venue"
+                name="venue"
+                defaultValue={event.venue ?? ''}
+                placeholder="e.g., Madison Square Garden"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">Notes</Label>
+              <textarea
+                id="edit-notes"
+                name="notes"
+                rows={3}
+                defaultValue={event.notes ?? ''}
+                placeholder="Optional notes..."
+                className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+
+            {editError && (
+              <p className="text-sm text-destructive">{editError}</p>
+            )}
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEditDialog(false)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" isLoading={isPending}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -136,7 +202,7 @@ export function EventActions({ event, orgId }: EventActionsProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Event?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete &quot;{event.name}&quot; and all its partners and deliverables.
+              Are you sure? This will delete all partners and deliverables for this event.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

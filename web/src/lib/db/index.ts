@@ -26,12 +26,9 @@ export {
 export {
   listEvents,
   getEventById,
-  getEventWithCompletion,
-  listEventsWithCompletion,
   createEvent,
   updateEvent,
   deleteEvent,
-  updateEventStatus,
 } from './events'
 
 // Partners

@@ -4,11 +4,6 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import {
-  createEvent,
-  updateEvent,
-  deleteEvent,
-} from '@/lib/db/events'
-import {
   createPartner,
   updatePartner,
   deletePartner,
@@ -20,11 +15,9 @@ import {
   deleteDeliverable,
 } from '@/lib/db/deliverables'
 import type {
-  CreateEventInput,
   CreatePartnerInput,
   CreateDeliverableInput,
   DeliverableStatus,
-  EventStatus,
 } from '@/lib/types/database'
 
 // =============================================================================
@@ -51,78 +44,6 @@ async function getAuthenticatedOrg(): Promise<{ supabase: Awaited<ReturnType<typ
   }
 
   return { supabase, orgId: membership.org_id }
-}
-
-// =============================================================================
-// Event Actions
-// =============================================================================
-
-export async function createEventAction(input: CreateEventInput): Promise<ActionResult<{ id: string }>> {
-  try {
-    const auth = await getAuthenticatedOrg()
-    if ('error' in auth) return { ok: false, error: auth.error }
-
-    const event = await createEvent(
-      auth.supabase as Parameters<typeof createEvent>[0],
-      auth.orgId,
-      input
-    )
-
-    revalidatePath('/')
-    revalidatePath('/events')
-
-    return { ok: true, data: { id: event.id } }
-  } catch (err) {
-    console.error('createEventAction error:', err)
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to create event' }
-  }
-}
-
-export async function updateEventAction(
-  eventId: string,
-  updates: Partial<Omit<CreateEventInput, 'status'> & { status?: EventStatus }>
-): Promise<ActionResult> {
-  try {
-    const auth = await getAuthenticatedOrg()
-    if ('error' in auth) return { ok: false, error: auth.error }
-
-    await updateEvent(
-      auth.supabase as Parameters<typeof updateEvent>[0],
-      eventId,
-      auth.orgId,
-      updates
-    )
-
-    revalidatePath('/')
-    revalidatePath('/events')
-    revalidatePath(`/events/${eventId}`)
-
-    return { ok: true }
-  } catch (err) {
-    console.error('updateEventAction error:', err)
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to update event' }
-  }
-}
-
-export async function deleteEventAction(eventId: string): Promise<ActionResult> {
-  try {
-    const auth = await getAuthenticatedOrg()
-    if ('error' in auth) return { ok: false, error: auth.error }
-
-    await deleteEvent(
-      auth.supabase as Parameters<typeof deleteEvent>[0],
-      eventId,
-      auth.orgId
-    )
-
-    revalidatePath('/')
-    revalidatePath('/events')
-
-    return { ok: true }
-  } catch (err) {
-    console.error('deleteEventAction error:', err)
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to delete event' }
-  }
 }
 
 // =============================================================================
