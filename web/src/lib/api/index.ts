@@ -76,12 +76,6 @@ export { ApiError, createApiClient } from "./client"
 export type {
   ApiClient,
   ApiClientConfig,
-  CreateTripRequest,
-  DuplicateTripResponse,
-  SharedTrip,
-  ShareTripResponse,
-  Trip,
-  TripDetail,
   UserProfile,
   UserPreferences,
   UserWithPreferences,

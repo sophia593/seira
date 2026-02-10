@@ -3,8 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { ArrowLeft, Save, Loader2, Check, AlertTriangle, Sun, Moon, Monitor, Eye, EyeOff, KeyRound, X } from 'lucide-react'
-import Link from 'next/link'
+import { Save, Loader2, Check, AlertTriangle, Sun, Moon, Monitor, Eye, EyeOff, KeyRound, X } from 'lucide-react'
 import { getApi } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { useUserStore } from '@/stores/user-store'
@@ -229,21 +228,14 @@ export default function SettingsPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
-      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        {/* Back link */}
-        <Link
-          href="/events"
-          className="inline-flex items-center gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground mb-4 sm:mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          back to search
-        </Link>
-
+      <div className="px-6 py-8 md:px-10 md:py-12 max-w-3xl">
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-page-title">settings</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">
-            manage your profile and account
+        <div className="mb-8">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+            Settings
+          </h1>
+          <p className="mt-2 text-muted-foreground text-base leading-relaxed">
+            Manage your profile and preferences.
           </p>
         </div>
 
@@ -551,8 +543,8 @@ export default function SettingsPage() {
                       delete account
                     </DialogTitle>
                     <DialogDescription>
-                      this will permanently delete your account, including all your
-                      trips and account data. this action cannot be undone.
+                      this will permanently delete your account and all associated
+                      data. this action cannot be undone.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-3 py-4">

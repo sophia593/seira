@@ -1,131 +1,94 @@
-'use client'
-
-import { useEffect, useRef } from 'react'
-import { Sparkles } from "lucide-react"
-import { LandingHeader } from "@/components/landing-header"
-import { LandingCTA } from "@/components/landing-cta"
-import { DemoPreview } from "@/components/demo-preview"
-import { HowItWorks } from "@/components/how-it-works"
-import { Footer } from "@/components/footer"
-import { cn } from "@/lib/utils"
-
-// =============================================================================
-// Fade-In Section Component
-// =============================================================================
-
-interface FadeInSectionProps {
-  children: React.ReactNode
-  className?: string
-  delay?: number // delay in ms
-}
-
-function FadeInSection({ children, className, delay = 0 }: FadeInSectionProps) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const element = ref.current
-    if (!element) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            // Add delay if specified (keep short)
-            setTimeout(() => {
-              entry.target.classList.add('opacity-100', 'translate-y-0')
-              entry.target.classList.remove('opacity-90', 'translate-y-3')
-            }, Math.min(delay, 150)) // Cap delay at 150ms for fast scroll
-
-            // Stop observing once animated (play only once)
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      {
-        threshold: 0.05, // Trigger early (5% visible)
-        rootMargin: '50px 0px 0px 0px', // Trigger before element enters viewport
-      }
-    )
-
-    observer.observe(element)
-
-    return () => observer.disconnect()
-  }, [delay])
-
-  // Start with content nearly visible - animation is just polish
-  // If animation fails, content is still readable at 90% opacity
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'opacity-90 translate-y-3 transition-all duration-300 ease-out',
-        className
-      )}
-    >
-      {children}
-    </div>
-  )
-}
-
-// =============================================================================
-// Main Page
-// =============================================================================
+import Link from 'next/link'
+import { ArrowRight, Calendar, Plane, Hotel } from 'lucide-react'
+import { Logo } from '@/components/logo'
+import { Footer } from '@/components/footer'
+import { Button } from '@/components/ui/button'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 flex flex-col overflow-x-hidden">
-      {/* Header — no animation (always visible) */}
-      <LandingHeader />
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="border-b">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Logo />
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sign in
+            </Link>
+            <Button asChild size="sm">
+              <Link href="/signup">Get Started</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
 
       {/* Hero */}
-      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-16 sm:pb-20">
-        <div className="text-center mb-12 sm:mb-20">
-          {/* Badge */}
-          <FadeInSection delay={0}>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium mb-4 sm:mb-6 lowercase">
-              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              ai-powered trip planning
-            </div>
-          </FadeInSection>
-
-          {/* Headline */}
-          <FadeInSection delay={100}>
-            <h1 className="text-2xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground mb-4 sm:mb-6 lowercase leading-tight">
-              plan trips to live events
+      <main className="flex-1">
+        <div className="max-w-5xl mx-auto px-4 py-16 md:py-24">
+          {/* Hero Text */}
+          <div className="max-w-2xl mb-12">
+            <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-foreground mb-4">
+              Plan trips to live events,
               <br />
-              <span className="text-muted-foreground">in minutes</span>
+              <span className="text-muted-foreground">effortlessly.</span>
             </h1>
-          </FadeInSection>
-
-          {/* Subtext */}
-          <FadeInSection delay={200}>
-            <p className="text-sm sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8">
-              search for a concert, game, or show you want to attend.
-              we&apos;ll find flights, hotels, and tickets — all in one place.
+            <p className="text-lg text-muted-foreground leading-relaxed mb-8">
+              Find a concert, game, or show — seira builds the travel around it.
+              Flights, hotels, and tickets in one place.
             </p>
-          </FadeInSection>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="lg" className="gap-2">
+                <Link href="/signup">
+                  Start Planning
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/login">Sign In</Link>
+              </Button>
+            </div>
+          </div>
 
-          {/* CTA */}
-          <FadeInSection delay={300}>
-            <LandingCTA />
-          </FadeInSection>
+          {/* Features */}
+          <div className="grid md:grid-cols-3 gap-6 mt-16">
+            <div className="p-6 rounded-2xl border bg-card">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                <Calendar className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="font-medium mb-2">Find Events</h3>
+              <p className="text-sm text-muted-foreground">
+                Search concerts, sports, theater, and more from top ticket providers.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl border bg-card">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+                <Plane className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="font-medium mb-2">Book Flights</h3>
+              <p className="text-sm text-muted-foreground">
+                Compare flights timed perfectly around your event schedule.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl border bg-card">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4">
+                <Hotel className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h3 className="font-medium mb-2">Stay Close</h3>
+              <p className="text-sm text-muted-foreground">
+                Find hotels near the venue with prices for your exact dates.
+              </p>
+            </div>
+          </div>
         </div>
-
-        {/* Demo Preview */}
-        <FadeInSection className="mb-16 sm:mb-24" delay={400}>
-          <DemoPreview />
-        </FadeInSection>
-
-        {/* How it works */}
-        <FadeInSection delay={100}>
-          <HowItWorks />
-        </FadeInSection>
       </main>
 
       {/* Footer */}
-      <FadeInSection>
-        <Footer />
-      </FadeInSection>
+      <Footer />
     </div>
   )
 }

@@ -3,10 +3,12 @@
 import { useEffect, useState, useCallback, createContext, useContext } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useUserStore } from "@/stores/user-store"
+import { useOrgStore } from "@/stores/org-store"
 import { getApi } from "@/lib/api"
 import { createClient } from "@/lib/supabase/client"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { toast } from "@/components/ui/sonner"
+import type { OrgRole } from "@/lib/types/database"
 
 // =============================================================================
 // Types
@@ -19,8 +21,15 @@ interface User {
   avatar_url: string | null
 }
 
+interface InitialOrg {
+  id: string
+  name: string
+  role: OrgRole
+}
+
 interface AppShellProviderProps {
   initialUser: User
+  initialOrg: InitialOrg | null
   children: React.ReactNode
 }
 
@@ -76,6 +85,7 @@ const TABLET_BREAKPOINT = 1024
 
 export function AppShellProvider({
   initialUser,
+  initialOrg,
   children,
 }: AppShellProviderProps) {
   const router = useRouter()
@@ -86,6 +96,9 @@ export function AppShellProvider({
   const setPreferences = useUserStore((state) => state.setPreferences)
   const setLoading = useUserStore((state) => state.setLoading)
   const setHydrated = useUserStore((state) => state.setHydrated)
+
+  // Org store
+  const setOrg = useOrgStore((state) => state.setOrg)
 
   // Connection state
   const [isOnline, setIsOnline] = useState(true)
@@ -110,8 +123,14 @@ export function AppShellProvider({
   // ===========================================================================
 
   useEffect(() => {
+    // Hydrate user store
     setUser(initialUser)
     setHydrated(true)
+
+    // Hydrate org store
+    if (initialOrg) {
+      setOrg(initialOrg)
+    }
 
     // Set initial session expiry (24 hours from now)
     setSessionExpiresAt(new Date(Date.now() + SESSION_DURATION_MS))
@@ -130,7 +149,7 @@ export function AppShellProvider({
     }
 
     fetchUserData()
-  }, [initialUser, setUser, setPreferences, setLoading, setHydrated])
+  }, [initialUser, initialOrg, setUser, setPreferences, setLoading, setHydrated, setOrg])
 
   // ===========================================================================
   // Online/Offline Detection
@@ -280,6 +299,7 @@ export function AppShellProvider({
         if (event === 'SIGNED_OUT') {
           // Clear all stores
           useUserStore.getState().clear()
+          useOrgStore.getState().clear()
 
           // Redirect to landing page
           router.replace('/')
@@ -321,11 +341,6 @@ export function AppShellProvider({
         router.push("/settings")
       }
 
-      // Cmd/Ctrl + Shift + T: Go to trips
-      if (modifier && e.shiftKey && e.key === "T") {
-        e.preventDefault()
-        router.push("/saved")
-      }
     }
 
     window.addEventListener("keydown", handleKeyDown)

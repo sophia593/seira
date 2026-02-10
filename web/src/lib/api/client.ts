@@ -34,126 +34,6 @@ export class ApiError extends Error {
   }
 }
 
-// Response types matching backend contracts
-export interface Trip {
-  id: string
-  title: string
-  status: "draft" | "quoted" | "booked" | "completed" | "cancelled"
-  destination_city: string | null
-  destination_country: string | null
-  event_name: string | null
-  event_date: string | null
-  estimated_total: number | null
-  created_at: string
-  updated_at: string
-}
-
-export interface TripDetail extends Trip {
-  conversation_id: string | null
-  notes: string | null
-  share_token: string | null
-  shared_by_name: string | null
-  event_time: string | null
-  event_provider: string | null
-  event_provider_id: string | null
-  event_ticketmaster_id: string | null
-  event_venue: string | null
-  event_venue_address: string | null
-  event_venue_lat: number | null
-  event_venue_lng: number | null
-  event_price_estimate: number | null
-  event_purchase_url: string | null
-  event_image_url: string | null
-  flight_offer_id: string | null
-  flight_origin: string | null
-  flight_destination: string | null
-  flight_outbound_date: string | null
-  flight_outbound_time: string | null
-  flight_return_date: string | null
-  flight_return_time: string | null
-  flight_price: number | null
-  flight_carrier: string | null
-  flight_booking_ref: string | null
-  flight_purchase_url: string | null
-  hotel_name: string | null
-  hotel_check_in: string | null
-  hotel_check_out: string | null
-  hotel_price: number | null
-  hotel_purchase_url: string | null
-  origin_city: string | null
-  origin_airport_code: string | null
-  ground_transport: Record<string, unknown> | null
-  quoted_at: string | null
-  quote_expires_at: string | null
-}
-
-// Shared trip (read-only, public access)
-export interface SharedTrip {
-  id: string
-  title: string
-  status: string
-  shared_by_name: string | null
-  destination_city: string | null
-  destination_country: string | null
-  event_name: string | null
-  event_date: string | null
-  event_time: string | null
-  event_venue: string | null
-  event_venue_address: string | null
-  event_venue_lat: number | null
-  event_venue_lng: number | null
-  event_price_estimate: number | null
-  event_purchase_url: string | null
-  event_image_url: string | null
-  flight_origin: string | null
-  flight_destination: string | null
-  flight_outbound_date: string | null
-  flight_outbound_time: string | null
-  flight_return_date: string | null
-  flight_return_time: string | null
-  flight_price: number | null
-  flight_carrier: string | null
-  hotel_name: string | null
-  hotel_check_in: string | null
-  hotel_check_out: string | null
-  hotel_price: number | null
-  estimated_total: number | null
-  created_at: string
-}
-
-export interface ShareTripResponse {
-  share_token: string
-  share_url: string
-}
-
-export interface DuplicateTripResponse {
-  id: string
-  title: string
-}
-
-export interface CreateTripRequest {
-  title?: string
-  conversation_id?: string
-  destination_city?: string
-  destination_country?: string
-  notes?: string
-  event_name?: string
-  event_date?: string
-  event_time?: string
-  event_provider?: string
-  event_provider_id?: string
-  event_ticketmaster_id?: string
-  event_venue?: string
-  event_venue_address?: string
-  event_venue_lat?: number
-  event_venue_lng?: number
-  event_price_estimate?: number
-  event_purchase_url?: string
-  event_image_url?: string
-  origin_city?: string
-  origin_airport_code?: string
-}
-
 export interface UserProfile {
   id: string
   email: string
@@ -164,12 +44,6 @@ export interface UserProfile {
 
 export interface UserPreferences {
   user_id: string
-  home_airport: string | null
-  preferred_airlines: string[] | null
-  seat_preference: string | null
-  cabin_class: string | null
-  budget_default: number | null
-  dietary_restrictions: string[] | null
   notification_email: boolean
   updated_at: string
 }
@@ -322,51 +196,6 @@ export function createApiClient(config: ApiClientConfig) {
     return del<{ message: string; deleted: Record<string, number> }>("/api/v1/users/me")
   }
 
-  // Trips
-  async function getTrips(): Promise<Trip[]> {
-    return get<Trip[]>("/api/v1/trips")
-  }
-
-  async function getTrip(id: string): Promise<TripDetail> {
-    return get<TripDetail>(`/api/v1/trips/${id}`)
-  }
-
-  async function createTrip(data: CreateTripRequest): Promise<TripDetail> {
-    return post<TripDetail>("/api/v1/trips", data)
-  }
-
-  async function updateTrip(
-    id: string,
-    data: Partial<TripDetail>
-  ): Promise<TripDetail> {
-    return patch<TripDetail>(`/api/v1/trips/${id}`, data)
-  }
-
-  async function deleteTrip(id: string): Promise<void> {
-    return del<void>(`/api/v1/trips/${id}`)
-  }
-
-  async function shareTrip(
-    id: string,
-    sharedByName?: string
-  ): Promise<ShareTripResponse> {
-    return post<ShareTripResponse>(`/api/v1/trips/${id}/share`, {
-      shared_by_name: sharedByName,
-    })
-  }
-
-  async function unshareTrip(id: string): Promise<void> {
-    return del<void>(`/api/v1/trips/${id}/share`)
-  }
-
-  async function getSharedTrip(token: string): Promise<SharedTrip> {
-    return get<SharedTrip>(`/api/v1/shared/${token}`)
-  }
-
-  async function duplicateSharedTrip(token: string): Promise<DuplicateTripResponse> {
-    return post<DuplicateTripResponse>(`/api/v1/shared/${token}/duplicate`)
-  }
-
   // ---------------------------------------------------------------------------
   // Return Client
   // ---------------------------------------------------------------------------
@@ -385,19 +214,6 @@ export function createApiClient(config: ApiClientConfig) {
     getPreferences,
     updatePreferences,
     deleteAccount,
-
-    // Trips
-    getTrips,
-    getTrip,
-    createTrip,
-    updateTrip,
-    deleteTrip,
-    shareTrip,
-    unshareTrip,
-
-    // Shared (public)
-    getSharedTrip,
-    duplicateSharedTrip,
   }
 }
 

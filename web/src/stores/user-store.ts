@@ -1,11 +1,7 @@
 import { create } from "zustand"
 
 interface UserPreferences {
-  home_airport: string | null
-  preferred_airlines: string[] | null
-  seat_preference: string | null
-  cabin_class: string | null
-  budget_default: number | null
+  notification_email: boolean
 }
 
 interface User {

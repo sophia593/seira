@@ -12,7 +12,7 @@ interface EmailVerificationPromptProps {
 }
 
 export function EmailVerificationPrompt({
-  title = 'verify your email to save trips',
+  title = 'verify your email to continue',
   description,
   className,
 }: EmailVerificationPromptProps) {

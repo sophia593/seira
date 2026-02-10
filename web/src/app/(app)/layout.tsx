@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
-import { MobileNav } from "@/components/layout/mobile-nav"
+import { AppShell } from "@/components/app-shell"
 import { AppShellProvider } from "./provider"
 import { createServerClient } from "@supabase/ssr"
+import { getUserMembership } from "@/lib/db/client"
+import { getOrganization, createOrganization } from "@/lib/db/organizations"
+import type { OrgRole } from "@/lib/types/database"
 
 export default async function AppLayout({
   children,
@@ -48,15 +51,33 @@ export default async function AppLayout({
     avatar_url: data.user.user_metadata?.avatar_url || null,
   }
 
-  return (
-    <AppShellProvider initialUser={user}>
-      <div className="flex h-screen flex-col">
-        {/* Mobile Header */}
-        <MobileNav />
+  // Get or create organization membership
+  let membership = await getUserMembership(supabase as Parameters<typeof getUserMembership>[0], user.id)
 
-        {/* Main Content */}
-        <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
-      </div>
+  if (!membership) {
+    // Auto-create organization for new users
+    const orgName = user.name ? `${user.name}'s Team` : 'My Team'
+    const org = await createOrganization(
+      supabase as Parameters<typeof createOrganization>[0],
+      user.id,
+      orgName
+    )
+    // After creating org, user is automatically added as owner
+    membership = await getUserMembership(supabase as Parameters<typeof getUserMembership>[0], user.id)
+  }
+
+  // Fetch org details
+  const org = membership
+    ? await getOrganization(supabase as Parameters<typeof getOrganization>[0], membership.org_id)
+    : null
+
+  const initialOrg = membership && org
+    ? { id: org.id, name: org.name, role: membership.role as OrgRole }
+    : null
+
+  return (
+    <AppShellProvider initialUser={user} initialOrg={initialOrg}>
+      <AppShell>{children}</AppShell>
     </AppShellProvider>
   )
 }
