@@ -87,7 +87,7 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
           )}
         </div>
 
-        <PartnerActions partner={partner} eventId={eventId} />
+        <PartnerActions partner={partner} eventId={eventId} deliverableCount={deliverables.length} />
       </div>
 
       <DeliverableSection

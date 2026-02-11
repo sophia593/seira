@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pencil, Trash2 } from 'lucide-react'
-import { SlideOver } from '@/components/ui/slide-over'
+import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,9 +24,10 @@ import type { Partner } from '@/lib/types/database'
 interface PartnerActionsProps {
   partner: Partner
   eventId: string
+  deliverableCount?: number
 }
 
-export function PartnerActions({ partner, eventId }: PartnerActionsProps) {
+export function PartnerActions({ partner, eventId, deliverableCount = 0 }: PartnerActionsProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -88,8 +89,8 @@ export function PartnerActions({ partner, eventId }: PartnerActionsProps) {
         </Button>
       </div>
 
-      {/* Edit slide-over */}
-      <SlideOver
+      {/* Edit modal */}
+      <Modal
         open={showEditDialog}
         onClose={() => { if (!isPending) setShowEditDialog(false) }}
         title="Edit Partner"
@@ -109,65 +110,66 @@ export function PartnerActions({ partner, eventId }: PartnerActionsProps) {
           </div>
         }
       >
-        <form id="edit-partner-form" ref={formRef} onSubmit={handleEdit} className="space-y-5">
-          {/* Partner Info */}
-          <div className="space-y-3">
-            <p className="text-[10px] tracking-widest text-gray-400 uppercase">Partner Info</p>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-name">Partner Name *</Label>
-              <Input
-                id="edit-name"
-                name="name"
-                defaultValue={partner.name}
-                required
-                autoFocus
-              />
+        <form id="edit-partner-form" ref={formRef} onSubmit={handleEdit}>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-5">
+            {/* Left column — 3/5 */}
+            <div className="sm:col-span-3 space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-name">Partner Name *</Label>
+                <Input
+                  id="edit-name"
+                  name="name"
+                  defaultValue={partner.name}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-contract_notes">Deal Summary</Label>
+                <textarea
+                  id="edit-contract_notes"
+                  name="contract_notes"
+                  rows={3}
+                  defaultValue={partner.contract_notes ?? ''}
+                  placeholder="e.g., $25K — 3x LED, 2 social, suite"
+                  className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Contact */}
-          <div className="space-y-3">
-            <p className="text-[10px] tracking-widest text-gray-400 uppercase">Contact</p>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-contact_name">Contact Name</Label>
-              <Input
-                id="edit-contact_name"
-                name="contact_name"
-                defaultValue={partner.contact_name ?? ''}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-contact_email">Contact Email</Label>
-              <Input
-                id="edit-contact_email"
-                name="contact_email"
-                type="email"
-                defaultValue={partner.contact_email ?? ''}
-              />
-            </div>
-          </div>
-
-          {/* Contract */}
-          <div className="space-y-3">
-            <p className="text-[10px] tracking-widest text-gray-400 uppercase">Contract</p>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-contract_notes">Contract Notes</Label>
-              <textarea
-                id="edit-contract_notes"
-                name="contract_notes"
-                rows={3}
-                defaultValue={partner.contract_notes ?? ''}
-                placeholder="e.g., $25K, 3x LED + 2 social + suite"
-                className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
-              />
+            {/* Right column — 2/5 */}
+            <div className="sm:col-span-2 space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-contact_name">Contact Name</Label>
+                <Input
+                  id="edit-contact_name"
+                  name="contact_name"
+                  defaultValue={partner.contact_name ?? ''}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-contact_email">Contact Email</Label>
+                <Input
+                  id="edit-contact_email"
+                  name="contact_email"
+                  type="email"
+                  defaultValue={partner.contact_email ?? ''}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Deliverables</Label>
+                <p className="text-sm text-gray-500 bg-gray-50 rounded-md px-3 py-2">
+                  {deliverableCount} deliverable{deliverableCount !== 1 ? 's' : ''} assigned
+                </p>
+              </div>
             </div>
           </div>
 
           {editError && (
-            <p className="text-sm text-destructive">{editError}</p>
+            <p className="text-sm text-destructive mt-4">{editError}</p>
           )}
         </form>
-      </SlideOver>
+      </Modal>
 
       {/* Delete confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
