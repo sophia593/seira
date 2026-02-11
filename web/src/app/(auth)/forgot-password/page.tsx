@@ -131,44 +131,44 @@ function ForgotPasswordForm() {
 
       {/* Card */}
       <div className="w-full max-w-md animate-in fade-in duration-500">
-        <div className="rounded-3xl border bg-card p-10 shadow-lg">
+        <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
           {isSuccess ? (
             // =========== Success State ===========
             <div className="text-center">
               {/* Success Icon */}
-              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center animate-in zoom-in duration-300">
-                <Mail className="h-8 w-8 text-primary" />
+              <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-muted flex items-center justify-center animate-in zoom-in duration-300">
+                <Mail className="h-7 w-7 text-foreground" />
               </div>
 
               {/* Title */}
-              <h1 className="text-2xl font-semibold lowercase mb-2">
-                check your email
+              <h1 className="text-2xl font-semibold mb-1">
+                Check your email
               </h1>
 
               {/* Description */}
               <p className="text-muted-foreground text-sm mb-2">
                 we sent a password reset link to
               </p>
-              <p className="font-medium text-foreground mb-6 break-all">
+              <p className="font-medium text-foreground mb-6 break-all text-sm">
                 {email}
               </p>
 
               {/* Instructions */}
-              <div className="bg-muted/50 rounded-xl p-4 mb-6 text-left">
+              <div className="bg-muted/50 rounded-lg p-4 mb-5 text-left">
                 <p className="text-sm text-muted-foreground mb-3">
                   next steps:
                 </p>
                 <ol className="text-sm text-muted-foreground space-y-2">
                   <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span className="w-5 h-5 rounded-full bg-muted text-foreground text-xs flex items-center justify-center shrink-0 mt-0.5 font-medium">1</span>
                     <span>open the email from seira</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span className="w-5 h-5 rounded-full bg-muted text-foreground text-xs flex items-center justify-center shrink-0 mt-0.5 font-medium">2</span>
                     <span>click the reset password link</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <span className="w-5 h-5 rounded-full bg-muted text-foreground text-xs flex items-center justify-center shrink-0 mt-0.5 font-medium">3</span>
                     <span>create your new password</span>
                   </li>
                 </ol>
@@ -188,7 +188,7 @@ function ForgotPasswordForm() {
                     "inline-flex items-center gap-2 text-sm",
                     cooldown > 0
                       ? "text-muted-foreground cursor-not-allowed"
-                      : "text-primary hover:underline"
+                      : "text-foreground hover:underline"
                   )}
                 >
                   {isLoading ? (
@@ -211,17 +211,17 @@ function ForgotPasswordForm() {
               </div>
 
               {/* Divider */}
-              <div className="border-t my-6" />
+              <div className="border-t border-border my-5" />
 
               {/* Back to login */}
               <Link
                 href="/login"
                 className={cn(
                   "inline-flex items-center justify-center gap-2",
-                  "h-11 px-6 rounded-2xl w-full",
-                  "bg-primary text-primary-foreground",
+                  "h-10 px-6 rounded-lg w-full",
+                  "bg-foreground text-background",
                   "text-sm font-medium",
-                  "hover:bg-primary/90 transition-colors"
+                  "hover:bg-foreground/90 transition-colors"
                 )}
               >
                 back to login
@@ -241,9 +241,9 @@ function ForgotPasswordForm() {
 
               {/* Callback error banner (e.g., expired reset link) */}
               {callbackError && !callbackDismissed && (
-                <div className="mb-6 p-4 rounded-xl bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="mb-4 p-3 rounded-lg bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="flex items-start gap-2 min-w-0">
                       <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-destructive">{callbackError.title}</p>
@@ -263,9 +263,9 @@ function ForgotPasswordForm() {
               )}
 
               {/* Header */}
-              <div className="mb-8">
-                <h1 className="text-2xl font-semibold lowercase mb-2">
-                  {callbackError && !callbackDismissed ? 'request a new link' : 'forgot password?'}
+              <div className="mb-6">
+                <h1 className="text-2xl font-semibold mb-1">
+                  {callbackError && !callbackDismissed ? 'Request a new link' : 'Forgot password?'}
                 </h1>
                 <p className="text-muted-foreground text-sm">
                   {callbackError && !callbackDismissed
@@ -275,9 +275,9 @@ function ForgotPasswordForm() {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Email */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label
                     htmlFor="email"
                     className="text-sm font-medium text-foreground"
@@ -297,11 +297,11 @@ function ForgotPasswordForm() {
                     autoFocus
                     disabled={isLoading}
                     className={cn(
-                      "w-full h-12 px-5 rounded-2xl",
-                      "bg-background border",
+                      "w-full h-10 px-3 rounded-lg",
+                      "bg-background border border-border",
                       "text-sm placeholder:text-muted-foreground/50",
-                      "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                      "transition-all duration-150",
+                      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                      "transition-colors",
                       "disabled:opacity-50 disabled:cursor-not-allowed",
                       error && "border-destructive focus:ring-destructive/20"
                     )}
@@ -316,12 +316,12 @@ function ForgotPasswordForm() {
                   type="submit"
                   disabled={isLoading || cooldown > 0}
                   className={cn(
-                    "w-full h-12 rounded-2xl",
-                    "bg-primary text-primary-foreground",
+                    "w-full h-10 rounded-lg",
+                    "bg-foreground text-background",
                     "text-sm font-medium",
-                    "hover:bg-primary/90",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2",
-                    "transition-all duration-150",
+                    "hover:bg-foreground/90",
+                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                    "transition-colors",
                     "disabled:opacity-50 disabled:cursor-not-allowed"
                   )}
                 >
@@ -336,7 +336,7 @@ function ForgotPasswordForm() {
               </form>
 
               {/* Help text */}
-              <p className="mt-6 text-center text-xs text-muted-foreground">
+              <p className="mt-5 text-center text-xs text-muted-foreground">
                 remember your password?{" "}
                 <Link
                   href="/login"

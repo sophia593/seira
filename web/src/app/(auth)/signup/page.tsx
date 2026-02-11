@@ -234,28 +234,28 @@ export default function SignupPage() {
 
         {/* Card */}
         <div className="w-full max-w-md animate-in fade-in duration-500">
-          <div className="rounded-3xl border bg-card p-6 sm:p-10 shadow-lg text-center">
+          <div className="rounded-xl border border-border bg-card p-6 sm:p-8 text-center">
             {/* Success Icon */}
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center animate-in zoom-in duration-300">
-              <Mail className="h-8 w-8 text-primary" />
+            <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-muted flex items-center justify-center animate-in zoom-in duration-300">
+              <Mail className="h-7 w-7 text-foreground" />
             </div>
 
             {/* Title */}
-            <h1 className="text-2xl font-semibold lowercase mb-2">
-              check your email
+            <h1 className="text-2xl font-semibold mb-1">
+              Check your email
             </h1>
 
             {/* Description */}
             <p className="text-muted-foreground text-sm mb-2">
               we sent a verification link to
             </p>
-            <p className="font-medium text-foreground mb-6 break-all">
+            <p className="font-medium text-foreground mb-6 break-all text-sm">
               {signedUpEmail}
             </p>
 
             {/* Error Message */}
             {formError && (
-              <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 mb-4 text-left animate-in fade-in duration-200">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 mb-4 text-left animate-in fade-in duration-200">
                 <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 <p className="text-sm text-destructive">{formError}</p>
               </div>
@@ -266,11 +266,11 @@ export default function SignupPage() {
               onClick={handleResendEmail}
               disabled={isResending || cooldown > 0}
               className={cn(
-                "inline-flex items-center justify-center gap-2 w-full h-11 rounded-2xl",
-                "text-sm font-medium transition-all duration-150",
+                "inline-flex items-center justify-center gap-2 w-full h-10 rounded-lg",
+                "text-sm font-medium transition-colors",
                 resendSuccess
                   ? "bg-green-500/10 text-green-600 dark:text-green-500"
-                  : "bg-primary/10 text-primary hover:bg-primary/20",
+                  : "bg-muted text-foreground hover:bg-muted/80",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
             >
@@ -311,15 +311,15 @@ export default function SignupPage() {
             </button>
 
             {/* Divider */}
-            <div className="border-t my-6" />
+            <div className="border-t border-border my-5" />
 
             {/* Login Link */}
             <Link
               href="/login"
               className={cn(
                 "inline-flex items-center justify-center",
-                "h-11 px-6 rounded-2xl w-full",
-                "border bg-background hover:bg-accent",
+                "h-10 px-6 rounded-lg w-full",
+                "border border-border bg-background hover:bg-muted/50",
                 "text-sm font-medium",
                 "transition-colors"
               )}
@@ -344,14 +344,14 @@ export default function SignupPage() {
 
       {/* Card */}
       <div className="w-full max-w-md animate-in fade-in duration-500">
-        <div className="rounded-3xl border bg-card p-6 sm:p-10 shadow-lg">
+        <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold lowercase mb-2">
-              create an account
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-semibold mb-1">
+              Create an account
             </h1>
             <p className="text-muted-foreground text-sm">
-              start planning your next adventure
+              start managing your sponsor deliverables
             </p>
           </div>
 
@@ -361,18 +361,18 @@ export default function SignupPage() {
             onClick={handleGoogleSignup}
             disabled={isGoogleLoading || isLoading}
             className={cn(
-              "w-full flex items-center justify-center gap-3 h-12 rounded-2xl",
-              "border bg-background hover:bg-accent",
+              "w-full flex items-center justify-center gap-3 h-10 rounded-lg",
+              "border border-border bg-background hover:bg-muted/50",
               "text-sm font-medium",
-              "transition-colors duration-150",
+              "transition-colors",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
           >
             {isGoogleLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -396,19 +396,19 @@ export default function SignupPage() {
           </button>
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t" />
+              <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-white dark:bg-zinc-950 px-4 text-muted-foreground">or</span>
+              <span className="bg-card px-4 text-muted-foreground">or</span>
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* First Name */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label
                 htmlFor="firstName"
                 className="text-sm font-medium text-foreground"
@@ -424,11 +424,11 @@ export default function SignupPage() {
                 autoComplete="given-name"
                 disabled={isLoading}
                 className={cn(
-                  "w-full h-12 px-5 rounded-2xl",
-                  "bg-background border",
+                  "w-full h-10 px-3 rounded-lg",
+                  "bg-background border border-border",
                   "text-sm placeholder:text-muted-foreground/50",
-                  "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:border-primary",
-                  "transition-all duration-150",
+                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                  "transition-colors",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   errors.firstName && "border-destructive focus:ring-destructive/20"
                 )}
@@ -439,7 +439,7 @@ export default function SignupPage() {
             </div>
 
             {/* Email */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label
                 htmlFor="email"
                 className="text-sm font-medium text-foreground"
@@ -455,11 +455,11 @@ export default function SignupPage() {
                 autoComplete="email"
                 disabled={isLoading}
                 className={cn(
-                  "w-full h-12 px-5 rounded-2xl",
-                  "bg-background border",
+                  "w-full h-10 px-3 rounded-lg",
+                  "bg-background border border-border",
                   "text-sm placeholder:text-muted-foreground/50",
-                  "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:border-primary",
-                  "transition-all duration-150",
+                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                  "transition-colors",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   errors.email && "border-destructive focus:ring-destructive/20"
                 )}
@@ -470,7 +470,7 @@ export default function SignupPage() {
             </div>
 
             {/* Password */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label
                 htmlFor="password"
                 className="text-sm font-medium text-foreground"
@@ -487,11 +487,11 @@ export default function SignupPage() {
                   autoComplete="new-password"
                   disabled={isLoading}
                   className={cn(
-                    "w-full h-12 px-5 pr-12 rounded-2xl",
-                    "bg-background border",
+                    "w-full h-10 px-3 pr-10 rounded-lg",
+                    "bg-background border border-border",
                     "text-sm placeholder:text-muted-foreground/50",
-                    "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:border-primary",
-                    "transition-all duration-150",
+                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                    "transition-colors",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                     errors.password && "border-destructive focus:ring-destructive/20"
                   )}
@@ -499,7 +499,7 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-10 h-10 flex items-center justify-center rounded-lg"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-8 h-8 flex items-center justify-center rounded"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -518,7 +518,7 @@ export default function SignupPage() {
 
             {/* Form Error */}
             {formError && (
-              <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
                 <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 <p className="text-sm text-destructive">{formError}</p>
               </div>
@@ -529,12 +529,12 @@ export default function SignupPage() {
               type="submit"
               disabled={isLoading || isGoogleLoading}
               className={cn(
-                "w-full h-12 rounded-2xl",
-                "bg-primary text-primary-foreground",
+                "w-full h-10 rounded-lg",
+                "bg-foreground text-background",
                 "text-sm font-medium",
-                "hover:bg-primary/90",
-                "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:ring-offset-2",
-                "transition-all duration-150",
+                "hover:bg-foreground/90",
+                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                "transition-colors",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
             >
@@ -547,7 +547,7 @@ export default function SignupPage() {
           </form>
 
           {/* Terms */}
-          <p className="mt-6 text-center text-xs text-muted-foreground">
+          <p className="mt-5 text-center text-xs text-muted-foreground">
             by signing up, you agree to our{" "}
             <Link href="/terms" className="underline hover:text-foreground transition-colors">
               terms

@@ -203,8 +203,8 @@ export default function ResetPasswordPage() {
           <Logo />
         </div>
         <div className="w-full max-w-md animate-in fade-in duration-500">
-          <div className="rounded-3xl border bg-card p-10 shadow-lg text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <div className="rounded-xl border border-border bg-card p-6 sm:p-8 text-center">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground text-sm">
               verifying your reset link...
             </p>
@@ -224,14 +224,14 @@ export default function ResetPasswordPage() {
           <Logo />
         </div>
         <div className="w-full max-w-md animate-in fade-in duration-500">
-          <div className="rounded-3xl border bg-card p-10 shadow-lg text-center">
+          <div className="rounded-xl border border-border bg-card p-6 sm:p-8 text-center">
             {/* Error Icon */}
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-destructive/10 flex items-center justify-center">
-              <AlertCircle className="h-8 w-8 text-destructive" />
+            <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-destructive/10 flex items-center justify-center">
+              <AlertCircle className="h-7 w-7 text-destructive" />
             </div>
 
-            <h1 className="text-2xl font-semibold lowercase mb-2">
-              link expired
+            <h1 className="text-2xl font-semibold mb-1">
+              Link expired
             </h1>
             <p className="text-muted-foreground text-sm mb-6">
               this password reset link has expired or is invalid.
@@ -243,16 +243,16 @@ export default function ResetPasswordPage() {
               href="/forgot-password"
               className={cn(
                 "inline-flex items-center justify-center gap-2",
-                "h-11 px-6 rounded-2xl w-full",
-                "bg-primary text-primary-foreground",
+                "h-10 px-6 rounded-lg w-full",
+                "bg-foreground text-background",
                 "text-sm font-medium",
-                "hover:bg-primary/90 transition-colors"
+                "hover:bg-foreground/90 transition-colors"
               )}
             >
               request new link
             </Link>
 
-            <p className="mt-6 text-center text-xs text-muted-foreground">
+            <p className="mt-5 text-center text-xs text-muted-foreground">
               remember your password?{" "}
               <Link href="/login" className="text-foreground hover:underline">
                 log in
@@ -274,14 +274,14 @@ export default function ResetPasswordPage() {
           <Logo />
         </div>
         <div className="w-full max-w-md animate-in fade-in duration-500">
-          <div className="rounded-3xl border bg-card p-10 shadow-lg text-center">
+          <div className="rounded-xl border border-border bg-card p-6 sm:p-8 text-center">
             {/* Success Icon */}
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center animate-in zoom-in duration-300">
-              <KeyRound className="h-8 w-8 text-primary" />
+            <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-muted flex items-center justify-center animate-in zoom-in duration-300">
+              <KeyRound className="h-7 w-7 text-foreground" />
             </div>
 
-            <h1 className="text-2xl font-semibold lowercase mb-2">
-              password updated
+            <h1 className="text-2xl font-semibold mb-1">
+              Password updated
             </h1>
             <p className="text-muted-foreground text-sm mb-6">
               your password has been reset successfully.
@@ -308,7 +308,7 @@ export default function ResetPasswordPage() {
 
       {/* Card */}
       <div className="w-full max-w-md animate-in fade-in duration-500">
-        <div className="rounded-3xl border bg-card p-10 shadow-lg">
+        <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
           {/* Back Link */}
           <Link
             href="/login"
@@ -319,9 +319,9 @@ export default function ResetPasswordPage() {
           </Link>
 
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold lowercase mb-2">
-              create new password
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold mb-1">
+              Create new password
             </h1>
             {userEmail ? (
               <p className="text-muted-foreground text-sm">
@@ -336,16 +336,16 @@ export default function ResetPasswordPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* New Password */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label
                 htmlFor="password"
                 className="text-sm font-medium text-foreground"
               >
                 new password
               </label>
-              <div className="relative group">
+              <div className="relative">
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -359,21 +359,20 @@ export default function ResetPasswordPage() {
                   autoFocus
                   disabled={isSubmitting}
                   className={cn(
-                    "w-full h-12 px-5 pr-12 rounded-2xl",
-                    "bg-background border-2 border-border",
+                    "w-full h-10 px-3 pr-10 rounded-lg",
+                    "bg-background border border-border",
                     "text-sm placeholder:text-muted-foreground/50",
-                    "focus:outline-none focus:border-foreground focus:shadow-[0_0_0_4px_rgba(0,0,0,0.1)]",
-                    "dark:focus:shadow-[0_0_0_4px_rgba(255,255,255,0.1)]",
-                    "transition-all duration-200",
+                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                    "transition-colors",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
-                    error && "border-destructive focus:border-destructive focus:shadow-[0_0_0_4px_rgba(239,68,68,0.1)]"
+                    error && "border-destructive focus:ring-destructive/20"
                   )}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-8 h-8 flex items-center justify-center rounded"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -385,8 +384,8 @@ export default function ResetPasswordPage() {
 
               {/* Password Strength Bar */}
               {password.length > 0 && (
-                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-300 ease-out",
@@ -408,7 +407,7 @@ export default function ResetPasswordPage() {
             </div>
 
             {/* Confirm Password */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label
                 htmlFor="confirm-password"
                 className="text-sm font-medium text-foreground"
@@ -428,21 +427,20 @@ export default function ResetPasswordPage() {
                   autoComplete="new-password"
                   disabled={isSubmitting}
                   className={cn(
-                    "w-full h-12 px-5 pr-12 rounded-2xl",
-                    "bg-background border-2 border-border",
+                    "w-full h-10 px-3 pr-10 rounded-lg",
+                    "bg-background border border-border",
                     "text-sm placeholder:text-muted-foreground/50",
-                    "focus:outline-none focus:border-foreground focus:shadow-[0_0_0_4px_rgba(0,0,0,0.1)]",
-                    "dark:focus:shadow-[0_0_0_4px_rgba(255,255,255,0.1)]",
-                    "transition-all duration-200",
+                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                    "transition-colors",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
-                    error && error.includes("match") && "border-destructive focus:border-destructive focus:shadow-[0_0_0_4px_rgba(239,68,68,0.1)]"
+                    error && error.includes("match") && "border-destructive focus:ring-destructive/20"
                   )}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   tabIndex={-1}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-8 h-8 flex items-center justify-center rounded"
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -478,13 +476,12 @@ export default function ResetPasswordPage() {
               type="submit"
               disabled={isSubmitting || !password || !confirmPassword}
               className={cn(
-                "w-full h-12 rounded-2xl",
-                "bg-primary text-primary-foreground",
+                "w-full h-10 rounded-lg",
+                "bg-foreground text-background",
                 "text-sm font-medium",
-                "hover:bg-primary/90",
-                "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2",
-                "active:scale-[0.98]",
-                "transition-all duration-150",
+                "hover:bg-foreground/90",
+                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                "transition-colors",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
             >
@@ -497,7 +494,7 @@ export default function ResetPasswordPage() {
           </form>
 
           {/* Password Requirements */}
-          <div className="mt-6 p-3 rounded-xl bg-muted/50">
+          <div className="mt-5 p-3 rounded-lg bg-muted/50">
             <p className="text-xs text-muted-foreground">
               password must be at least {MIN_PASSWORD_LENGTH} characters
             </p>

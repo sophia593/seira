@@ -3,16 +3,10 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pencil, Trash2 } from 'lucide-react'
+import { SlideOver } from '@/components/ui/slide-over'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,76 +88,75 @@ export function PartnerActions({ partner, eventId }: PartnerActionsProps) {
         </Button>
       </div>
 
-      {/* Edit dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Partner</DialogTitle>
-          </DialogHeader>
+      {/* Edit slide-over */}
+      <SlideOver
+        open={showEditDialog}
+        onClose={() => { if (!isPending) setShowEditDialog(false) }}
+        title="Edit Partner"
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="edit-partner-form" isLoading={isPending}>
+              Save Changes
+            </Button>
+          </div>
+        }
+      >
+        <form id="edit-partner-form" ref={formRef} onSubmit={handleEdit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name">Partner Name *</Label>
+            <Input
+              id="edit-name"
+              name="name"
+              defaultValue={partner.name}
+              required
+              autoFocus
+            />
+          </div>
 
-          <form ref={formRef} onSubmit={handleEdit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Partner Name *</Label>
-              <Input
-                id="edit-name"
-                name="name"
-                defaultValue={partner.name}
-                required
-                autoFocus
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-contact_name">Contact Name</Label>
+            <Input
+              id="edit-contact_name"
+              name="contact_name"
+              defaultValue={partner.contact_name ?? ''}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-contact_name">Contact Name</Label>
-              <Input
-                id="edit-contact_name"
-                name="contact_name"
-                defaultValue={partner.contact_name ?? ''}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-contact_email">Contact Email</Label>
+            <Input
+              id="edit-contact_email"
+              name="contact_email"
+              type="email"
+              defaultValue={partner.contact_email ?? ''}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-contact_email">Contact Email</Label>
-              <Input
-                id="edit-contact_email"
-                name="contact_email"
-                type="email"
-                defaultValue={partner.contact_email ?? ''}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-contract_notes">Contract Notes</Label>
+            <textarea
+              id="edit-contract_notes"
+              name="contract_notes"
+              rows={3}
+              defaultValue={partner.contract_notes ?? ''}
+              placeholder="e.g., $25K, 3x LED + 2 social + suite"
+              className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-contract_notes">Contract Notes</Label>
-              <textarea
-                id="edit-contract_notes"
-                name="contract_notes"
-                rows={3}
-                defaultValue={partner.contract_notes ?? ''}
-                placeholder="e.g., $25K, 3x LED + 2 social + suite"
-                className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-
-            {editError && (
-              <p className="text-sm text-destructive">{editError}</p>
-            )}
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowEditDialog(false)}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={isPending}>
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          {editError && (
+            <p className="text-sm text-destructive">{editError}</p>
+          )}
+        </form>
+      </SlideOver>
 
       {/* Delete confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

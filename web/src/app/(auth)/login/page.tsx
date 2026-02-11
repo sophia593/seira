@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Loader2, AlertCircle, X } from "lucide-react"
@@ -50,21 +50,11 @@ function LoginForm() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [formError, setFormError] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
-
-  // Load remembered email on mount
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('seira_remembered_email')
-    if (savedEmail) {
-      setFormData(prev => ({ ...prev, email: savedEmail }))
-      setRememberMe(true)
-    }
-  }, [])
 
   const [errors, setErrors] = useState({
     email: "",
@@ -119,13 +109,6 @@ function LoginForm() {
       if (error) {
         setFormError(getAuthErrorMessage(error.message))
         return
-      }
-
-      // Handle remember me
-      if (rememberMe) {
-        localStorage.setItem('seira_remembered_email', formData.email)
-      } else {
-        localStorage.removeItem('seira_remembered_email')
       }
 
       // Redirect to specified URL or default to dashboard
@@ -184,11 +167,11 @@ function LoginForm() {
 
       {/* Card */}
       <div className="w-full max-w-md animate-in fade-in duration-500">
-        <div className="rounded-3xl border bg-card p-6 sm:p-10 shadow-lg">
+        <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold lowercase mb-2">
-              welcome back
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-semibold mb-1">
+              Welcome back
             </h1>
             <p className="text-muted-foreground text-sm">
               sign in to your workspace
@@ -197,7 +180,7 @@ function LoginForm() {
 
           {/* Message from redirect (e.g., after signup) */}
           {message === "check-email" && (
-            <div className="mb-6 p-4 rounded-xl bg-primary/10 text-sm text-center">
+            <div className="mb-4 p-3 rounded-lg bg-primary/10 text-sm text-center">
               <p className="text-primary">
                 check your email to verify your account, then log in
               </p>
@@ -206,9 +189,9 @@ function LoginForm() {
 
           {/* Callback error banner (e.g., expired verification link) */}
           {callbackError && !callbackDismissed && (
-            <div className="mb-6 p-4 rounded-xl bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-2.5 min-w-0">
+                <div className="flex items-start gap-2 min-w-0">
                   <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-destructive">{callbackError.title}</p>
@@ -249,18 +232,18 @@ function LoginForm() {
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading || isLoading}
             className={cn(
-              "w-full flex items-center justify-center gap-3 h-12 rounded-2xl",
-              "border bg-background hover:bg-accent",
+              "w-full flex items-center justify-center gap-3 h-10 rounded-lg",
+              "border border-border bg-background hover:bg-muted/50",
               "text-sm font-medium",
-              "transition-colors duration-150",
+              "transition-colors",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
           >
             {isGoogleLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -284,19 +267,19 @@ function LoginForm() {
           </button>
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t" />
+              <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-white dark:bg-zinc-950 px-4 text-muted-foreground">or</span>
+              <span className="bg-card px-4 text-muted-foreground">or</span>
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label
                 htmlFor="email"
                 className="text-sm font-medium text-foreground"
@@ -312,11 +295,11 @@ function LoginForm() {
                 autoComplete="email"
                 disabled={isLoading}
                 className={cn(
-                  "w-full h-12 px-5 rounded-2xl",
-                  "bg-background border",
+                  "w-full h-10 px-3 rounded-lg",
+                  "bg-background border border-border",
                   "text-sm placeholder:text-muted-foreground/50",
-                  "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:border-primary",
-                  "transition-all duration-150",
+                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                  "transition-colors",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   errors.email && "border-destructive focus:ring-destructive/20"
                 )}
@@ -327,7 +310,7 @@ function LoginForm() {
             </div>
 
             {/* Password */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="password"
@@ -352,11 +335,11 @@ function LoginForm() {
                   autoComplete="current-password"
                   disabled={isLoading}
                   className={cn(
-                    "w-full h-12 px-5 pr-12 rounded-2xl",
-                    "bg-background border",
+                    "w-full h-10 px-3 pr-10 rounded-lg",
+                    "bg-background border border-border",
                     "text-sm placeholder:text-muted-foreground/50",
-                    "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:border-primary",
-                    "transition-all duration-150",
+                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                    "transition-colors",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                     errors.password && "border-destructive focus:ring-destructive/20"
                   )}
@@ -364,7 +347,7 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-10 h-10 flex items-center justify-center rounded-lg"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-8 h-8 flex items-center justify-center rounded"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -379,44 +362,9 @@ function LoginForm() {
               )}
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={rememberMe}
-                onClick={() => setRememberMe(!rememberMe)}
-                className={cn(
-                  "h-4 w-4 rounded border flex items-center justify-center",
-                  "transition-colors duration-150",
-                  rememberMe
-                    ? "bg-primary border-primary"
-                    : "bg-background border-muted-foreground/30 hover:border-muted-foreground/50"
-                )}
-              >
-                {rememberMe && (
-                  <svg
-                    className="h-3 w-3 text-primary-foreground"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-              <label
-                className="text-sm text-muted-foreground cursor-pointer select-none"
-                onClick={() => setRememberMe(!rememberMe)}
-              >
-                remember me
-              </label>
-            </div>
-
             {/* Form Error */}
             {formError && (
-              <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 animate-in fade-in slide-in-from-top-1 duration-200">
                 <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 <p className="text-sm text-destructive">{formError}</p>
               </div>
@@ -427,12 +375,12 @@ function LoginForm() {
               type="submit"
               disabled={isLoading || isGoogleLoading}
               className={cn(
-                "w-full h-12 rounded-2xl",
-                "bg-primary text-primary-foreground",
+                "w-full h-10 rounded-lg",
+                "bg-foreground text-background",
                 "text-sm font-medium",
-                "hover:bg-primary/90",
-                "focus:outline-none focus:ring-2 focus-visible:ring-primary/40 focus:ring-offset-2",
-                "transition-all duration-150",
+                "hover:bg-foreground/90",
+                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                "transition-colors",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
             >

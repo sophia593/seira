@@ -296,9 +296,9 @@ export default function SettingsPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
-      <div className="px-6 py-8 md:px-10 md:py-12 max-w-3xl">
+      <div className="px-4 py-6 md:px-8 md:py-8 max-w-3xl">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
             Settings
           </h1>
@@ -308,7 +308,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Workspace Section */}
-        <section className="mb-8 sm:mb-10">
+        <section className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">
             workspace
           </h2>
@@ -355,7 +355,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Profile Section */}
-        <section className="mb-8 sm:mb-10">
+        <section className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">
             profile
           </h2>
@@ -402,7 +402,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Theme Section */}
-        <section className="mb-8 sm:mb-10">
+        <section className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">
             appearance
           </h2>
@@ -448,7 +448,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Security Section */}
-        <section className="mb-8 sm:mb-10">
+        <section className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">
             security
           </h2>
@@ -622,7 +622,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Danger Zone */}
-        <section className="mb-8 sm:mb-10">
+        <section className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase text-destructive">
             danger zone
           </h2>

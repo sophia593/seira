@@ -4,14 +4,15 @@ interface ProgressBarProps {
   value: number // 0-100
   className?: string
   showLabel?: boolean
+  size?: 'sm' | 'default'
 }
 
-export function ProgressBar({ value, className, showLabel = false }: ProgressBarProps) {
+export function ProgressBar({ value, className, showLabel = false, size = 'default' }: ProgressBarProps) {
   const clampedValue = Math.min(100, Math.max(0, value))
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+      <div className={cn('flex-1 bg-muted rounded-full overflow-hidden', size === 'sm' ? 'h-1.5' : 'h-2')}>
         <div
           className="h-full bg-primary transition-all"
           style={{ width: `${clampedValue}%` }}

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { CalendarDays, ClipboardList, AlertTriangle, TrendingUp } from 'lucide-react'
+import { CalendarDays, Users, ClipboardCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { getOrganization } from '@/lib/db/organizations'
@@ -12,12 +12,10 @@ import {
 } from '@/lib/db/dashboard'
 import type { DashboardStats } from '@/lib/db/dashboard'
 import type { EventWithCompletion, DeliverableWithPartner } from '@/lib/types/database'
-import { Card, CardContent } from '@/components/ui/card'
-import { EventStatusBadge, CategoryBadge, StatusBadge } from '@/components/ui/badges'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
-import { formatEventDate, formatShortDate } from '@/lib/constants'
+import { formatShortDate } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,11 +50,9 @@ export default async function DashboardPage() {
   )
 
   if (!membership) {
-    // Layout should have auto-created the org. If we still have no membership,
-    // something is misconfigured (e.g. missing SUPABASE_SERVICE_ROLE_KEY).
     console.error('[Dashboard] No membership found after layout bootstrap')
     return (
-      <div className="px-6 py-8 md:px-10 md:py-12 max-w-6xl mx-auto">
+      <div className="px-4 py-6 md:px-8 md:py-8 max-w-6xl mx-auto">
         <EmptyState
           icon={CalendarDays}
           title="Workspace setup incomplete"
@@ -68,7 +64,6 @@ export default async function DashboardPage() {
 
   const orgId = membership.org_id
 
-  // Fetch org name + all dashboard data in parallel — each degrades independently
   const [orgResult, statsResult, eventsResult, overdueResult, needsProofResult] =
     await Promise.allSettled([
       getOrganization(
@@ -87,176 +82,166 @@ export default async function DashboardPage() {
   const overdueItems = settle(overdueResult, [] as DeliverableWithPartner[], 'getOverdueDeliverables')
   const needsProofItems = settle(needsProofResult, [] as DeliverableWithPartner[], 'getNeedsProofDeliverables')
 
+  const isEmpty = stats.activeEvents === 0 && stats.totalDeliverables === 0
+
+  // ---------------------------------------------------------------------------
+  // Empty state — onboarding
+  // ---------------------------------------------------------------------------
+  if (isEmpty) {
+    return (
+      <div className="flex flex-1 items-center justify-center px-4 py-16">
+        <div className="max-w-lg text-center">
+          <h1 className="text-3xl font-bold tracking-tight">Welcome to Seira</h1>
+          <p className="mt-3 text-muted-foreground">
+            Track sponsor deliverables, collect proof, and generate recap reports.
+          </p>
+
+          <div className="mt-10 grid grid-cols-3 gap-6 text-left">
+            <div>
+              <CalendarDays className="h-6 w-6 text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">Create an event</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Set up your game, show, or festival.
+              </p>
+            </div>
+            <div>
+              <Users className="h-6 w-6 text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">Add partners</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Add sponsors and their contacts.
+              </p>
+            </div>
+            <div>
+              <ClipboardCheck className="h-6 w-6 text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">Track deliverables</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Assign deliverables and track completion.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-10">
+            <Button asChild className="bg-foreground text-background hover:bg-foreground/90">
+              <Link href="/events">Create your first event</Link>
+            </Button>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Or explore with sample data
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ---------------------------------------------------------------------------
+  // Populated state
+  // ---------------------------------------------------------------------------
   const orgName = org?.name ?? 'your workspace'
+  const attentionItems = [
+    ...overdueItems.map((d) => ({ ...d, kind: 'overdue' as const })),
+    ...needsProofItems.map((d) => ({ ...d, kind: 'needs-proof' as const })),
+  ].slice(0, 8)
 
   return (
-    <div className="px-6 py-8 md:px-10 md:py-12 max-w-6xl mx-auto">
+    <div className="px-4 py-6 md:px-8 md:py-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">Overview for {orgName}</p>
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <StatCard
-          label="Active Events"
-          value={stats.activeEvents}
-          helper="upcoming + active"
-          icon={<CalendarDays className="w-4 h-4 text-muted-foreground" />}
-        />
-        <StatCard
-          label="Total Deliverables"
-          value={stats.totalDeliverables}
-          helper="across all events"
-          icon={<ClipboardList className="w-4 h-4 text-muted-foreground" />}
-        />
-        <StatCard
+      <div className="flex items-start divide-x divide-border mb-8 overflow-x-auto">
+        <StatItem label="Active Events" value={stats.activeEvents} sub="upcoming + active" />
+        <StatItem label="Total Deliverables" value={stats.totalDeliverables} sub="across all events" />
+        <StatItem
           label="Overdue"
           value={stats.overdueCount}
-          helper="need attention"
-          icon={<AlertTriangle className="w-4 h-4 text-muted-foreground" />}
+          sub="need attention"
           valueClassName={stats.overdueCount > 0 ? 'text-destructive' : undefined}
         />
-        <Card className="py-4">
-          <CardContent className="px-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Completion
-              </span>
-            </div>
-            <p className="text-2xl font-semibold">{stats.completionPct}%</p>
-            <ProgressBar value={stats.completionPct} className="mt-2" />
-          </CardContent>
-        </Card>
+        <StatItem label="Completion" value={`${stats.completionPct}%`} sub="proved or done" />
       </div>
 
-      {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: Upcoming Events */}
-        <div>
-          <SectionHeader
-            title="Upcoming Events"
-            trailing={
-              <Link
-                href="/events"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                View all &rarr;
-              </Link>
-            }
-          />
+        <div className="lg:col-span-3">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">Upcoming Events</h2>
+            <Link
+              href="/events"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View all &rarr;
+            </Link>
+          </div>
 
           {upcomingEvents.length === 0 ? (
-            <EmptyState
-              icon={CalendarDays}
-              title="No upcoming events"
-              description="Create an event to start tracking deliverables."
-              action={
-                <Button size="sm" asChild>
-                  <Link href="/events">Create an event</Link>
-                </Button>
-              }
-            />
+            <p className="text-sm text-muted-foreground py-6">
+              No upcoming events.{' '}
+              <Link href="/events" className="underline hover:text-foreground">
+                Create one
+              </Link>
+            </p>
           ) : (
-            <div className="space-y-3">
+            <div className="divide-y divide-border">
               {upcomingEvents.map((event) => (
-                <Link key={event.id} href={`/events/${event.id}`} className="block group">
-                  <Card className="py-4 group-hover:shadow-md group-hover:border-border transition-all">
-                    <CardContent className="px-4 space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm truncate">{event.name}</span>
-                        <EventStatusBadge status={event.status} />
-                        {event.overdue_count > 0 && (
-                          <span className="text-xs font-medium text-destructive">
-                            Overdue: {event.overdue_count}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {formatEventDate(event.date)}
-                        {event.venue && ` · ${event.venue}`}
-                      </p>
-                      <ProgressBar value={event.completion_pct} showLabel />
-                    </CardContent>
-                  </Card>
+                <Link
+                  key={event.id}
+                  href={`/events/${event.id}`}
+                  className="flex items-center gap-4 py-3 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{event.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {formatShortDate(event.date)}
+                      {event.venue && ` · ${event.venue}`}
+                    </p>
+                  </div>
+                  <div className="w-20 shrink-0">
+                    <ProgressBar value={event.completion_pct} size="sm" />
+                  </div>
+                  <span className="text-xs text-muted-foreground w-8 text-right shrink-0">
+                    {event.completion_pct}%
+                  </span>
                 </Link>
               ))}
             </div>
           )}
         </div>
 
-        {/* Right: Overdue + Needs Proof */}
-        <div className="space-y-8">
-          {/* Overdue */}
-          <div>
-            <SectionHeader
-              title={
-                <>
-                  Overdue{' '}
-                  {overdueItems.length > 0 && (
-                    <span className="text-destructive font-semibold">
-                      ({overdueItems.length})
-                    </span>
-                  )}
-                </>
-              }
-            />
-
-            {overdueItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
-                Nothing overdue — nice work.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {overdueItems.map((d) => (
-                  <Link key={d.id} href={`/events/${d.event_id}`} className="block group">
-                    <div className="rounded-xl border border-red-200/60 bg-red-50/50 p-4 transition-all group-hover:shadow-md group-hover:border-red-300/80 dark:border-red-900/40 dark:bg-red-950/20">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm line-clamp-2">{d.title}</span>
-                        <CategoryBadge category={d.category} />
-                      </div>
-                      <div className="flex items-center gap-2 mt-1.5 text-xs">
-                        <span className="text-muted-foreground">{d.partner.name}</span>
-                        <span className="text-destructive font-medium">
-                          Due {formatShortDate(d.due_date)}
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+        {/* Right: Attention */}
+        <div className="lg:col-span-2">
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold">Attention</h2>
           </div>
 
-          {/* Done — Needs Proof */}
-          <div>
-            <SectionHeader title="Done — Needs Proof" />
-
-            {needsProofItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
-                All caught up.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {needsProofItems.map((d) => (
-                  <Link key={d.id} href={`/events/${d.event_id}`} className="block group">
-                    <div className="rounded-xl border border-yellow-200/60 bg-yellow-50/50 p-4 transition-all group-hover:shadow-md group-hover:border-yellow-300/80 dark:border-yellow-900/40 dark:bg-yellow-950/20">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm line-clamp-2">{d.title}</span>
-                        <CategoryBadge category={d.category} />
-                        <StatusBadge status={d.status} />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1.5">
-                        {d.partner.name}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
+          {attentionItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6">
+              Nothing needs attention — nice work.
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {attentionItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/events/${item.event_id}`}
+                  className="flex items-start gap-3 py-3 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <span
+                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                      item.kind === 'overdue' ? 'bg-red-500' : 'bg-yellow-500'
+                    }`}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{item.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.partner.name}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -267,46 +252,22 @@ export default async function DashboardPage() {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function SectionHeader({
-  title,
-  trailing,
-}: {
-  title: React.ReactNode
-  trailing?: React.ReactNode
-}) {
-  return (
-    <div className="flex items-center justify-between mb-4 pb-2 border-b">
-      <h2 className="text-base font-medium">{title}</h2>
-      {trailing}
-    </div>
-  )
-}
-
-function StatCard({
+function StatItem({
   label,
   value,
-  helper,
-  icon,
+  sub,
   valueClassName,
 }: {
   label: string
-  value: number
-  helper: string
-  icon: React.ReactNode
+  value: number | string
+  sub: string
   valueClassName?: string
 }) {
   return (
-    <Card className="py-4">
-      <CardContent className="px-4">
-        <div className="flex items-center gap-2 mb-1">
-          {icon}
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {label}
-          </span>
-        </div>
-        <p className={`text-2xl font-semibold ${valueClassName ?? ''}`}>{value}</p>
-        <p className="text-xs text-muted-foreground mt-1">{helper}</p>
-      </CardContent>
-    </Card>
+    <div className="flex-1 px-4 first:pl-0 last:pr-0 min-w-0">
+      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`text-3xl font-bold mt-1 ${valueClassName ?? ''}`}>{value}</p>
+      <p className="text-xs text-muted-foreground mt-1">{sub}</p>
+    </div>
   )
 }

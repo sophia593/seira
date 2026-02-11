@@ -37,8 +37,8 @@ function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4">
-        <ul className="space-y-1">
+      <nav className="flex-1 px-3 py-3">
+        <ul className="space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
 

@@ -20,7 +20,7 @@ export default async function EventsPage() {
   if (!membership) {
     console.error('[Events] No membership found after layout bootstrap')
     return (
-      <div className="px-6 py-8 md:px-10 md:py-12 max-w-5xl mx-auto">
+      <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
         <EmptyState
           icon={CalendarDays}
           title="Workspace setup incomplete"
@@ -33,13 +33,13 @@ export default async function EventsPage() {
   const events = await listEvents(membership.org_id)
 
   return (
-    <div className="px-6 py-8 md:px-10 md:py-12 max-w-5xl mx-auto">
-      <div className="mb-8">
+    <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
+      <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
           Events
           {events.length > 0 && (
             <span className="text-muted-foreground font-normal text-lg ml-2">
-              ({events.length} {events.length === 1 ? 'event' : 'events'})
+              {events.length}
             </span>
           )}
         </h1>

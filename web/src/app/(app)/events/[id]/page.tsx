@@ -20,7 +20,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const partners = await listPartnersByEvent(eventId)
 
   return (
-    <div className="px-6 py-8 md:px-10 md:py-12 max-w-5xl mx-auto">
+    <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
       <Breadcrumbs
         items={[
           { label: 'Events', href: '/events' },
