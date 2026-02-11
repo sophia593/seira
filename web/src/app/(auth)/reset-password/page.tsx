@@ -193,22 +193,22 @@ export default function ResetPasswordPage() {
     }
   }
 
+  const inputBase = "w-full h-10 px-3 rounded-md bg-white border border-gray-200 text-sm placeholder:text-gray-400 focus:outline-none focus:border-gray-400 focus:ring-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+
   // =========================================================================
   // Render: Loading State
   // =========================================================================
   if (pageState === "loading") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
         <div className="mb-8 animate-in fade-in duration-500">
           <Logo />
         </div>
-        <div className="w-full max-w-md animate-in fade-in duration-500">
-          <div className="rounded-xl border border-border bg-card p-6 sm:p-8 text-center">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground text-sm">
-              verifying your reset link...
-            </p>
-          </div>
+        <div className="w-full max-w-sm animate-in fade-in duration-500 text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-500 text-sm">
+            verifying your reset link...
+          </p>
         </div>
       </div>
     )
@@ -219,46 +219,44 @@ export default function ResetPasswordPage() {
   // =========================================================================
   if (pageState === "invalid") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
         <div className="mb-8 animate-in fade-in duration-500">
           <Logo />
         </div>
-        <div className="w-full max-w-md animate-in fade-in duration-500">
-          <div className="rounded-xl border border-border bg-card p-6 sm:p-8 text-center">
-            {/* Error Icon */}
-            <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-destructive/10 flex items-center justify-center">
-              <AlertCircle className="h-7 w-7 text-destructive" />
-            </div>
-
-            <h1 className="text-2xl font-semibold mb-1">
-              Link expired
-            </h1>
-            <p className="text-muted-foreground text-sm mb-6">
-              this password reset link has expired or is invalid.
-              <br />
-              please request a new one.
-            </p>
-
-            <Link
-              href="/forgot-password"
-              className={cn(
-                "inline-flex items-center justify-center gap-2",
-                "h-10 px-6 rounded-lg w-full",
-                "bg-foreground text-background",
-                "text-sm font-medium",
-                "hover:bg-foreground/90 transition-colors"
-              )}
-            >
-              request new link
-            </Link>
-
-            <p className="mt-5 text-center text-xs text-muted-foreground">
-              remember your password?{" "}
-              <Link href="/login" className="text-foreground hover:underline">
-                log in
-              </Link>
-            </p>
+        <div className="w-full max-w-sm animate-in fade-in duration-500 text-center">
+          {/* Error Icon */}
+          <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-red-50 flex items-center justify-center">
+            <AlertCircle className="h-7 w-7 text-red-600" />
           </div>
+
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Link expired
+          </h1>
+          <p className="text-gray-500 text-sm mt-1 mb-6">
+            this password reset link has expired or is invalid.
+            <br />
+            please request a new one.
+          </p>
+
+          <Link
+            href="/forgot-password"
+            className={cn(
+              "inline-flex items-center justify-center gap-2",
+              "h-10 px-6 rounded-md w-full",
+              "bg-gray-900 text-white",
+              "text-sm font-medium",
+              "hover:bg-gray-800 transition-colors"
+            )}
+          >
+            request new link
+          </Link>
+
+          <p className="mt-5 text-center text-xs text-gray-400">
+            remember your password?{" "}
+            <Link href="/login" className="text-gray-900 hover:underline">
+              log in
+            </Link>
+          </p>
         </div>
       </div>
     )
@@ -269,28 +267,26 @@ export default function ResetPasswordPage() {
   // =========================================================================
   if (pageState === "success") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
         <div className="mb-8 animate-in fade-in duration-500">
           <Logo />
         </div>
-        <div className="w-full max-w-md animate-in fade-in duration-500">
-          <div className="rounded-xl border border-border bg-card p-6 sm:p-8 text-center">
-            {/* Success Icon */}
-            <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-muted flex items-center justify-center animate-in zoom-in duration-300">
-              <KeyRound className="h-7 w-7 text-foreground" />
-            </div>
-
-            <h1 className="text-2xl font-semibold mb-1">
-              Password updated
-            </h1>
-            <p className="text-muted-foreground text-sm mb-6">
-              your password has been reset successfully.
-              <br />
-              redirecting you to login...
-            </p>
-
-            <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+        <div className="w-full max-w-sm animate-in fade-in duration-500 text-center">
+          {/* Success Icon */}
+          <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-gray-100 flex items-center justify-center animate-in zoom-in duration-300">
+            <KeyRound className="h-7 w-7 text-gray-900" />
           </div>
+
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Password updated
+          </h1>
+          <p className="text-gray-500 text-sm mt-1 mb-6">
+            your password has been reset successfully.
+            <br />
+            redirecting you to login...
+          </p>
+
+          <Loader2 className="h-5 w-5 animate-spin mx-auto text-gray-400" />
         </div>
       </div>
     )
@@ -300,205 +296,194 @@ export default function ResetPasswordPage() {
   // Render: Form State (Ready)
   // =========================================================================
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
       {/* Logo */}
       <div className="mb-8 animate-in fade-in duration-500">
         <Logo />
       </div>
 
-      {/* Card */}
-      <div className="w-full max-w-md animate-in fade-in duration-500">
-        <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
-          {/* Back Link */}
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            back to login
-          </Link>
+      <div className="w-full max-w-sm animate-in fade-in duration-500">
+        {/* Back Link */}
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          back to login
+        </Link>
 
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold mb-1">
-              Create new password
-            </h1>
-            {userEmail ? (
-              <p className="text-muted-foreground text-sm">
-                you're resetting the password for{" "}
-                <span className="text-foreground font-medium">{userEmail}</span>
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                enter your new password below
-              </p>
-            )}
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* New Password */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="password"
-                className="text-sm font-medium text-foreground"
-              >
-                new password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value)
-                    if (error) setError("")
-                  }}
-                  placeholder="at least 8 characters"
-                  autoComplete="new-password"
-                  autoFocus
-                  disabled={isSubmitting}
-                  className={cn(
-                    "w-full h-10 px-3 pr-10 rounded-lg",
-                    "bg-background border border-border",
-                    "text-sm placeholder:text-muted-foreground/50",
-                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
-                    "transition-colors",
-                    "disabled:opacity-50 disabled:cursor-not-allowed",
-                    error && "border-destructive focus:ring-destructive/20"
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-8 h-8 flex items-center justify-center rounded"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-
-              {/* Password Strength Bar */}
-              {password.length > 0 && (
-                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-300 ease-out",
-                        strengthConfig.color,
-                        strengthConfig.width
-                      )}
-                    />
-                  </div>
-                  <p className={cn(
-                    "text-xs transition-colors",
-                    passwordStrength === "weak" && "text-red-500",
-                    passwordStrength === "medium" && "text-yellow-600 dark:text-yellow-500",
-                    passwordStrength === "strong" && "text-green-600 dark:text-green-500"
-                  )}>
-                    {strengthConfig.label}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Confirm Password */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="confirm-password"
-                className="text-sm font-medium text-foreground"
-              >
-                confirm password
-              </label>
-              <div className="relative">
-                <input
-                  id="confirm-password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value)
-                    if (error) setError("")
-                  }}
-                  placeholder="re-enter your password"
-                  autoComplete="new-password"
-                  disabled={isSubmitting}
-                  className={cn(
-                    "w-full h-10 px-3 pr-10 rounded-lg",
-                    "bg-background border border-border",
-                    "text-sm placeholder:text-muted-foreground/50",
-                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
-                    "transition-colors",
-                    "disabled:opacity-50 disabled:cursor-not-allowed",
-                    error && error.includes("match") && "border-destructive focus:ring-destructive/20"
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  tabIndex={-1}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors w-8 h-8 flex items-center justify-center rounded"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-
-              {/* Match indicator */}
-              {confirmPassword.length > 0 && password.length > 0 && (
-                <p className={cn(
-                  "text-xs animate-in fade-in duration-200",
-                  password === confirmPassword
-                    ? "text-green-600 dark:text-green-500"
-                    : "text-muted-foreground"
-                )}>
-                  {password === confirmPassword ? "passwords match" : "passwords don't match yet"}
-                </p>
-              )}
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <p className="text-xs text-destructive flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                {error}
-              </p>
-            )}
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isSubmitting || !password || !confirmPassword}
-              className={cn(
-                "w-full h-10 rounded-lg",
-                "bg-foreground text-background",
-                "text-sm font-medium",
-                "hover:bg-foreground/90",
-                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                "transition-colors",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
-              )}
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-              ) : (
-                "update password"
-              )}
-            </button>
-          </form>
-
-          {/* Password Requirements */}
-          <div className="mt-5 p-3 rounded-lg bg-muted/50">
-            <p className="text-xs text-muted-foreground">
-              password must be at least {MIN_PASSWORD_LENGTH} characters
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Create new password
+          </h1>
+          {userEmail ? (
+            <p className="text-sm text-gray-500 mt-1">
+              you're resetting the password for{" "}
+              <span className="text-gray-900 font-medium">{userEmail}</span>
             </p>
+          ) : (
+            <p className="text-sm text-gray-500 mt-1">
+              enter your new password below
+            </p>
+          )}
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* New Password */}
+          <div className="space-y-1.5">
+            <label
+              htmlFor="password"
+              className="text-sm font-medium text-gray-700"
+            >
+              new password
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  if (error) setError("")
+                }}
+                placeholder="at least 8 characters"
+                autoComplete="new-password"
+                autoFocus
+                disabled={isSubmitting}
+                className={cn(
+                  inputBase,
+                  "pr-10",
+                  error && "border-red-300 focus:border-red-400"
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+
+            {/* Password Strength Bar */}
+            {password.length > 0 && (
+              <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-300 ease-out",
+                      strengthConfig.color,
+                      strengthConfig.width
+                    )}
+                  />
+                </div>
+                <p className={cn(
+                  "text-xs transition-colors",
+                  passwordStrength === "weak" && "text-red-500",
+                  passwordStrength === "medium" && "text-yellow-600",
+                  passwordStrength === "strong" && "text-green-600"
+                )}>
+                  {strengthConfig.label}
+                </p>
+              </div>
+            )}
           </div>
+
+          {/* Confirm Password */}
+          <div className="space-y-1.5">
+            <label
+              htmlFor="confirm-password"
+              className="text-sm font-medium text-gray-700"
+            >
+              confirm password
+            </label>
+            <div className="relative">
+              <input
+                id="confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value)
+                  if (error) setError("")
+                }}
+                placeholder="re-enter your password"
+                autoComplete="new-password"
+                disabled={isSubmitting}
+                className={cn(
+                  inputBase,
+                  "pr-10",
+                  error && error.includes("match") && "border-red-300 focus:border-red-400"
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                tabIndex={-1}
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+
+            {/* Match indicator */}
+            {confirmPassword.length > 0 && password.length > 0 && (
+              <p className={cn(
+                "text-xs animate-in fade-in duration-200",
+                password === confirmPassword
+                  ? "text-green-600"
+                  : "text-gray-400"
+              )}>
+                {password === confirmPassword ? "passwords match" : "passwords don't match yet"}
+              </p>
+            )}
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <p className="text-xs text-red-500 flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              {error}
+            </p>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isSubmitting || !password || !confirmPassword}
+            className={cn(
+              "w-full h-10 rounded-md",
+              "bg-gray-900 text-white",
+              "text-sm font-medium",
+              "hover:bg-gray-800",
+              "focus:outline-none focus:ring-0",
+              "transition-colors",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+            ) : (
+              "update password"
+            )}
+          </button>
+        </form>
+
+        {/* Password Requirements */}
+        <div className="mt-5 p-3 rounded-md bg-gray-50">
+          <p className="text-xs text-gray-400">
+            password must be at least {MIN_PASSWORD_LENGTH} characters
+          </p>
         </div>
       </div>
     </div>

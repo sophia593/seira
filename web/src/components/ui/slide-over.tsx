@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +14,13 @@ export interface SlideOverProps {
 }
 
 export function SlideOver({ open, onClose, title, children, footer }: SlideOverProps) {
+  const [mounted, setMounted] = useState(false)
+
+  // Only render portal on client
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Escape key closes
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -35,12 +43,14 @@ export function SlideOver({ open, onClose, title, children, footer }: SlideOverP
     }
   }, [open, handleKeyDown])
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
         className={cn(
-          'fixed inset-0 z-50 bg-black/30 transition-opacity duration-200',
+          'fixed inset-0 z-[60] bg-black/20 backdrop-blur-[1px] transition-opacity duration-200',
           open ? 'opacity-100' : 'pointer-events-none opacity-0'
         )}
         onClick={onClose}
@@ -53,16 +63,16 @@ export function SlideOver({ open, onClose, title, children, footer }: SlideOverP
         aria-modal="true"
         aria-label={title}
         className={cn(
-          'fixed top-0 right-0 z-50 flex h-screen w-full flex-col border-l bg-background shadow-xl transition-transform duration-200 ease-out sm:max-w-md',
+          'fixed top-0 right-0 z-[60] flex h-screen w-full flex-col border-l border-gray-200 bg-white shadow-xl transition-transform duration-200 ease-out sm:w-[420px]',
           open ? 'translate-x-0' : 'translate-x-full'
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="text-lg font-semibold">{title}</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+            className="rounded-md p-1 text-gray-400 transition-colors hover:text-gray-600"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -70,13 +80,14 @@ export function SlideOver({ open, onClose, title, children, footer }: SlideOverP
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="border-t px-5 py-4">{footer}</div>
+          <div className="border-t border-gray-200 px-5 py-4">{footer}</div>
         )}
       </div>
-    </>
+    </>,
+    document.body
   )
 }

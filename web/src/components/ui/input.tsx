@@ -8,13 +8,13 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       data-slot="input"
       className={cn(
         // Base styles
-        "flex h-9 w-full min-w-0 rounded-xl border bg-transparent px-4 py-2 text-base transition-all duration-200 outline-none md:text-sm",
+        "flex h-10 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-sm transition-all duration-200 outline-none",
         // Colors
-        "border-input dark:bg-input/30",
+        "border-gray-300",
         "placeholder:text-muted-foreground",
         "selection:bg-primary selection:text-primary-foreground",
         // Focus
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        "focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10",
         // Error (aria-invalid)
         "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
         // Disabled
