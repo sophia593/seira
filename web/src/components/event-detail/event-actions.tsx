@@ -13,13 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { SlideOver } from '@/components/ui/slide-over'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -103,98 +97,97 @@ export function EventActions({ event }: EventActionsProps) {
         </Button>
       </div>
 
-      {/* Edit dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Event</DialogTitle>
-          </DialogHeader>
+      {/* Edit slide-over */}
+      <SlideOver
+        open={showEditDialog}
+        onClose={() => { if (!isPending) setShowEditDialog(false) }}
+        title="Edit Event"
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="edit-event-form" isLoading={isPending}>
+              Save Changes
+            </Button>
+          </div>
+        }
+      >
+        <form id="edit-event-form" ref={formRef} onSubmit={handleEdit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name">Event Name *</Label>
+            <Input
+              id="edit-name"
+              name="name"
+              defaultValue={event.name}
+              required
+              autoFocus
+            />
+          </div>
 
-          <form ref={formRef} onSubmit={handleEdit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Event Name *</Label>
+              <Label htmlFor="edit-date">Date</Label>
               <Input
-                id="edit-name"
-                name="name"
-                defaultValue={event.name}
-                required
-                autoFocus
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="edit-date">Date</Label>
-                <Input
-                  id="edit-date"
-                  name="date"
-                  type="date"
-                  defaultValue={event.date ?? ''}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select value={editStatus} onValueChange={(v) => setEditStatus(v as EventStatus)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EVENT_STATUS_FLOW.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        <span className="flex items-center gap-2">
-                          <span>{EVENT_STATUS_CONFIG[s].icon}</span>
-                          <span>{EVENT_STATUS_CONFIG[s].label}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-venue">Venue</Label>
-              <Input
-                id="edit-venue"
-                name="venue"
-                defaultValue={event.venue ?? ''}
-                placeholder="e.g., Madison Square Garden"
+                id="edit-date"
+                name="date"
+                type="date"
+                defaultValue={event.date ?? ''}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-notes">Notes</Label>
-              <textarea
-                id="edit-notes"
-                name="notes"
-                rows={3}
-                defaultValue={event.notes ?? ''}
-                placeholder="Optional notes..."
-                className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
+              <Label htmlFor="edit-status">Status</Label>
+              <Select value={editStatus} onValueChange={(v) => setEditStatus(v as EventStatus)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EVENT_STATUS_FLOW.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      <span className="flex items-center gap-2">
+                        <span>{EVENT_STATUS_CONFIG[s].icon}</span>
+                        <span>{EVENT_STATUS_CONFIG[s].label}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          </div>
 
-            {editError && (
-              <p className="text-sm text-destructive">{editError}</p>
-            )}
+          <div className="space-y-2">
+            <Label htmlFor="edit-venue">Venue</Label>
+            <Input
+              id="edit-venue"
+              name="venue"
+              defaultValue={event.venue ?? ''}
+              placeholder="e.g., Madison Square Garden"
+            />
+          </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowEditDialog(false)}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={isPending}>
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          <div className="space-y-2">
+            <Label htmlFor="edit-notes">Notes</Label>
+            <textarea
+              id="edit-notes"
+              name="notes"
+              rows={3}
+              defaultValue={event.notes ?? ''}
+              placeholder="Optional notes..."
+              className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+
+          {editError && (
+            <p className="text-sm text-destructive">{editError}</p>
+          )}
+        </form>
+      </SlideOver>
 
       {/* Delete confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
