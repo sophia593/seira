@@ -14,10 +14,7 @@ import { DEFAULT_DELIVERABLE_STATUS, DEFAULT_PROOF_REQUIRED } from '@/lib/consta
 // Read
 // =============================================================================
 
-/**
- * List deliverables for a partner.
- * Ordered: overdue first (not done/proved + due_date < today), then due_date asc, nulls last.
- */
+/** List deliverables for a partner, ordered by creation time (stable). */
 export async function listDeliverablesByPartner(partnerId: string): Promise<Deliverable[]> {
   const supabase = await createClient()
 
@@ -25,39 +22,14 @@ export async function listDeliverablesByPartner(partnerId: string): Promise<Deli
     .from('deliverables')
     .select('*')
     .eq('partner_id', partnerId)
-    .order('due_date', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
 
   if (error) handleDbError(error, 'Failed to list deliverables for partner')
 
-  const rows = (data ?? []) as Deliverable[]
-
-  // Sort: overdue items first, then by due_date asc (nulls last)
-  const today = new Date(new Date().toDateString())
-
-  return rows.sort((a, b) => {
-    const aOverdue =
-      a.due_date &&
-      a.status !== 'done' &&
-      a.status !== 'proved' &&
-      new Date(a.due_date) < today
-    const bOverdue =
-      b.due_date &&
-      b.status !== 'done' &&
-      b.status !== 'proved' &&
-      new Date(b.due_date) < today
-
-    if (aOverdue && !bOverdue) return -1
-    if (!aOverdue && bOverdue) return 1
-
-    // Within the same group, sort by due_date asc, nulls last
-    if (!a.due_date && !b.due_date) return 0
-    if (!a.due_date) return 1
-    if (!b.due_date) return -1
-    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-  })
+  return (data ?? []) as Deliverable[]
 }
 
-/** List all deliverables for an event, ordered by due_date asc (nulls last). */
+/** List all deliverables for an event, ordered by creation time (stable). */
 export async function listDeliverablesByEvent(eventId: string): Promise<Deliverable[]> {
   const supabase = await createClient()
 
@@ -65,7 +37,7 @@ export async function listDeliverablesByEvent(eventId: string): Promise<Delivera
     .from('deliverables')
     .select('*')
     .eq('event_id', eventId)
-    .order('due_date', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
 
   if (error) handleDbError(error, 'Failed to list deliverables for event')
 

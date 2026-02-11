@@ -156,7 +156,8 @@ export function EventActions({ event }: EventActionsProps) {
                 <Input
                   id="edit-date"
                   name="date"
-                  type="date"
+                  type="text"
+                  placeholder="YYYY-MM-DD"
                   defaultValue={event.date ?? ''}
                   disabled={isPending}
                 />
