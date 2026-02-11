@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { tryCreateAdminClient } from "@/lib/supabase/admin"
 import { getUserMembership } from "@/lib/db/client"
 import { getOrganization } from "@/lib/db/organizations"
+import { listEvents } from "@/lib/db/events"
 import { AppShell } from "@/components/app-shell"
 import { AppShellProvider } from "./provider"
 import { CreateWorkspaceForm } from "./create-workspace-form"
@@ -130,9 +131,22 @@ export default async function AppLayout({
     )
   }
 
+  // Fetch recent events for sidebar (best-effort, don't block on failure)
+  let recentEvents: { id: string; name: string; status: string }[] = []
+  try {
+    const allEvents = await listEvents(initialOrg.id)
+    recentEvents = allEvents.slice(0, 3).map((e) => ({
+      id: e.id,
+      name: e.name,
+      status: e.status,
+    }))
+  } catch {
+    // Non-critical — sidebar just won't show recent events
+  }
+
   return (
     <AppShellProvider initialUser={user} initialOrg={initialOrg}>
-      <AppShell>{children}</AppShell>
+      <AppShell recentEvents={recentEvents}>{children}</AppShell>
     </AppShellProvider>
   )
 }

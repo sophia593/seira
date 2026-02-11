@@ -143,14 +143,14 @@ export function UserMenu({ isCollapsed = false, variant = 'default' }: UserMenuP
             isSidebar ? 'hover:bg-white/5' : 'hover:bg-muted/80',
             isCollapsed
               ? 'h-11 w-11 p-0'
-              : 'h-auto w-full justify-start gap-3 px-2 py-2'
+              : 'h-auto w-full justify-start gap-2.5 px-2 py-1.5'
           )}
         >
-          <div className="relative">
+          <div className="relative shrink-0">
             {isSidebar && !user.avatar_url ? (
               <div className={cn(
-                "rounded-full bg-copper text-white flex items-center justify-center font-semibold",
-                isCollapsed ? "w-9 h-9 text-sm" : "w-7 h-7 text-xs"
+                "rounded-full bg-copper text-white flex items-center justify-center font-medium",
+                isCollapsed ? "w-9 h-9 text-sm" : "w-8 h-8 text-xs"
               )}>
                 {firstInitial}
               </div>
@@ -171,19 +171,10 @@ export function UserMenu({ isCollapsed = false, variant = 'default' }: UserMenuP
 
           {!isCollapsed && (
             <div className="flex-1 text-left min-w-0">
-              <div className="flex items-center gap-2">
-                <p className={cn("text-sm font-medium truncate", isSidebar && "text-white")}>
-                  {user.name || 'User'}
-                </p>
-                {/* Pro badge (inline) */}
-                {isPro && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
-                    <Crown className="w-2.5 h-2.5" />
-                    pro
-                  </span>
-                )}
-              </div>
-              <p className={cn("text-xs truncate", isSidebar ? "text-white/40" : "text-muted-foreground")}>
+              <p className={cn("text-sm font-medium truncate", isSidebar && "text-white/80")}>
+                {user.name || 'User'}
+              </p>
+              <p className={cn("text-xs truncate", isSidebar ? "text-white/30" : "text-muted-foreground")}>
                 {user.email}
               </p>
             </div>
