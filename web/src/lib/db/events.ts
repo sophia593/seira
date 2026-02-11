@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
-import type { Event, CreateEventInput } from '@/lib/types/database'
+import type { Event, EventWithCompletion, CreateEventInput } from '@/lib/types/database'
 import { DEFAULT_EVENT_STATUS } from '@/lib/constants'
 
 // =============================================================================
@@ -38,6 +38,40 @@ export async function getEventById(eventId: string): Promise<Event | null> {
   }
 
   return data as Event
+}
+
+/** List all events for an org with completion stats and partner counts. */
+export async function listEventsWithCompletion(orgId: string) {
+  const supabase = await createClient()
+
+  // Completion stats from the view
+  const { data: eventRows, error: eventError } = await supabase
+    .from('event_completion')
+    .select('*')
+    .eq('org_id', orgId)
+    .order('date', { ascending: true, nullsFirst: false })
+
+  if (eventError) handleDbError(eventError, 'Failed to list events with completion')
+
+  const events = (eventRows ?? []) as EventWithCompletion[]
+
+  // Partner counts per event
+  const { data: partnerRows, error: partnerError } = await supabase
+    .from('partners')
+    .select('id, event_id')
+    .eq('org_id', orgId)
+
+  if (partnerError) handleDbError(partnerError, 'Failed to count partners')
+
+  const partnerCounts: Record<string, number> = {}
+  for (const row of partnerRows ?? []) {
+    partnerCounts[row.event_id] = (partnerCounts[row.event_id] ?? 0) + 1
+  }
+
+  return events.map((e) => ({
+    ...e,
+    partner_count: partnerCounts[e.id] ?? 0,
+  }))
 }
 
 // =============================================================================

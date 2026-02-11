@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Trash2 } from 'lucide-react'
-import { SlideOver } from '@/components/ui/slide-over'
+import { Modal } from '@/components/ui/modal'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -99,7 +99,7 @@ export function EditDeliverableDialog({ deliverable, eventId, onClose }: EditDel
 
   return (
     <>
-      <SlideOver
+      <Modal
         open={!!deliverable}
         onClose={handleClose}
         title="Edit Deliverable"
@@ -132,83 +132,83 @@ export function EditDeliverableDialog({ deliverable, eventId, onClose }: EditDel
         }
       >
         {deliverable && (
-          <form id="edit-deliverable-form" ref={formRef} onSubmit={handleEdit} className="space-y-5">
-            {/* Deliverable Details */}
-            <div className="space-y-3">
-              <p className="text-[10px] tracking-widest text-gray-400 uppercase">Deliverable Details</p>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-title">Title *</Label>
-                <Input
-                  id="edit-title"
-                  name="title"
-                  defaultValue={deliverable.title}
-                  required
-                  autoFocus
-                />
+          <form id="edit-deliverable-form" ref={formRef} onSubmit={handleEdit}>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-5">
+              {/* Left column — 3/5 */}
+              <div className="sm:col-span-3 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-title">Title *</Label>
+                  <Input
+                    id="edit-title"
+                    name="title"
+                    defaultValue={deliverable.title}
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-category">Category *</Label>
+                  <Select name="category" defaultValue={deliverable.category} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {CATEGORY_CONFIG[cat].icon} {CATEGORY_CONFIG[cat].label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-notes">Notes</Label>
+                  <textarea
+                    id="edit-notes"
+                    name="notes"
+                    rows={3}
+                    defaultValue={deliverable.notes ?? ''}
+                    className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-category">Category *</Label>
-                <Select name="category" defaultValue={deliverable.category} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {CATEGORY_CONFIG[cat].icon} {CATEGORY_CONFIG[cat].label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            {/* Schedule & Proof */}
-            <div className="space-y-3">
-              <p className="text-[10px] tracking-widest text-gray-400 uppercase">Schedule & Proof</p>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-due_date">Due Date</Label>
-                <Input
-                  id="edit-due_date"
-                  name="due_date"
-                  type="text"
-                  placeholder="YYYY-MM-DD"
-                  defaultValue={deliverable.due_date ?? ''}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-proof_required">Proof Required</Label>
-                <Select name="proof_required" defaultValue={deliverable.proof_required ?? 'photo'}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select proof type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROOF_REQUIRED_OPTIONS.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {PROOF_REQUIRED_CONFIG[p].icon} {PROOF_REQUIRED_CONFIG[p].label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-notes">Notes</Label>
-                <textarea
-                  id="edit-notes"
-                  name="notes"
-                  rows={2}
-                  defaultValue={deliverable.notes ?? ''}
-                  className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
-                />
+              {/* Right column — 2/5 */}
+              <div className="sm:col-span-2 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-due_date">Due Date</Label>
+                  <Input
+                    id="edit-due_date"
+                    name="due_date"
+                    type="text"
+                    placeholder="YYYY-MM-DD"
+                    defaultValue={deliverable.due_date ?? ''}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-proof_required">Proof Required</Label>
+                  <Select name="proof_required" defaultValue={deliverable.proof_required ?? 'photo'}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select proof type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROOF_REQUIRED_OPTIONS.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {PROOF_REQUIRED_CONFIG[p].icon} {PROOF_REQUIRED_CONFIG[p].label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
             {editError && (
-              <p className="text-sm text-destructive">{editError}</p>
+              <p className="text-sm text-destructive mt-4">{editError}</p>
             )}
           </form>
         )}
-      </SlideOver>
+      </Modal>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>

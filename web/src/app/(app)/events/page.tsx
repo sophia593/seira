@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
-import { listEvents } from '@/lib/db/events'
+import { listEventsWithCompletion } from '@/lib/db/events'
 import { EventList } from '@/components/events'
 import { EmptyState } from '@/components/ui/empty-state'
 import { CalendarDays } from 'lucide-react'
@@ -27,21 +27,10 @@ export default async function EventsPage() {
     )
   }
 
-  const events = await listEvents(membership.org_id)
+  const events = await listEventsWithCompletion(membership.org_id)
 
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-          Events
-          {events.length > 0 && (
-            <span className="text-gray-300 font-normal text-lg ml-2">
-              {events.length}
-            </span>
-          )}
-        </h1>
-      </div>
-
       <EventList events={events} orgId={membership.org_id} />
     </div>
   )

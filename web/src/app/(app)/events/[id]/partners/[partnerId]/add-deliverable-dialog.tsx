@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { SlideOver } from '@/components/ui/slide-over'
+import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -56,7 +56,7 @@ export function AddDeliverableDialog({ open, onOpenChange, eventId, partnerId }:
   }
 
   return (
-    <SlideOver
+    <Modal
       open={open}
       onClose={handleClose}
       title="New Deliverable"
@@ -76,84 +76,84 @@ export function AddDeliverableDialog({ open, onOpenChange, eventId, partnerId }:
         </div>
       }
     >
-      <form id="add-deliverable-form" ref={formRef} onSubmit={handleSubmit} className="space-y-5">
+      <form id="add-deliverable-form" ref={formRef} onSubmit={handleSubmit}>
         <input type="hidden" name="partner_id" value={partnerId} />
         <input type="hidden" name="event_id" value={eventId} />
 
-        {/* Deliverable Details */}
-        <div className="space-y-3">
-          <p className="text-[10px] tracking-widest text-gray-400 uppercase">Deliverable Details</p>
-          <div className="space-y-1.5">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              name="title"
-              placeholder="e.g., LED board rotation"
-              required
-              autoFocus
-            />
-            <p className="text-xs text-gray-400">A short name for the deliverable</p>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-5">
+          {/* Left column — 3/5 */}
+          <div className="sm:col-span-3 space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                name="title"
+                placeholder="e.g., LED board rotation"
+                required
+                autoFocus
+              />
+              <p className="text-xs text-gray-400">A short name for the deliverable</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="category">Category *</Label>
+              <Select name="category" required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {CATEGORY_CONFIG[cat].icon} {CATEGORY_CONFIG[cat].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="notes">Notes</Label>
+              <textarea
+                id="notes"
+                name="notes"
+                rows={3}
+                placeholder="e.g., 30-second rotation during 3rd–7th innings"
+                className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="category">Category *</Label>
-            <Select name="category" required>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {CATEGORY_CONFIG[cat].icon} {CATEGORY_CONFIG[cat].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        {/* Schedule & Proof */}
-        <div className="space-y-3">
-          <p className="text-[10px] tracking-widest text-gray-400 uppercase">Schedule & Proof</p>
-          <div className="space-y-1.5">
-            <Label htmlFor="due_date">Due Date</Label>
-            <Input
-              id="due_date"
-              name="due_date"
-              type="text"
-              placeholder="YYYY-MM-DD"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="proof_required">Proof Required</Label>
-            <Select name="proof_required" defaultValue="photo">
-              <SelectTrigger>
-                <SelectValue placeholder="Select proof type" />
-              </SelectTrigger>
-              <SelectContent>
-                {PROOF_REQUIRED_OPTIONS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {PROOF_REQUIRED_CONFIG[p].icon} {PROOF_REQUIRED_CONFIG[p].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="notes">Notes</Label>
-            <textarea
-              id="notes"
-              name="notes"
-              rows={2}
-              placeholder="e.g., 30-second rotation during 3rd–7th innings"
-              className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+          {/* Right column — 2/5 */}
+          <div className="sm:col-span-2 space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="due_date">Due Date</Label>
+              <Input
+                id="due_date"
+                name="due_date"
+                type="text"
+                placeholder="YYYY-MM-DD"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="proof_required">Proof Required</Label>
+              <Select name="proof_required" defaultValue="photo">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select proof type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROOF_REQUIRED_OPTIONS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PROOF_REQUIRED_CONFIG[p].icon} {PROOF_REQUIRED_CONFIG[p].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
         {error && (
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive mt-4">{error}</p>
         )}
       </form>
-    </SlideOver>
+    </Modal>
   )
 }

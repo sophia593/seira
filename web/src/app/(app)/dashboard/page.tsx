@@ -222,12 +222,7 @@ export default async function DashboardPage() {
                       )}
                     </p>
                   </div>
-                  <div className="w-20 shrink-0">
-                    <ProgressBar value={event.completion_pct} size="sm" />
-                  </div>
-                  <span className="text-xs text-muted-foreground w-8 text-right shrink-0">
-                    {event.completion_pct}%
-                  </span>
+                  <ProgressBar value={event.completion_pct} size="sm" className="w-28 shrink-0" />
                 </Link>
               ))}
               {moreEventsCount > 0 && (
