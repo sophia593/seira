@@ -95,61 +95,72 @@ export function PartnerActions({ partner, eventId }: PartnerActionsProps) {
         title="Edit Partner"
         footer={
           <div className="flex items-center justify-end gap-3">
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={() => setShowEditDialog(false)}
               disabled={isPending}
+              className="text-sm text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50"
             >
               Cancel
-            </Button>
-            <Button type="submit" form="edit-partner-form" isLoading={isPending}>
+            </button>
+            <Button type="submit" form="edit-partner-form" isLoading={isPending} className="bg-gray-900 text-white hover:bg-gray-800 rounded-md">
               Save Changes
             </Button>
           </div>
         }
       >
-        <form id="edit-partner-form" ref={formRef} onSubmit={handleEdit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">Partner Name *</Label>
-            <Input
-              id="edit-name"
-              name="name"
-              defaultValue={partner.name}
-              required
-              autoFocus
-            />
+        <form id="edit-partner-form" ref={formRef} onSubmit={handleEdit} className="space-y-5">
+          {/* Partner Info */}
+          <div className="space-y-3">
+            <p className="text-[10px] tracking-widest text-gray-400 uppercase">Partner Info</p>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-name">Partner Name *</Label>
+              <Input
+                id="edit-name"
+                name="name"
+                defaultValue={partner.name}
+                required
+                autoFocus
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-contact_name">Contact Name</Label>
-            <Input
-              id="edit-contact_name"
-              name="contact_name"
-              defaultValue={partner.contact_name ?? ''}
-            />
+          {/* Contact */}
+          <div className="space-y-3">
+            <p className="text-[10px] tracking-widest text-gray-400 uppercase">Contact</p>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-contact_name">Contact Name</Label>
+              <Input
+                id="edit-contact_name"
+                name="contact_name"
+                defaultValue={partner.contact_name ?? ''}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-contact_email">Contact Email</Label>
+              <Input
+                id="edit-contact_email"
+                name="contact_email"
+                type="email"
+                defaultValue={partner.contact_email ?? ''}
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-contact_email">Contact Email</Label>
-            <Input
-              id="edit-contact_email"
-              name="contact_email"
-              type="email"
-              defaultValue={partner.contact_email ?? ''}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-contract_notes">Contract Notes</Label>
-            <textarea
-              id="edit-contract_notes"
-              name="contract_notes"
-              rows={3}
-              defaultValue={partner.contract_notes ?? ''}
-              placeholder="e.g., $25K, 3x LED + 2 social + suite"
-              className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+          {/* Contract */}
+          <div className="space-y-3">
+            <p className="text-[10px] tracking-widest text-gray-400 uppercase">Contract</p>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-contract_notes">Contract Notes</Label>
+              <textarea
+                id="edit-contract_notes"
+                name="contract_notes"
+                rows={3}
+                defaultValue={partner.contract_notes ?? ''}
+                placeholder="e.g., $25K, 3x LED + 2 social + suite"
+                className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
           </div>
 
           {editError && (

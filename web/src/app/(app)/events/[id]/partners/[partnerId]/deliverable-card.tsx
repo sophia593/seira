@@ -3,7 +3,6 @@
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { CategoryBadge, StatusBadge } from '@/components/ui/badges'
 import { toast } from '@/components/ui/sonner'
 import { advanceDeliverableStatusAction } from '@/app/(app)/actions/deliverables'
@@ -41,44 +40,44 @@ export function DeliverableCard({ deliverable, eventId, onEdit }: DeliverableCar
 
   return (
     <div
-      className={`flex items-center gap-4 rounded-xl border p-4 transition-colors hover:bg-muted/50 cursor-pointer ${
-        overdue ? 'border-destructive/40 bg-destructive/5' : ''
-      }`}
+      className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
       onClick={() => onEdit(deliverable)}
     >
+      {overdue && (
+        <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+      )}
+
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm truncate">{deliverable.title}</span>
-          {overdue && (
-            <span className="text-xs font-medium text-destructive">Overdue</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+        <p className="font-medium text-sm truncate">{deliverable.title}</p>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
           <CategoryBadge category={deliverable.category} />
-          <StatusBadge status={deliverable.status} />
           {deliverable.due_date && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-gray-500">
               Due {formatShortDate(deliverable.due_date)}
             </span>
+          )}
+          {overdue && (
+            <span className="text-xs text-red-600 font-medium">Overdue</span>
           )}
         </div>
       </div>
 
-      {nextStatus && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation()
-            handleAdvance()
-          }}
-          disabled={isPending}
-          className="shrink-0"
-          title={`Advance to ${nextStatus.replace('_', ' ')}`}
-        >
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      )}
+      <div className="flex items-center gap-2 shrink-0">
+        <StatusBadge status={deliverable.status} />
+        {nextStatus && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleAdvance()
+            }}
+            disabled={isPending}
+            className="inline-flex items-center justify-center w-7 h-7 border border-gray-200 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
+            title={`Advance to ${nextStatus.replace('_', ' ')}`}
+          >
+            <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+          </button>
+        )}
+      </div>
     </div>
   )
 }

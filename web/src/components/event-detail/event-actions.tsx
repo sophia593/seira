@@ -105,87 +105,93 @@ export function EventActions({ event }: EventActionsProps) {
         title="Edit Event"
         footer={
           <div className="flex items-center justify-end gap-3">
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={() => setShowEditDialog(false)}
               disabled={isPending}
+              className="text-sm text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50"
             >
               Cancel
-            </Button>
-            <Button type="submit" form="edit-event-form" isLoading={isPending} loadingText="Saving...">
+            </button>
+            <Button type="submit" form="edit-event-form" isLoading={isPending} loadingText="Saving..." className="bg-gray-900 text-white hover:bg-gray-800 rounded-md">
               Save Changes
             </Button>
           </div>
         }
       >
-        <form id="edit-event-form" ref={formRef} onSubmit={handleEdit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">Event Name *</Label>
-            <Input
-              id="edit-name"
-              name="name"
-              defaultValue={event.name}
-              required
-              autoFocus
-              disabled={isPending}
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="edit-date">Date</Label>
+        <form id="edit-event-form" ref={formRef} onSubmit={handleEdit} className="space-y-5">
+          {/* Event Details */}
+          <div className="space-y-3">
+            <p className="text-[10px] tracking-widest text-gray-400 uppercase">Event Details</p>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-name">Event Name *</Label>
               <Input
-                id="edit-date"
-                name="date"
-                type="date"
-                defaultValue={event.date ?? ''}
+                id="edit-name"
+                name="name"
+                defaultValue={event.name}
+                required
+                autoFocus
+                disabled={isPending}
+              />
+              <p className="text-xs text-gray-400">This is how partners will see the event</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-venue">Venue</Label>
+              <Input
+                id="edit-venue"
+                name="venue"
+                defaultValue={event.venue ?? ''}
+                placeholder="e.g., Madison Square Garden"
                 disabled={isPending}
               />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <Select value={editStatus} onValueChange={(v) => setEditStatus(v as EventStatus)} disabled={isPending}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {EVENT_STATUS_FLOW.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      <span className="flex items-center gap-2">
-                        <span>{EVENT_STATUS_CONFIG[s].icon}</span>
-                        <span>{EVENT_STATUS_CONFIG[s].label}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Schedule & Status */}
+          <div className="space-y-3">
+            <p className="text-[10px] tracking-widest text-gray-400 uppercase">Schedule & Status</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-date">Date</Label>
+                <Input
+                  id="edit-date"
+                  name="date"
+                  type="date"
+                  defaultValue={event.date ?? ''}
+                  disabled={isPending}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select value={editStatus} onValueChange={(v) => setEditStatus(v as EventStatus)} disabled={isPending}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_STATUS_FLOW.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        <span className="flex items-center gap-2">
+                          <span>{EVENT_STATUS_CONFIG[s].icon}</span>
+                          <span>{EVENT_STATUS_CONFIG[s].label}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-venue">Venue</Label>
-            <Input
-              id="edit-venue"
-              name="venue"
-              defaultValue={event.venue ?? ''}
-              placeholder="e.g., Madison Square Garden"
-              disabled={isPending}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-notes">Notes</Label>
-            <textarea
-              id="edit-notes"
-              name="notes"
-              rows={3}
-              defaultValue={event.notes ?? ''}
-              placeholder="Optional notes..."
-              disabled={isPending}
-              className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-notes">Notes</Label>
+              <textarea
+                id="edit-notes"
+                name="notes"
+                rows={3}
+                defaultValue={event.notes ?? ''}
+                placeholder="Optional notes..."
+                disabled={isPending}
+                className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
           </div>
 
           {editError && (

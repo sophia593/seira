@@ -116,10 +116,15 @@ export function EditDeliverableDialog({ deliverable, eventId, onClose }: EditDel
               Delete
             </Button>
             <div className="flex items-center gap-3">
-              <Button type="button" variant="outline" onClick={handleClose} disabled={isPending}>
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={isPending}
+                className="text-sm text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50"
+              >
                 Cancel
-              </Button>
-              <Button type="submit" form="edit-deliverable-form" isLoading={isPending}>
+              </button>
+              <Button type="submit" form="edit-deliverable-form" isLoading={isPending} className="bg-gray-900 text-white hover:bg-gray-800 rounded-md">
                 Save Changes
               </Button>
             </div>
@@ -127,69 +132,74 @@ export function EditDeliverableDialog({ deliverable, eventId, onClose }: EditDel
         }
       >
         {deliverable && (
-          <form id="edit-deliverable-form" ref={formRef} onSubmit={handleEdit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Title *</Label>
-              <Input
-                id="edit-title"
-                name="title"
-                defaultValue={deliverable.title}
-                required
-                autoFocus
-              />
+          <form id="edit-deliverable-form" ref={formRef} onSubmit={handleEdit} className="space-y-5">
+            {/* Deliverable Details */}
+            <div className="space-y-3">
+              <p className="text-[10px] tracking-widest text-gray-400 uppercase">Deliverable Details</p>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-title">Title *</Label>
+                <Input
+                  id="edit-title"
+                  name="title"
+                  defaultValue={deliverable.title}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-category">Category *</Label>
+                <Select name="category" defaultValue={deliverable.category} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {CATEGORY_CONFIG[cat].icon} {CATEGORY_CONFIG[cat].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-category">Category *</Label>
-              <Select name="category" defaultValue={deliverable.category} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {CATEGORY_CONFIG[cat].icon} {CATEGORY_CONFIG[cat].label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-due_date">Due Date</Label>
-              <Input
-                id="edit-due_date"
-                name="due_date"
-                type="date"
-                defaultValue={deliverable.due_date ?? ''}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-proof_required">Proof Required</Label>
-              <Select name="proof_required" defaultValue={deliverable.proof_required ?? 'photo'}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select proof type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROOF_REQUIRED_OPTIONS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {PROOF_REQUIRED_CONFIG[p].icon} {PROOF_REQUIRED_CONFIG[p].label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-notes">Notes</Label>
-              <textarea
-                id="edit-notes"
-                name="notes"
-                rows={2}
-                defaultValue={deliverable.notes ?? ''}
-                className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
-              />
+            {/* Schedule & Proof */}
+            <div className="space-y-3">
+              <p className="text-[10px] tracking-widest text-gray-400 uppercase">Schedule & Proof</p>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-due_date">Due Date</Label>
+                <Input
+                  id="edit-due_date"
+                  name="due_date"
+                  type="date"
+                  defaultValue={deliverable.due_date ?? ''}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-proof_required">Proof Required</Label>
+                <Select name="proof_required" defaultValue={deliverable.proof_required ?? 'photo'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select proof type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROOF_REQUIRED_OPTIONS.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {PROOF_REQUIRED_CONFIG[p].icon} {PROOF_REQUIRED_CONFIG[p].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-notes">Notes</Label>
+                <textarea
+                  id="edit-notes"
+                  name="notes"
+                  rows={2}
+                  defaultValue={deliverable.notes ?? ''}
+                  className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
             </div>
 
             {editError && (

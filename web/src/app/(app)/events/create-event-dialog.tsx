@@ -55,19 +55,20 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
       title="New Event"
       footer={
         <div className="flex items-center justify-end gap-3">
-          <Button
+          <button
             type="button"
-            variant="outline"
             onClick={handleClose}
             disabled={isPending}
+            className="text-sm text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50"
           >
             Cancel
-          </Button>
+          </button>
           <Button
             type="submit"
             form="create-event-form"
             isLoading={isPending}
             loadingText="Creating..."
+            className="bg-gray-900 text-white hover:bg-gray-800 rounded-md"
           >
             Create Event
           </Button>
@@ -78,45 +79,52 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
         id="create-event-form"
         ref={formRef}
         onSubmit={handleSubmit}
-        className="space-y-4"
+        className="space-y-5"
       >
-        <div className="space-y-2">
-          <Label htmlFor="name">Event Name *</Label>
-          <Input
-            id="name"
-            name="name"
-            placeholder="e.g., Opening Night 2026"
-            required
-            autoFocus
-            disabled={isPending}
-          />
+        {/* Event Details */}
+        <div className="space-y-3">
+          <p className="text-[10px] tracking-widest text-gray-400 uppercase">Event Details</p>
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Event Name *</Label>
+            <Input
+              id="name"
+              name="name"
+              placeholder="e.g., Opening Night 2026"
+              required
+              autoFocus
+              disabled={isPending}
+            />
+            <p className="text-xs text-gray-400">This is how partners will see the event</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="venue">Venue</Label>
+            <Input
+              id="venue"
+              name="venue"
+              placeholder="e.g., Madison Square Garden"
+              disabled={isPending}
+            />
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
-          <Input id="date" name="date" type="date" disabled={isPending} />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="venue">Venue</Label>
-          <Input
-            id="venue"
-            name="venue"
-            placeholder="e.g., Madison Square Garden"
-            disabled={isPending}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="notes">Notes</Label>
-          <textarea
-            id="notes"
-            name="notes"
-            rows={3}
-            placeholder="Optional notes..."
-            disabled={isPending}
-            className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
-          />
+        {/* Schedule & Notes */}
+        <div className="space-y-3">
+          <p className="text-[10px] tracking-widest text-gray-400 uppercase">Schedule & Notes</p>
+          <div className="space-y-1.5">
+            <Label htmlFor="date">Date</Label>
+            <Input id="date" name="date" type="date" disabled={isPending} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="notes">Notes</Label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows={3}
+              placeholder="Optional notes..."
+              disabled={isPending}
+              className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
         </div>
 
         {error && (

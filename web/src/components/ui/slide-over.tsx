@@ -84,7 +84,7 @@ export function SlideOver({ open, onClose, title, children, footer }: SlideOverP
 
         {/* Footer */}
         {footer && (
-          <div className="border-t border-gray-200 px-5 py-4">{footer}</div>
+          <div className="border-t border-gray-100 px-5 py-4">{footer}</div>
         )}
       </div>
     </>,

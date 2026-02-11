@@ -62,80 +62,91 @@ export function AddDeliverableDialog({ open, onOpenChange, eventId, partnerId }:
       title="New Deliverable"
       footer={
         <div className="flex items-center justify-end gap-3">
-          <Button type="button" variant="outline" onClick={handleClose} disabled={isPending}>
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isPending}
+            className="text-sm text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50"
+          >
             Cancel
-          </Button>
-          <Button type="submit" form="add-deliverable-form" isLoading={isPending}>
+          </button>
+          <Button type="submit" form="add-deliverable-form" isLoading={isPending} className="bg-gray-900 text-white hover:bg-gray-800 rounded-md">
             Add Deliverable
           </Button>
         </div>
       }
     >
-      <form id="add-deliverable-form" ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+      <form id="add-deliverable-form" ref={formRef} onSubmit={handleSubmit} className="space-y-5">
         <input type="hidden" name="partner_id" value={partnerId} />
         <input type="hidden" name="event_id" value={eventId} />
 
-        <div className="space-y-2">
-          <Label htmlFor="title">Title *</Label>
-          <Input
-            id="title"
-            name="title"
-            placeholder="e.g., LED board rotation"
-            required
-            autoFocus
-          />
+        {/* Deliverable Details */}
+        <div className="space-y-3">
+          <p className="text-[10px] tracking-widest text-gray-400 uppercase">Deliverable Details</p>
+          <div className="space-y-1.5">
+            <Label htmlFor="title">Title *</Label>
+            <Input
+              id="title"
+              name="title"
+              placeholder="e.g., LED board rotation"
+              required
+              autoFocus
+            />
+            <p className="text-xs text-gray-400">A short name for the deliverable</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="category">Category *</Label>
+            <Select name="category" required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {CATEGORY_CONFIG[cat].icon} {CATEGORY_CONFIG[cat].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="category">Category *</Label>
-          <Select name="category" required>
-            <SelectTrigger>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {CATEGORY_CONFIG[cat].icon} {CATEGORY_CONFIG[cat].label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="due_date">Due Date</Label>
-          <Input
-            id="due_date"
-            name="due_date"
-            type="date"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="proof_required">Proof Required</Label>
-          <Select name="proof_required" defaultValue="photo">
-            <SelectTrigger>
-              <SelectValue placeholder="Select proof type" />
-            </SelectTrigger>
-            <SelectContent>
-              {PROOF_REQUIRED_OPTIONS.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {PROOF_REQUIRED_CONFIG[p].icon} {PROOF_REQUIRED_CONFIG[p].label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="notes">Notes</Label>
-          <textarea
-            id="notes"
-            name="notes"
-            rows={2}
-            placeholder="e.g., 30-second rotation during 3rd–7th innings"
-            className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
-          />
+        {/* Schedule & Proof */}
+        <div className="space-y-3">
+          <p className="text-[10px] tracking-widest text-gray-400 uppercase">Schedule & Proof</p>
+          <div className="space-y-1.5">
+            <Label htmlFor="due_date">Due Date</Label>
+            <Input
+              id="due_date"
+              name="due_date"
+              type="date"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="proof_required">Proof Required</Label>
+            <Select name="proof_required" defaultValue="photo">
+              <SelectTrigger>
+                <SelectValue placeholder="Select proof type" />
+              </SelectTrigger>
+              <SelectContent>
+                {PROOF_REQUIRED_OPTIONS.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {PROOF_REQUIRED_CONFIG[p].icon} {PROOF_REQUIRED_CONFIG[p].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="notes">Notes</Label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows={2}
+              placeholder="e.g., 30-second rotation during 3rd–7th innings"
+              className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
         </div>
 
         {error && (

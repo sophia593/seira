@@ -44,7 +44,7 @@ export function DeliverableSection({ deliverables, eventId, partnerId }: Deliver
           }
         />
       ) : (
-        <div className="space-y-3">
+        <div className="border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-200">
           {deliverables.map((d) => (
             <DeliverableCard
               key={d.id}

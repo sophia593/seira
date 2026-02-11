@@ -14,7 +14,7 @@ import type { DashboardStats } from '@/lib/db/dashboard'
 import type { EventWithCompletion, DeliverableWithPartner, EventStatus } from '@/lib/types/database'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Button } from '@/components/ui/button'
+import { SampleDataButton } from './sample-data-button'
 import { formatShortDate, CATEGORY_CONFIG } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
@@ -96,20 +96,20 @@ export default async function DashboardPage() {
   // ---------------------------------------------------------------------------
   if (isEmpty) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4 py-16">
-        <div className="max-w-lg text-center">
+      <div className="px-4 pt-24 md:pt-32 md:px-8">
+        <div className="max-w-lg mx-auto text-center">
           <h1 className="text-3xl font-bold tracking-tight">Welcome to Seira</h1>
           <p className="mt-3 text-muted-foreground">
             Track sponsor deliverables, collect proof, and generate recap reports.
           </p>
 
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
             {[
               { step: '1', icon: CalendarDays, title: 'Create an event', desc: 'Set up your game, show, or festival.' },
               { step: '2', icon: Users, title: 'Add partners', desc: 'Add sponsors and their contacts.' },
               { step: '3', icon: ClipboardCheck, title: 'Track deliverables', desc: 'Assign deliverables and track completion.' },
             ].map(({ step, icon: Icon, title, desc }) => (
-              <div key={step}>
+              <div key={step} className="border border-gray-100 rounded-lg p-5 hover:border-gray-200 transition">
                 <p className="text-xs text-gray-400 font-mono mb-2">{step}</p>
                 <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
                   <Icon className="h-5 w-5 text-muted-foreground" />
@@ -120,19 +120,14 @@ export default async function DashboardPage() {
             ))}
           </div>
 
-          <div className="mt-10 border-t border-gray-100 pt-8">
-            <Button asChild className="bg-foreground text-background hover:bg-foreground/90">
-              <Link href="/events">Create your first event</Link>
-            </Button>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Or{' '}
-              <Link
-                href="/events"
-                className="underline hover:text-foreground transition-colors duration-150"
-              >
-                explore with sample data
-              </Link>
-            </p>
+          <div className="mt-10 flex items-center justify-center gap-3">
+            <Link
+              href="/events"
+              className="inline-flex items-center justify-center bg-gray-900 text-white rounded-md h-10 px-6 text-sm font-medium hover:bg-gray-800 transition-colors"
+            >
+              Create your first event
+            </Link>
+            <SampleDataButton />
           </div>
         </div>
       </div>
