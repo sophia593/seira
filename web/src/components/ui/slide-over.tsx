@@ -63,7 +63,7 @@ export function SlideOver({ open, onClose, title, children, footer }: SlideOverP
         aria-modal="true"
         aria-label={title}
         className={cn(
-          'fixed top-0 right-0 z-[60] flex h-screen w-full flex-col border-l border-gray-200 bg-white shadow-xl transition-transform duration-200 ease-out sm:w-[420px]',
+          'fixed top-3 right-3 bottom-3 z-[60] flex h-[calc(100vh-24px)] w-[calc(100%-24px)] flex-col rounded-xl bg-white shadow-2xl transition-transform duration-200 ease-out sm:w-[420px]',
           open ? 'translate-x-0' : 'translate-x-full'
         )}
       >

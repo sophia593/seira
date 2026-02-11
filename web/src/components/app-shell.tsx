@@ -48,7 +48,7 @@ function Sidebar({ recentEvents = [] }: { recentEvents?: RecentEvent[] }) {
   const orgName = useOrgStore((state) => state.orgName)
 
   return (
-    <aside className="hidden lg:flex flex-col w-56 border-r border-white/10 bg-kurobeni text-white h-full overflow-hidden">
+    <aside className="hidden lg:flex flex-col w-60 border-r border-white/10 bg-kurobeni text-white h-full overflow-hidden">
       {/* Workspace header */}
       <div className="px-4 py-4 border-b border-white/10">
         <div className="flex items-center gap-1.5">
