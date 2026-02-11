@@ -119,7 +119,8 @@ export function AddDeliverableDialog({ open, onOpenChange, eventId, partnerId }:
             <Input
               id="due_date"
               name="due_date"
-              type="date"
+              type="text"
+              placeholder="YYYY-MM-DD"
             />
           </div>
           <div className="space-y-1.5">

@@ -171,7 +171,8 @@ export function EditDeliverableDialog({ deliverable, eventId, onClose }: EditDel
                 <Input
                   id="edit-due_date"
                   name="due_date"
-                  type="date"
+                  type="text"
+                  placeholder="YYYY-MM-DD"
                   defaultValue={deliverable.due_date ?? ''}
                 />
               </div>

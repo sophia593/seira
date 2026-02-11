@@ -29,7 +29,7 @@ export function PartnerSection({ partners, eventId, completionMap }: PartnerSect
             </span>
           )}
         </h2>
-        <Button size="sm" onClick={() => setShowAddDialog(true)} className="gap-1">
+        <Button size="sm" onClick={() => setShowAddDialog(true)} className="gap-1 bg-kurobeni text-white hover:bg-blackberry">
           <Plus className="w-4 h-4" />
           Add Partner
         </Button>
@@ -41,21 +41,21 @@ export function PartnerSection({ partners, eventId, completionMap }: PartnerSect
           title="No partners yet"
           description="Add a sponsor or partner to start tracking their deliverables."
           action={
-            <Button size="sm" onClick={() => setShowAddDialog(true)} className="gap-1">
+            <Button size="sm" onClick={() => setShowAddDialog(true)} className="gap-1 bg-kurobeni text-white hover:bg-blackberry">
               <Plus className="w-4 h-4" />
               Add Partner
             </Button>
           }
         />
       ) : (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="divide-y divide-gray-100">
           {partners.map((partner) => {
             const stats = completionMap[partner.id]
             return (
               <Link
                 key={partner.id}
                 href={`/events/${eventId}/partners/${partner.id}`}
-                className="flex items-center justify-between gap-4 px-4 py-3 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50 transition-colors"
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-sm truncate">{partner.name}</p>

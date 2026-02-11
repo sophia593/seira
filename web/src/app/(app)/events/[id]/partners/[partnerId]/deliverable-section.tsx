@@ -24,7 +24,7 @@ export function DeliverableSection({ deliverables, eventId, partnerId }: Deliver
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Deliverables</h2>
         {deliverables.length > 0 && (
-          <Button size="sm" variant="outline" onClick={() => setShowAdd(true)}>
+          <Button size="sm" onClick={() => setShowAdd(true)} className="bg-kurobeni text-white hover:bg-blackberry">
             <Plus className="w-4 h-4 mr-1" />
             Add
           </Button>
@@ -37,14 +37,14 @@ export function DeliverableSection({ deliverables, eventId, partnerId }: Deliver
           title="No deliverables yet"
           description="Add a deliverable to start tracking fulfillment for this partner."
           action={
-            <Button size="sm" onClick={() => setShowAdd(true)}>
+            <Button size="sm" onClick={() => setShowAdd(true)} className="bg-kurobeni text-white hover:bg-blackberry">
               <Plus className="w-4 h-4 mr-1" />
               Add Deliverable
             </Button>
           }
         />
       ) : (
-        <div className="border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-200">
+        <div className="divide-y divide-gray-100">
           {deliverables.map((d) => (
             <DeliverableCard
               key={d.id}
