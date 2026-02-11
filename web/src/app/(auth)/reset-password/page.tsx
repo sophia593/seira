@@ -200,9 +200,9 @@ export default function ResetPasswordPage() {
   // =========================================================================
   if (pageState === "loading") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
+      <>
         <div className="mb-8 animate-in fade-in duration-500">
-          <Logo color="white" />
+          <Logo color="brand" />
         </div>
         <div className="w-full max-w-sm animate-in fade-in duration-500 text-center">
           <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-white/40" />
@@ -210,7 +210,7 @@ export default function ResetPasswordPage() {
             verifying your reset link...
           </p>
         </div>
-      </div>
+      </>
     )
   }
 
@@ -219,17 +219,17 @@ export default function ResetPasswordPage() {
   // =========================================================================
   if (pageState === "invalid") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
+      <>
         <div className="mb-8 animate-in fade-in duration-500">
-          <Logo color="white" />
+          <Logo color="brand" />
         </div>
-        <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500 text-center">
+        <div className="w-full max-w-sm bg-white rounded-xl px-8 py-10 shadow-2xl animate-in fade-in duration-500 text-center">
           {/* Error Icon */}
           <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-red-50 flex items-center justify-center">
             <AlertCircle className="h-7 w-7 text-red-600" />
           </div>
 
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900">
             Link expired
           </h1>
           <p className="text-gray-500 text-sm mt-1 mb-6">
@@ -258,7 +258,7 @@ export default function ResetPasswordPage() {
             log in
           </Link>
         </p>
-      </div>
+      </>
     )
   }
 
@@ -267,17 +267,17 @@ export default function ResetPasswordPage() {
   // =========================================================================
   if (pageState === "success") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
+      <>
         <div className="mb-8 animate-in fade-in duration-500">
-          <Logo color="white" />
+          <Logo color="brand" />
         </div>
-        <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500 text-center">
+        <div className="w-full max-w-sm bg-white rounded-xl px-8 py-10 shadow-2xl animate-in fade-in duration-500 text-center">
           {/* Success Icon */}
           <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-copper/10 flex items-center justify-center animate-in zoom-in duration-300">
             <KeyRound className="h-7 w-7 text-copper" />
           </div>
 
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900">
             Password updated
           </h1>
           <p className="text-gray-500 text-sm mt-1 mb-6">
@@ -288,7 +288,7 @@ export default function ResetPasswordPage() {
 
           <Loader2 className="h-5 w-5 animate-spin mx-auto text-gray-400" />
         </div>
-      </div>
+      </>
     )
   }
 
@@ -296,13 +296,13 @@ export default function ResetPasswordPage() {
   // Render: Form State (Ready)
   // =========================================================================
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
+    <>
       {/* Logo */}
       <div className="mb-8 animate-in fade-in duration-500">
-        <Logo color="white" />
+        <Logo color="brand" />
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500">
+      <div className="w-full max-w-sm bg-white rounded-xl px-8 py-10 shadow-2xl animate-in fade-in duration-500">
         {/* Back Link */}
         <Link
           href="/login"
@@ -314,7 +314,7 @@ export default function ResetPasswordPage() {
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900">
             Create new password
           </h1>
           {userEmail ? (
@@ -335,7 +335,7 @@ export default function ResetPasswordPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="password"
-              className="text-sm font-medium text-gray-700"
+              className="text-xs font-medium text-gray-600"
             >
               new password
             </label>
@@ -400,7 +400,7 @@ export default function ResetPasswordPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="confirm-password"
-              className="text-sm font-medium text-gray-700"
+              className="text-xs font-medium text-gray-600"
             >
               confirm password
             </label>
@@ -486,6 +486,6 @@ export default function ResetPasswordPage() {
           </p>
         </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 // =============================================================================
 
 type LogoVariant = "full" | "icon" | "badge"
-type LogoColor = "default" | "muted" | "white"
+type LogoColor = "default" | "muted" | "white" | "brand"
 type LogoSize = "sm" | "default" | "lg"
 
 interface LogoProps {
@@ -61,6 +61,7 @@ const colorVariants: Record<LogoColor, string> = {
   default: "text-foreground",
   muted: "text-muted-foreground",
   white: "text-white",
+  brand: "",
 }
 
 // =============================================================================
@@ -136,8 +137,8 @@ export function LogoFull({
         className
       )}
     >
-      <GlobeIcon size={config.icon} animated={animated} />
-      <span className={cn("font-semibold lowercase", config.text)}>seira</span>
+      <GlobeIcon size={config.icon} animated={animated} className={color === "brand" ? "text-copper" : undefined} />
+      <span className={cn("font-semibold lowercase", config.text, color === "brand" && "text-white")}>seira</span>
     </div>
   )
 }

@@ -228,20 +228,20 @@ export default function SignupPage() {
   // =========================================================================
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
+      <>
         {/* Logo */}
         <div className="mb-8 animate-in fade-in duration-500">
-          <Logo color="white" />
+          <Logo color="brand" />
         </div>
 
-        <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500 text-center">
+        <div className="w-full max-w-sm bg-white rounded-xl px-8 py-10 shadow-2xl animate-in fade-in duration-500 text-center">
           {/* Success Icon */}
           <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-copper/10 flex items-center justify-center animate-in zoom-in duration-300">
             <Mail className="h-7 w-7 text-copper" />
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900">
             Check your email
           </h1>
 
@@ -327,7 +327,7 @@ export default function SignupPage() {
             go to login
           </Link>
         </div>
-      </div>
+      </>
     )
   }
 
@@ -335,16 +335,16 @@ export default function SignupPage() {
   // Signup Form
   // =========================================================================
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
+    <>
       {/* Logo */}
       <div className="mb-8 animate-in fade-in duration-500">
-        <Logo color="white" />
+        <Logo color="brand" />
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500">
+      <div className="w-full max-w-sm bg-white rounded-xl px-8 py-10 shadow-2xl animate-in fade-in duration-500">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900">
             Create an account
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -408,7 +408,7 @@ export default function SignupPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="firstName"
-              className="text-sm font-medium text-gray-700"
+              className="text-xs font-medium text-gray-600"
             >
               first name
             </label>
@@ -434,7 +434,7 @@ export default function SignupPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="email"
-              className="text-sm font-medium text-gray-700"
+              className="text-xs font-medium text-gray-600"
             >
               email
             </label>
@@ -460,7 +460,7 @@ export default function SignupPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="password"
-              className="text-sm font-medium text-gray-700"
+              className="text-xs font-medium text-gray-600"
             >
               password
             </label>
@@ -552,6 +552,6 @@ export default function SignupPage() {
           log in
         </Link>
       </p>
-    </div>
+    </>
   )
 }

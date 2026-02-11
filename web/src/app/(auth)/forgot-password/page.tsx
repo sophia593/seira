@@ -125,13 +125,13 @@ function ForgotPasswordForm() {
   const inputBase = "w-full h-10 px-3 rounded-md bg-white border border-gray-200 text-sm placeholder:text-gray-400 focus:outline-none focus:border-copper focus:ring-2 focus:ring-copper/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
+    <>
       {/* Logo */}
       <div className="mb-8 animate-in fade-in duration-500">
-        <Logo color="white" />
+        <Logo color="brand" />
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500">
+      <div className="w-full max-w-sm bg-white rounded-xl px-8 py-10 shadow-2xl animate-in fade-in duration-500">
         {isSuccess ? (
           // =========== Success State ===========
           <div className="text-center">
@@ -141,7 +141,7 @@ function ForgotPasswordForm() {
             </div>
 
             {/* Title */}
-            <h1 className="text-2xl font-semibold text-gray-900">
+            <h1 className="text-xl font-semibold text-gray-900">
               Check your email
             </h1>
 
@@ -264,7 +264,7 @@ function ForgotPasswordForm() {
 
             {/* Header */}
             <div className="mb-6">
-              <h1 className="text-2xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-gray-900">
                 {callbackError && !callbackDismissed ? 'Request a new link' : 'Forgot password?'}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
@@ -280,7 +280,7 @@ function ForgotPasswordForm() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="email"
-                  className="text-sm font-medium text-gray-700"
+                  className="text-xs font-medium text-gray-600"
                 >
                   email
                 </label>
@@ -356,16 +356,14 @@ function ForgotPasswordForm() {
           </Link>
         </p>
       )}
-    </div>
+    </>
   )
 }
 
 export default function ForgotPasswordPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-kurobeni">
-        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
-      </div>
+      <Loader2 className="h-6 w-6 animate-spin text-white/40" />
     }>
       <ForgotPasswordForm />
     </Suspense>
