@@ -31,7 +31,7 @@ function Sidebar() {
       {/* Org name */}
       <div className="h-14 flex items-center px-4 border-b">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <LogoIcon size="sm" className="text-foreground" />
+          <LogoIcon size="sm" className="text-copper" />
           <span className="font-semibold text-lg truncate">{orgName || 'Workspace'}</span>
         </Link>
       </div>
@@ -49,7 +49,7 @@ function Sidebar() {
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-primary/10 text-primary'
+                      ? 'bg-copper/10 text-copper'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   )}
                 >
@@ -129,7 +129,7 @@ function MobileBottomNav() {
                 className={cn(
                   'flex flex-col items-center justify-center h-full gap-1 text-xs font-medium transition-colors',
                   isActive
-                    ? 'text-primary'
+                    ? 'text-copper'
                     : 'text-muted-foreground'
                 )}
               >

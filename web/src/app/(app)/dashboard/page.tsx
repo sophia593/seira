@@ -37,12 +37,12 @@ function settle<T>(result: PromiseSettledResult<T>, fallback: T, label: string):
 const EVENT_DOT_COLOR: Record<EventStatus, string> = {
   upcoming: 'bg-blue-500',
   active: 'bg-amber-500',
-  completed: 'bg-green-500',
+  completed: 'bg-copper',
   archived: 'bg-gray-400',
 }
 
 function completionColor(pct: number): string | undefined {
-  if (pct >= 80) return 'text-green-600'
+  if (pct >= 80) return 'text-copper'
   if (pct < 40 && pct > 0) return 'text-amber-600'
   return undefined
 }
@@ -111,8 +111,8 @@ export default async function DashboardPage() {
             ].map(({ step, icon: Icon, title, desc }) => (
               <div key={step} className="border border-gray-100 rounded-lg p-5 hover:border-gray-200 transition">
                 <p className="text-xs text-gray-400 font-mono mb-2">{step}</p>
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                  <Icon className="h-5 w-5 text-muted-foreground" />
+                <div className="w-10 h-10 rounded-full bg-copper/10 flex items-center justify-center mb-3">
+                  <Icon className="h-5 w-5 text-copper" />
                 </div>
                 <p className="text-sm font-medium">{title}</p>
                 <p className="text-xs text-muted-foreground mt-1">{desc}</p>
@@ -123,7 +123,7 @@ export default async function DashboardPage() {
           <div className="mt-10 flex items-center justify-center gap-3">
             <Link
               href="/events"
-              className="inline-flex items-center justify-center bg-gray-900 text-white rounded-md h-10 px-6 text-sm font-medium hover:bg-gray-800 transition-colors"
+              className="inline-flex items-center justify-center bg-kurobeni text-white rounded-md h-10 px-6 text-sm font-medium hover:bg-blackberry transition-colors"
             >
               Create your first event
             </Link>

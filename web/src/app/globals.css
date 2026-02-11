@@ -40,18 +40,11 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* Seira brand colors */
-  --color-seira-50: #f0f9ff;
-  --color-seira-100: #e0f2fe;
-  --color-seira-200: #bae6fd;
-  --color-seira-300: #7dd3fc;
-  --color-seira-400: #38bdf8;
-  --color-seira-500: #0ea5e9;
-  --color-seira-600: #0284c7;
-  --color-seira-700: #0369a1;
-  --color-seira-800: #075985;
-  --color-seira-900: #0c4a6e;
-  --color-seira-950: #082f49;
+  /* Seira brand palette */
+  --color-copper: #C59C79;
+  --color-blackberry: #48192E;
+  --color-kurobeni: #281822;
+  --color-meadow: #957083;
 
   /* Border radius - 12px base for rounded-xl */
   --radius-sm: calc(var(--radius) - 8px);

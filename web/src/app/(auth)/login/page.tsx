@@ -158,16 +158,17 @@ function LoginForm() {
     }
   }
 
-  const inputBase = "w-full h-10 px-3 rounded-md bg-white border border-gray-200 text-sm placeholder:text-gray-400 focus:outline-none focus:border-gray-400 focus:ring-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+  const inputBase = "w-full h-10 px-3 rounded-md bg-white border border-gray-200 text-sm placeholder:text-gray-400 focus:outline-none focus:border-copper focus:ring-2 focus:ring-copper/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
-      {/* Logo */}
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
+      {/* Wordmark */}
       <div className="mb-8 animate-in fade-in duration-500">
-        <Logo />
+        <Logo color="white" />
       </div>
 
-      <div className="w-full max-w-sm animate-in fade-in duration-500">
+      {/* Card */}
+      <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500">
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">
@@ -367,9 +368,9 @@ function LoginForm() {
             disabled={isLoading || isGoogleLoading}
             className={cn(
               "w-full h-10 rounded-md",
-              "bg-gray-900 text-white",
+              "bg-kurobeni text-white",
               "text-sm font-medium",
-              "hover:bg-gray-800",
+              "hover:bg-blackberry",
               "focus:outline-none focus:ring-0",
               "transition-colors",
               "disabled:opacity-50 disabled:cursor-not-allowed"
@@ -382,18 +383,18 @@ function LoginForm() {
             )}
           </button>
         </form>
-
-        {/* Signup Link */}
-        <p className="mt-8 text-center text-sm text-gray-500">
-          don't have an account?{" "}
-          <Link
-            href="/signup"
-            className="font-medium text-gray-900 hover:underline"
-          >
-            sign up
-          </Link>
-        </p>
       </div>
+
+      {/* Signup Link — below card */}
+      <p className="mt-6 text-center text-sm text-white/60">
+        don't have an account?{" "}
+        <Link
+          href="/signup"
+          className="font-medium text-white hover:underline"
+        >
+          sign up
+        </Link>
+      </p>
     </div>
   )
 }
@@ -401,8 +402,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      <div className="min-h-screen flex items-center justify-center bg-kurobeni">
+        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
       </div>
     }>
       <LoginForm />

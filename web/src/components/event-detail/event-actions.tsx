@@ -113,7 +113,7 @@ export function EventActions({ event }: EventActionsProps) {
             >
               Cancel
             </button>
-            <Button type="submit" form="edit-event-form" isLoading={isPending} loadingText="Saving..." className="bg-gray-900 text-white hover:bg-gray-800 rounded-md">
+            <Button type="submit" form="edit-event-form" isLoading={isPending} loadingText="Saving..." className="bg-kurobeni text-white hover:bg-blackberry rounded-md">
               Save Changes
             </Button>
           </div>

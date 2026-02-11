@@ -68,7 +68,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             form="create-event-form"
             isLoading={isPending}
             loadingText="Creating..."
-            className="bg-gray-900 text-white hover:bg-gray-800 rounded-md"
+            className="bg-kurobeni text-white hover:bg-blackberry rounded-md"
           >
             Create Event
           </Button>

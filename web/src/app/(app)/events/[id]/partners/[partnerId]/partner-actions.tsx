@@ -103,7 +103,7 @@ export function PartnerActions({ partner, eventId }: PartnerActionsProps) {
             >
               Cancel
             </button>
-            <Button type="submit" form="edit-partner-form" isLoading={isPending} className="bg-gray-900 text-white hover:bg-gray-800 rounded-md">
+            <Button type="submit" form="edit-partner-form" isLoading={isPending} className="bg-kurobeni text-white hover:bg-blackberry rounded-md">
               Save Changes
             </Button>
           </div>

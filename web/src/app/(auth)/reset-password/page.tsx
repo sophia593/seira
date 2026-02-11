@@ -193,20 +193,20 @@ export default function ResetPasswordPage() {
     }
   }
 
-  const inputBase = "w-full h-10 px-3 rounded-md bg-white border border-gray-200 text-sm placeholder:text-gray-400 focus:outline-none focus:border-gray-400 focus:ring-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+  const inputBase = "w-full h-10 px-3 rounded-md bg-white border border-gray-200 text-sm placeholder:text-gray-400 focus:outline-none focus:border-copper focus:ring-2 focus:ring-copper/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 
   // =========================================================================
   // Render: Loading State
   // =========================================================================
   if (pageState === "loading") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
         <div className="mb-8 animate-in fade-in duration-500">
-          <Logo />
+          <Logo color="white" />
         </div>
         <div className="w-full max-w-sm animate-in fade-in duration-500 text-center">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-500 text-sm">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-white/40" />
+          <p className="text-white/60 text-sm">
             verifying your reset link...
           </p>
         </div>
@@ -219,11 +219,11 @@ export default function ResetPasswordPage() {
   // =========================================================================
   if (pageState === "invalid") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
         <div className="mb-8 animate-in fade-in duration-500">
-          <Logo />
+          <Logo color="white" />
         </div>
-        <div className="w-full max-w-sm animate-in fade-in duration-500 text-center">
+        <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500 text-center">
           {/* Error Icon */}
           <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-red-50 flex items-center justify-center">
             <AlertCircle className="h-7 w-7 text-red-600" />
@@ -243,21 +243,21 @@ export default function ResetPasswordPage() {
             className={cn(
               "inline-flex items-center justify-center gap-2",
               "h-10 px-6 rounded-md w-full",
-              "bg-gray-900 text-white",
+              "bg-kurobeni text-white",
               "text-sm font-medium",
-              "hover:bg-gray-800 transition-colors"
+              "hover:bg-blackberry transition-colors"
             )}
           >
             request new link
           </Link>
-
-          <p className="mt-5 text-center text-xs text-gray-400">
-            remember your password?{" "}
-            <Link href="/login" className="text-gray-900 hover:underline">
-              log in
-            </Link>
-          </p>
         </div>
+
+        <p className="mt-6 text-center text-xs text-white/60">
+          remember your password?{" "}
+          <Link href="/login" className="text-white hover:underline">
+            log in
+          </Link>
+        </p>
       </div>
     )
   }
@@ -267,14 +267,14 @@ export default function ResetPasswordPage() {
   // =========================================================================
   if (pageState === "success") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
         <div className="mb-8 animate-in fade-in duration-500">
-          <Logo />
+          <Logo color="white" />
         </div>
-        <div className="w-full max-w-sm animate-in fade-in duration-500 text-center">
+        <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500 text-center">
           {/* Success Icon */}
-          <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-gray-100 flex items-center justify-center animate-in zoom-in duration-300">
-            <KeyRound className="h-7 w-7 text-gray-900" />
+          <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-copper/10 flex items-center justify-center animate-in zoom-in duration-300">
+            <KeyRound className="h-7 w-7 text-copper" />
           </div>
 
           <h1 className="text-2xl font-semibold text-gray-900">
@@ -296,13 +296,13 @@ export default function ResetPasswordPage() {
   // Render: Form State (Ready)
   // =========================================================================
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
       {/* Logo */}
       <div className="mb-8 animate-in fade-in duration-500">
-        <Logo />
+        <Logo color="white" />
       </div>
 
-      <div className="w-full max-w-sm animate-in fade-in duration-500">
+      <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500">
         {/* Back Link */}
         <Link
           href="/login"
@@ -463,9 +463,9 @@ export default function ResetPasswordPage() {
             disabled={isSubmitting || !password || !confirmPassword}
             className={cn(
               "w-full h-10 rounded-md",
-              "bg-gray-900 text-white",
+              "bg-kurobeni text-white",
               "text-sm font-medium",
-              "hover:bg-gray-800",
+              "hover:bg-blackberry",
               "focus:outline-none focus:ring-0",
               "transition-colors",
               "disabled:opacity-50 disabled:cursor-not-allowed"

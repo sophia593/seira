@@ -14,7 +14,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         "placeholder:text-muted-foreground",
         "selection:bg-primary selection:text-primary-foreground",
         // Focus
-        "focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10",
+        "focus-visible:border-copper focus-visible:ring-2 focus-visible:ring-copper/20",
         // Error (aria-invalid)
         "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
         // Disabled

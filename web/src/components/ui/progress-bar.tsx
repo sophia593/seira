@@ -14,7 +14,7 @@ export function ProgressBar({ value, className, showLabel = false, size = 'defau
     <div className={cn('flex items-center gap-2', className)}>
       <div className={cn('flex-1 bg-muted rounded-full overflow-hidden', size === 'sm' ? 'h-1.5' : 'h-2')}>
         <div
-          className="h-full bg-primary transition-all"
+          className="h-full bg-copper transition-all"
           style={{ width: `${clampedValue}%` }}
         />
       </div>

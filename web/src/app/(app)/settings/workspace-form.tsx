@@ -64,7 +64,7 @@ export function WorkspaceForm({ orgName, canRename }: WorkspaceFormProps) {
           <Button
             onClick={handleSave}
             disabled={!isDirty || isSaving}
-            className="bg-gray-900 text-white hover:bg-gray-800 rounded-md"
+            className="bg-kurobeni text-white hover:bg-blackberry rounded-md"
           >
             {isSaving ? 'Saving...' : 'Save'}
           </Button>

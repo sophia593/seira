@@ -124,7 +124,7 @@ export function EditDeliverableDialog({ deliverable, eventId, onClose }: EditDel
               >
                 Cancel
               </button>
-              <Button type="submit" form="edit-deliverable-form" isLoading={isPending} className="bg-gray-900 text-white hover:bg-gray-800 rounded-md">
+              <Button type="submit" form="edit-deliverable-form" isLoading={isPending} className="bg-kurobeni text-white hover:bg-blackberry rounded-md">
                 Save Changes
               </Button>
             </div>

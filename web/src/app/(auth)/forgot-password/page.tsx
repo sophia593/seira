@@ -122,22 +122,22 @@ function ForgotPasswordForm() {
     setError("")
   }
 
-  const inputBase = "w-full h-10 px-3 rounded-md bg-white border border-gray-200 text-sm placeholder:text-gray-400 focus:outline-none focus:border-gray-400 focus:ring-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+  const inputBase = "w-full h-10 px-3 rounded-md bg-white border border-gray-200 text-sm placeholder:text-gray-400 focus:outline-none focus:border-copper focus:ring-2 focus:ring-copper/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-kurobeni">
       {/* Logo */}
       <div className="mb-8 animate-in fade-in duration-500">
-        <Logo />
+        <Logo color="white" />
       </div>
 
-      <div className="w-full max-w-sm animate-in fade-in duration-500">
+      <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-lg animate-in fade-in duration-500">
         {isSuccess ? (
           // =========== Success State ===========
           <div className="text-center">
             {/* Success Icon */}
-            <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-gray-100 flex items-center justify-center animate-in zoom-in duration-300">
-              <Mail className="h-7 w-7 text-gray-900" />
+            <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-copper/10 flex items-center justify-center animate-in zoom-in duration-300">
+              <Mail className="h-7 w-7 text-copper" />
             </div>
 
             {/* Title */}
@@ -219,9 +219,9 @@ function ForgotPasswordForm() {
               className={cn(
                 "inline-flex items-center justify-center gap-2",
                 "h-10 px-6 rounded-md w-full",
-                "bg-gray-900 text-white",
+                "bg-kurobeni text-white",
                 "text-sm font-medium",
-                "hover:bg-gray-800 transition-colors"
+                "hover:bg-blackberry transition-colors"
               )}
             >
               back to login
@@ -312,9 +312,9 @@ function ForgotPasswordForm() {
                 disabled={isLoading || cooldown > 0}
                 className={cn(
                   "w-full h-10 rounded-md",
-                  "bg-gray-900 text-white",
+                  "bg-kurobeni text-white",
                   "text-sm font-medium",
-                  "hover:bg-gray-800",
+                  "hover:bg-blackberry",
                   "focus:outline-none focus:ring-0",
                   "transition-colors",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
@@ -342,20 +342,20 @@ function ForgotPasswordForm() {
             </p>
           </>
         )}
-
-        {/* Signup Link */}
-        {!isSuccess && (
-          <p className="mt-8 text-center text-sm text-gray-500">
-            don't have an account?{" "}
-            <Link
-              href="/signup"
-              className="font-medium text-gray-900 hover:underline"
-            >
-              sign up
-            </Link>
-          </p>
-        )}
       </div>
+
+      {/* Signup Link — below card */}
+      {!isSuccess && (
+        <p className="mt-6 text-center text-sm text-white/60">
+          don't have an account?{" "}
+          <Link
+            href="/signup"
+            className="font-medium text-white hover:underline"
+          >
+            sign up
+          </Link>
+        </p>
+      )}
     </div>
   )
 }
@@ -363,8 +363,8 @@ function ForgotPasswordForm() {
 export default function ForgotPasswordPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      <div className="min-h-screen flex items-center justify-center bg-kurobeni">
+        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
       </div>
     }>
       <ForgotPasswordForm />

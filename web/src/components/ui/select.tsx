@@ -34,7 +34,7 @@ function SelectTrigger({
       className={cn(
         "flex h-10 w-full items-center justify-between gap-2 rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm",
         "placeholder:text-muted-foreground",
-        "focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-900/10",
+        "focus:outline-none focus:border-copper focus:ring-2 focus:ring-copper/20",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "[&>span]:line-clamp-1",
         className
