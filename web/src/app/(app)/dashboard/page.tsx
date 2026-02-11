@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { CalendarDays, Users, ClipboardCheck } from 'lucide-react'
+import { CalendarDays, Users, ClipboardCheck, Plus, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { getOrganization } from '@/lib/db/organizations'
@@ -11,11 +11,11 @@ import {
   getNeedsProofDeliverables,
 } from '@/lib/db/dashboard'
 import type { DashboardStats } from '@/lib/db/dashboard'
-import type { EventWithCompletion, DeliverableWithPartner } from '@/lib/types/database'
+import type { EventWithCompletion, DeliverableWithPartner, EventStatus } from '@/lib/types/database'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
-import { formatShortDate } from '@/lib/constants'
+import { formatShortDate, CATEGORY_CONFIG } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -32,6 +32,19 @@ function settle<T>(result: PromiseSettledResult<T>, fallback: T, label: string):
   if (result.status === 'fulfilled') return result.value
   console.error(`[Dashboard] ${label} failed:`, result.reason)
   return fallback
+}
+
+const EVENT_DOT_COLOR: Record<EventStatus, string> = {
+  upcoming: 'bg-blue-500',
+  active: 'bg-amber-500',
+  completed: 'bg-green-500',
+  archived: 'bg-gray-400',
+}
+
+function completionColor(pct: number): string | undefined {
+  if (pct >= 80) return 'text-green-600'
+  if (pct < 40 && pct > 0) return 'text-amber-600'
+  return undefined
 }
 
 // ---------------------------------------------------------------------------
@@ -90,36 +103,35 @@ export default async function DashboardPage() {
             Track sponsor deliverables, collect proof, and generate recap reports.
           </p>
 
-          <div className="mt-10 grid grid-cols-3 gap-6 text-left">
-            <div>
-              <CalendarDays className="h-6 w-6 text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">Create an event</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Set up your game, show, or festival.
-              </p>
-            </div>
-            <div>
-              <Users className="h-6 w-6 text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">Add partners</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Add sponsors and their contacts.
-              </p>
-            </div>
-            <div>
-              <ClipboardCheck className="h-6 w-6 text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">Track deliverables</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Assign deliverables and track completion.
-              </p>
-            </div>
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
+            {[
+              { step: '1', icon: CalendarDays, title: 'Create an event', desc: 'Set up your game, show, or festival.' },
+              { step: '2', icon: Users, title: 'Add partners', desc: 'Add sponsors and their contacts.' },
+              { step: '3', icon: ClipboardCheck, title: 'Track deliverables', desc: 'Assign deliverables and track completion.' },
+            ].map(({ step, icon: Icon, title, desc }) => (
+              <div key={step}>
+                <p className="text-xs text-gray-400 font-mono mb-2">{step}</p>
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                  <Icon className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium">{title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{desc}</p>
+              </div>
+            ))}
           </div>
 
-          <div className="mt-10">
+          <div className="mt-10 border-t border-gray-100 pt-8">
             <Button asChild className="bg-foreground text-background hover:bg-foreground/90">
               <Link href="/events">Create your first event</Link>
             </Button>
             <p className="mt-3 text-xs text-muted-foreground">
-              Or explore with sample data
+              Or{' '}
+              <Link
+                href="/events"
+                className="underline hover:text-foreground transition-colors duration-150"
+              >
+                explore with sample data
+              </Link>
             </p>
           </div>
         </div>
@@ -130,11 +142,12 @@ export default async function DashboardPage() {
   // ---------------------------------------------------------------------------
   // Populated state
   // ---------------------------------------------------------------------------
-  const orgName = org?.name ?? 'your workspace'
-  const attentionItems = [
-    ...overdueItems.map((d) => ({ ...d, kind: 'overdue' as const })),
-    ...needsProofItems.map((d) => ({ ...d, kind: 'needs-proof' as const })),
-  ].slice(0, 8)
+  const orgName = org?.name ?? 'Your workspace'
+  const totalAttentionCount = overdueItems.length + needsProofItems.length
+  const displayedOverdue = overdueItems.slice(0, 8)
+  const remainingSlots = Math.max(0, 8 - displayedOverdue.length)
+  const displayedNeedsProof = needsProofItems.slice(0, remainingSlots)
+  const moreEventsCount = stats.activeEvents - upcomingEvents.length
 
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-6xl mx-auto">
@@ -145,7 +158,10 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats row */}
-      <div className="flex items-start divide-x divide-border mb-8 overflow-x-auto">
+      <section
+        className="grid grid-cols-2 gap-3 lg:flex lg:items-start lg:gap-0 lg:divide-x lg:divide-border mb-8"
+        aria-label="Dashboard statistics"
+      >
         <StatItem label="Active Events" value={stats.activeEvents} sub="upcoming + active" />
         <StatItem label="Total Deliverables" value={stats.totalDeliverables} sub="across all events" />
         <StatItem
@@ -153,9 +169,15 @@ export default async function DashboardPage() {
           value={stats.overdueCount}
           sub="need attention"
           valueClassName={stats.overdueCount > 0 ? 'text-destructive' : undefined}
+          showPulse={stats.overdueCount > 0}
         />
-        <StatItem label="Completion" value={`${stats.completionPct}%`} sub="proved or done" />
-      </div>
+        <StatItem
+          label="Completion"
+          value={`${stats.completionPct}%`}
+          sub="proved or done"
+          valueClassName={completionColor(stats.completionPct)}
+        />
+      </section>
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -165,7 +187,7 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-semibold">Upcoming Events</h2>
             <Link
               href="/events"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
             >
               View all &rarr;
             </Link>
@@ -174,7 +196,7 @@ export default async function DashboardPage() {
           {upcomingEvents.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6">
               No upcoming events.{' '}
-              <Link href="/events" className="underline hover:text-foreground">
+              <Link href="/events" className="underline hover:text-foreground transition-colors duration-150">
                 Create one
               </Link>
             </p>
@@ -184,13 +206,25 @@ export default async function DashboardPage() {
                 <Link
                   key={event.id}
                   href={`/events/${event.id}`}
-                  className="flex items-center gap-4 py-3 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-4 py-3 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
                 >
+                  {/* Status dot + name */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{event.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${EVENT_DOT_COLOR[event.status]}`} />
+                      <p className="text-sm font-medium truncate">{event.name}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 pl-4">
                       {formatShortDate(event.date)}
                       {event.venue && ` · ${event.venue}`}
+                      {event.total_deliverables > 0 && (
+                        <span className="ml-1.5">· {event.total_deliverables} deliverable{event.total_deliverables !== 1 ? 's' : ''}</span>
+                      )}
+                      {event.overdue_count > 0 && (
+                        <span className="text-red-500 ml-1.5">
+                          ({event.overdue_count} overdue)
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="w-20 shrink-0">
@@ -201,42 +235,137 @@ export default async function DashboardPage() {
                   </span>
                 </Link>
               ))}
+              {moreEventsCount > 0 && (
+                <div className="py-3 px-2">
+                  <Link
+                    href="/events"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
+                  >
+                    and {moreEventsCount} more &rarr;
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Right: Attention */}
         <div className="lg:col-span-2">
-          <div className="mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <h2 className="text-sm font-semibold">Attention</h2>
+            {totalAttentionCount > 0 && (
+              <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                {totalAttentionCount}
+              </span>
+            )}
           </div>
 
-          {attentionItems.length === 0 ? (
+          {totalAttentionCount === 0 ? (
             <p className="text-sm text-muted-foreground py-6">
               Nothing needs attention — nice work.
             </p>
           ) : (
-            <div className="divide-y divide-border">
-              {attentionItems.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/events/${item.event_id}`}
-                  className="flex items-start gap-3 py-3 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <span
-                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                      item.kind === 'overdue' ? 'bg-red-500' : 'bg-yellow-500'
-                    }`}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{item.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.partner.name}</p>
+            <div>
+              {/* Overdue section */}
+              {displayedOverdue.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-red-400 font-medium mb-1 mt-1">
+                    Overdue
+                  </p>
+                  <div className="divide-y divide-border">
+                    {displayedOverdue.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/events/${item.event_id}/partners/${item.partner_id}`}
+                        className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
+                      >
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{item.title}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-xs text-muted-foreground truncate">{item.partner.name}</span>
+                            {item.due_date && (
+                              <span className="text-xs text-red-500 shrink-0">
+                                · Due {formatShortDate(item.due_date)}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                            {CATEGORY_CONFIG[item.category].label}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
-                </Link>
-              ))}
+                </div>
+              )}
+
+              {/* Needs proof section */}
+              {displayedNeedsProof.length > 0 && (
+                <div className={displayedOverdue.length > 0 ? 'mt-3' : ''}>
+                  <p className="text-[10px] uppercase tracking-widest text-yellow-500 font-medium mb-1 mt-1">
+                    Needs Proof
+                  </p>
+                  <div className="divide-y divide-border">
+                    {displayedNeedsProof.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/events/${item.event_id}/partners/${item.partner_id}`}
+                        className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
+                      >
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-yellow-500" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{item.title}</p>
+                          <span className="text-xs text-muted-foreground truncate">{item.partner.name}</span>
+                          <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                            {CATEGORY_CONFIG[item.category].label}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* View all link */}
+              {totalAttentionCount > 8 && (
+                <div className="pt-2">
+                  <Link
+                    href="/events"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
+                  >
+                    View all &rarr;
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="border-t border-gray-100 pt-6 mt-6 flex items-center gap-4 flex-wrap">
+        <Link
+          href="/events"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New Event
+        </Link>
+        <Link
+          href="/events"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add Partner
+        </Link>
+        <Link
+          href="/events"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
+        >
+          View All Events
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
     </div>
   )
@@ -251,15 +380,25 @@ function StatItem({
   value,
   sub,
   valueClassName,
+  showPulse,
 }: {
   label: string
   value: number | string
   sub: string
   valueClassName?: string
+  showPulse?: boolean
 }) {
   return (
-    <div className="flex-1 px-4 first:pl-0 last:pr-0 min-w-0">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+    <div className="min-w-0 rounded-lg p-2 hover:bg-muted/30 transition-colors duration-150 lg:rounded-none lg:p-0 lg:hover:bg-transparent lg:flex-1 lg:px-4 lg:first:pl-0 lg:last:pr-0">
+      <div className="flex items-center gap-1.5">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+        {showPulse && (
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+          </span>
+        )}
+      </div>
       <p className={`text-3xl font-bold mt-1 ${valueClassName ?? ''}`}>{value}</p>
       <p className="text-xs text-muted-foreground mt-1">{sub}</p>
     </div>

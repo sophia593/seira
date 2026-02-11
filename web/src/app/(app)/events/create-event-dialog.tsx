@@ -41,10 +41,10 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
       formRef.current?.reset()
       setError(null)
       onOpenChange(false)
-      router.refresh()
       if (result.id) {
         router.push(`/events/${result.id}`)
       }
+      router.refresh()
     })
   }
 
@@ -67,6 +67,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             type="submit"
             form="create-event-form"
             isLoading={isPending}
+            loadingText="Creating..."
           >
             Create Event
           </Button>
@@ -87,12 +88,13 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             placeholder="e.g., Opening Night 2026"
             required
             autoFocus
+            disabled={isPending}
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="date">Date</Label>
-          <Input id="date" name="date" type="date" />
+          <Input id="date" name="date" type="date" disabled={isPending} />
         </div>
 
         <div className="space-y-2">
@@ -101,6 +103,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             id="venue"
             name="venue"
             placeholder="e.g., Madison Square Garden"
+            disabled={isPending}
           />
         </div>
 
@@ -111,6 +114,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             name="notes"
             rows={3}
             placeholder="Optional notes..."
+            disabled={isPending}
             className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>

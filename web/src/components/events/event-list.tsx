@@ -28,10 +28,22 @@ export function EventList({ events, orgId }: EventListProps) {
           </p>
           <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
             <Plus className="w-4 h-4" />
-            New Event
+            Create your first event
           </Button>
         </div>
       ) : (
+        <>
+        <div className="flex justify-end mb-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCreateDialog(true)}
+            className="gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            New Event
+          </Button>
+        </div>
         <div className="border border-border rounded-lg overflow-hidden">
           {events.map((event, i) => (
             <Link
@@ -68,6 +80,7 @@ export function EventList({ events, orgId }: EventListProps) {
             </Link>
           ))}
         </div>
+        </>
       )}
 
       <CreateEventDialog

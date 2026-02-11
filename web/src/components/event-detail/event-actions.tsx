@@ -73,6 +73,7 @@ export function EventActions({ event }: EventActionsProps) {
       }
       toast.success('Event deleted')
       router.push('/events')
+      router.refresh()
     } catch {
       toast.error('Failed to delete event')
       setIsDeleting(false)
@@ -112,7 +113,7 @@ export function EventActions({ event }: EventActionsProps) {
             >
               Cancel
             </Button>
-            <Button type="submit" form="edit-event-form" isLoading={isPending}>
+            <Button type="submit" form="edit-event-form" isLoading={isPending} loadingText="Saving...">
               Save Changes
             </Button>
           </div>
@@ -127,6 +128,7 @@ export function EventActions({ event }: EventActionsProps) {
               defaultValue={event.name}
               required
               autoFocus
+              disabled={isPending}
             />
           </div>
 
@@ -138,12 +140,13 @@ export function EventActions({ event }: EventActionsProps) {
                 name="date"
                 type="date"
                 defaultValue={event.date ?? ''}
+                disabled={isPending}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="edit-status">Status</Label>
-              <Select value={editStatus} onValueChange={(v) => setEditStatus(v as EventStatus)}>
+              <Select value={editStatus} onValueChange={(v) => setEditStatus(v as EventStatus)} disabled={isPending}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -168,6 +171,7 @@ export function EventActions({ event }: EventActionsProps) {
               name="venue"
               defaultValue={event.venue ?? ''}
               placeholder="e.g., Madison Square Garden"
+              disabled={isPending}
             />
           </div>
 
@@ -179,6 +183,7 @@ export function EventActions({ event }: EventActionsProps) {
               rows={3}
               defaultValue={event.notes ?? ''}
               placeholder="Optional notes..."
+              disabled={isPending}
               className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
