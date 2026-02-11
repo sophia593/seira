@@ -1,7 +1,6 @@
 // lib/db/organizations.ts
 // Organization CRUD operations
 
-import { createClient } from '@/lib/supabase/client'
 import { handleDbError, type SupabaseClient } from './client'
 import type { Organization, OrganizationMember, OrgRole } from '@/lib/types/database'
 

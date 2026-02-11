@@ -12,7 +12,7 @@ import type { Partner } from '@/lib/types/database'
 interface PartnerSectionProps {
   partners: Partner[]
   eventId: string
-  completionMap: Map<string, { total: number; completed: number; pct: number }>
+  completionMap: Record<string, { total: number; completed: number; pct: number }>
 }
 
 export function PartnerSection({ partners, eventId, completionMap }: PartnerSectionProps) {
@@ -50,7 +50,7 @@ export function PartnerSection({ partners, eventId, completionMap }: PartnerSect
       ) : (
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           {partners.map((partner) => {
-            const stats = completionMap.get(partner.id)
+            const stats = completionMap[partner.id]
             return (
               <Link
                 key={partner.id}

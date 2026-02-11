@@ -24,16 +24,17 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     listDeliverablesByEvent(eventId),
   ])
 
-  // Compute per-partner completion stats
-  const completionMap = new Map<string, { total: number; completed: number; pct: number }>()
+  // Compute per-partner completion stats (plain object — serializable across server→client)
+  const completionMap: Record<string, { total: number; completed: number; pct: number }> = {}
   for (const d of deliverables) {
-    const entry = completionMap.get(d.partner_id) ?? { total: 0, completed: 0, pct: 0 }
+    const entry = completionMap[d.partner_id] ?? { total: 0, completed: 0, pct: 0 }
     entry.total++
     if (d.status === 'done' || d.status === 'proved') entry.completed++
-    completionMap.set(d.partner_id, entry)
+    completionMap[d.partner_id] = entry
   }
-  for (const [key, entry] of completionMap) {
-    completionMap.set(key, { ...entry, pct: completionPct(entry.total, entry.completed) })
+  for (const key of Object.keys(completionMap)) {
+    const entry = completionMap[key]
+    completionMap[key] = { ...entry, pct: completionPct(entry.total, entry.completed) }
   }
 
   return (
