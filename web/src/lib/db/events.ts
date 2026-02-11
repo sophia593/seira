@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
-import type { Event, EventWithCompletion, CreateEventInput } from '@/lib/types/database'
+import type { Event, CreateEventInput } from '@/lib/types/database'
 import { DEFAULT_EVENT_STATUS } from '@/lib/constants'
 
 // =============================================================================
@@ -40,38 +40,69 @@ export async function getEventById(eventId: string): Promise<Event | null> {
   return data as Event
 }
 
-/** List all events for an org with completion stats and partner counts. */
+/** List all events for an org with completion stats and partner counts.
+ *  Computes everything in JS from the events, deliverables, and partners tables. */
 export async function listEventsWithCompletion(orgId: string) {
   const supabase = await createClient()
 
-  // Completion stats from the view
-  const { data: eventRows, error: eventError } = await supabase
-    .from('event_completion')
+  // 1. All events for this org
+  const { data: events, error: eventError } = await supabase
+    .from('events')
     .select('*')
     .eq('org_id', orgId)
     .order('date', { ascending: true, nullsFirst: false })
 
-  if (eventError) handleDbError(eventError, 'Failed to list events with completion')
+  if (eventError) handleDbError(eventError, 'Failed to list events')
+  if (!events || events.length === 0) return []
 
-  const events = (eventRows ?? []) as EventWithCompletion[]
+  const eventIds = events.map((e) => e.id)
 
-  // Partner counts per event
-  const { data: partnerRows, error: partnerError } = await supabase
+  // 2. All deliverables for those events (lightweight select)
+  const { data: deliverables, error: delError } = await supabase
+    .from('deliverables')
+    .select('id, event_id, status, due_date')
+    .in('event_id', eventIds)
+
+  if (delError) handleDbError(delError, 'Failed to fetch deliverables for events')
+
+  // 3. All partners for this org
+  const { data: partners, error: partnerError } = await supabase
     .from('partners')
     .select('id, event_id')
     .eq('org_id', orgId)
 
   if (partnerError) handleDbError(partnerError, 'Failed to count partners')
 
-  const partnerCounts: Record<string, number> = {}
-  for (const row of partnerRows ?? []) {
-    partnerCounts[row.event_id] = (partnerCounts[row.event_id] ?? 0) + 1
+  // 4. Compute per-event stats in JS
+  const today = new Date(new Date().toDateString())
+
+  const delStats: Record<string, { total: number; completed: number; overdue: number }> = {}
+  for (const d of deliverables ?? []) {
+    const entry = delStats[d.event_id] ?? { total: 0, completed: 0, overdue: 0 }
+    entry.total++
+    if (d.status === 'done' || d.status === 'proved') entry.completed++
+    if (d.due_date && d.status !== 'done' && d.status !== 'proved' && new Date(d.due_date) < today) {
+      entry.overdue++
+    }
+    delStats[d.event_id] = entry
   }
 
-  return events.map((e) => ({
-    ...e,
-    partner_count: partnerCounts[e.id] ?? 0,
-  }))
+  const partnerCounts: Record<string, number> = {}
+  for (const p of partners ?? []) {
+    partnerCounts[p.event_id] = (partnerCounts[p.event_id] ?? 0) + 1
+  }
+
+  return (events as Event[]).map((e) => {
+    const stats = delStats[e.id] ?? { total: 0, completed: 0, overdue: 0 }
+    return {
+      ...e,
+      total_deliverables: stats.total,
+      completed_deliverables: stats.completed,
+      overdue_count: stats.overdue,
+      completion_pct: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
+      partner_count: partnerCounts[e.id] ?? 0,
+    }
+  })
 }
 
 // =============================================================================
