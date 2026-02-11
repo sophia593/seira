@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 
 interface UserMenuProps {
   isCollapsed?: boolean
+  variant?: 'default' | 'sidebar'
 }
 
 type UserPlan = 'free' | 'pro'
@@ -73,7 +74,8 @@ function MenuItem({
 // Main Component
 // =============================================================================
 
-export function UserMenu({ isCollapsed = false }: UserMenuProps) {
+export function UserMenu({ isCollapsed = false, variant = 'default' }: UserMenuProps) {
+  const isSidebar = variant === 'sidebar'
   const router = useRouter()
   const user = useUserStore((state) => state.user)
   const { logout } = useAuth()
@@ -138,18 +140,27 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
           variant="ghost"
           className={cn(
             'transition-all duration-150',
-            'hover:bg-muted/80',
+            isSidebar ? 'hover:bg-white/5' : 'hover:bg-muted/80',
             isCollapsed
               ? 'h-11 w-11 p-0'
               : 'h-auto w-full justify-start gap-3 px-2 py-2'
           )}
         >
           <div className="relative">
-            <AvatarUser
-              src={user.avatar_url}
-              name={user.name}
-              size={isCollapsed ? 'default' : 'sm'}
-            />
+            {isSidebar && !user.avatar_url ? (
+              <div className={cn(
+                "rounded-full bg-copper text-white flex items-center justify-center font-semibold",
+                isCollapsed ? "w-9 h-9 text-sm" : "w-7 h-7 text-xs"
+              )}>
+                {firstInitial}
+              </div>
+            ) : (
+              <AvatarUser
+                src={user.avatar_url}
+                name={user.name}
+                size={isCollapsed ? 'default' : 'sm'}
+              />
+            )}
             {/* Pro badge indicator (small dot on avatar) */}
             {isPro && isCollapsed && (
               <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
@@ -161,7 +172,7 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
           {!isCollapsed && (
             <div className="flex-1 text-left min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium truncate">
+                <p className={cn("text-sm font-medium truncate", isSidebar && "text-white")}>
                   {user.name || 'User'}
                 </p>
                 {/* Pro badge (inline) */}
@@ -172,7 +183,7 @@ export function UserMenu({ isCollapsed = false }: UserMenuProps) {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className={cn("text-xs truncate", isSidebar ? "text-white/40" : "text-muted-foreground")}>
                 {user.email}
               </p>
             </div>

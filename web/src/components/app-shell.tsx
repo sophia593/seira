@@ -27,9 +27,9 @@ function Sidebar() {
   const orgName = useOrgStore((state) => state.orgName)
 
   return (
-    <aside className="hidden lg:flex flex-col w-56 border-r bg-background h-full">
+    <aside className="hidden lg:flex flex-col w-56 border-r border-white/10 bg-kurobeni text-white h-full">
       {/* Org name */}
-      <div className="h-14 flex items-center px-4 border-b">
+      <div className="h-14 flex items-center px-4 border-b border-white/10">
         <Link href="/dashboard" className="flex items-center gap-2">
           <LogoIcon size="sm" className="text-copper" />
           <span className="font-semibold text-lg truncate">{orgName || 'Workspace'}</span>
@@ -47,13 +47,13 @@ function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
                     isActive
-                      ? 'bg-copper/10 text-copper'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      ? 'bg-white/10 text-white font-medium'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
                   )}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className="w-4 h-4" />
                   {item.label}
                 </Link>
               </li>
@@ -63,8 +63,8 @@ function Sidebar() {
       </nav>
 
       {/* User menu at bottom */}
-      <div className="border-t px-3 py-3">
-        <UserMenu />
+      <div className="border-t border-white/10 px-3 py-3">
+        <UserMenu variant="sidebar" />
       </div>
     </aside>
   )
@@ -98,13 +98,13 @@ function MobileHeader() {
   const pageLabel = currentItem?.label || 'seira'
 
   return (
-    <header className="lg:hidden flex h-14 items-center justify-between px-4 border-b bg-background">
+    <header className="lg:hidden flex h-14 items-center justify-between px-4 border-b border-white/10 bg-kurobeni text-white">
       <div className="flex items-center gap-2">
-        <LogoIcon size="sm" className="text-foreground" />
-        <span className="text-muted-foreground/50">/</span>
+        <LogoIcon size="sm" className="text-copper" />
+        <span className="text-white/30">/</span>
         <span className="font-medium text-sm">{pageLabel}</span>
       </div>
-      <UserMenu isCollapsed />
+      <UserMenu isCollapsed variant="sidebar" />
     </header>
   )
 }
@@ -117,7 +117,7 @@ function MobileBottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 border-t bg-background/95 backdrop-blur-sm z-50">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 border-t border-white/10 bg-kurobeni/95 backdrop-blur-sm z-50">
       <ul className="flex h-full">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -129,11 +129,11 @@ function MobileBottomNav() {
                 className={cn(
                   'flex flex-col items-center justify-center h-full gap-1 text-xs font-medium transition-colors',
                   isActive
-                    ? 'text-copper'
-                    : 'text-muted-foreground'
+                    ? 'text-white'
+                    : 'text-white/40'
                 )}
               >
-                <item.icon className="w-5 h-5" />
+                <item.icon className="w-4 h-4" />
                 <span className="sr-only sm:not-sr-only">{item.label.split(' ')[0]}</span>
               </Link>
             </li>
