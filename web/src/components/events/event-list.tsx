@@ -2,12 +2,26 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Plus, CalendarDays } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { EventStatusBadge } from '@/components/ui/badges'
+import { CalendarDays } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { CreateEventDialog } from '@/app/(app)/events/create-event-dialog'
 import { formatEventDate } from '@/lib/constants'
-import type { Event } from '@/lib/types/database'
+import type { Event, EventStatus } from '@/lib/types/database'
+
+// =============================================================================
+// Status Dot Colors
+// =============================================================================
+
+const STATUS_DOT: Record<EventStatus, string> = {
+  upcoming: 'bg-copper',
+  active: 'bg-green-500',
+  completed: 'bg-gray-300',
+  archived: 'bg-gray-200',
+}
+
+// =============================================================================
+// Component
+// =============================================================================
 
 interface EventListProps {
   events: Event[]
@@ -26,60 +40,52 @@ export function EventList({ events, orgId }: EventListProps) {
           <p className="text-xs text-muted-foreground mt-1 mb-4">
             Create your first event to start tracking partner deliverables.
           </p>
-          <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Create your first event
-          </Button>
+          <button
+            onClick={() => setShowCreateDialog(true)}
+            className="bg-kurobeni text-white text-sm rounded-md h-9 px-4 hover:bg-blackberry transition-colors"
+          >
+            + new event
+          </button>
         </div>
       ) : (
         <>
-        <div className="flex justify-end mb-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowCreateDialog(true)}
-            className="gap-1.5"
-          >
-            <Plus className="w-4 h-4" />
-            New Event
-          </Button>
-        </div>
-        <div className="border border-border rounded-lg overflow-hidden">
-          {events.map((event, i) => (
-            <Link
-              key={event.id}
-              href={`/events/${event.id}`}
-              className={`flex items-center gap-4 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer ${
-                i < events.length - 1 ? 'border-b border-border' : ''
-              }`}
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setShowCreateDialog(true)}
+              className="bg-kurobeni text-white text-sm rounded-md h-9 px-4 hover:bg-blackberry transition-colors"
             >
-              {/* Name + venue */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{event.name}</p>
-                {event.venue && (
-                  <p className="text-xs text-muted-foreground truncate mt-0.5 sm:hidden">
-                    {event.venue}
-                  </p>
-                )}
-              </div>
+              + new event
+            </button>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {events.map((event) => (
+              <Link
+                key={event.id}
+                href={`/events/${event.id}`}
+                className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                {/* Status dot */}
+                <span className={cn('h-2 w-2 rounded-full shrink-0', STATUS_DOT[event.status])} />
 
-              {/* Venue — desktop only */}
-              {event.venue && (
-                <span className="hidden sm:block text-xs text-muted-foreground truncate max-w-[160px]">
-                  {event.venue}
+                {/* Name */}
+                <span className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
+                  {event.name}
                 </span>
-              )}
 
-              {/* Date */}
-              <span className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">
-                {formatEventDate(event.date)}
-              </span>
+                {/* Venue — hidden on mobile */}
+                {event.venue && (
+                  <span className="hidden sm:block text-sm text-gray-400 truncate max-w-[200px]">
+                    {event.venue}
+                  </span>
+                )}
 
-              {/* Status badge */}
-              <EventStatusBadge status={event.status} showIcon={false} />
-            </Link>
-          ))}
-        </div>
+                {/* Date */}
+                <span className="hidden sm:block text-sm text-gray-400 tabular-nums whitespace-nowrap">
+                  {formatEventDate(event.date)}
+                </span>
+              </Link>
+            ))}
+          </div>
         </>
       )}
 

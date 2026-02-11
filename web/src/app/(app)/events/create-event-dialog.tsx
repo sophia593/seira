@@ -112,7 +112,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
           <p className="text-[10px] tracking-widest text-gray-400 uppercase">Schedule & Notes</p>
           <div className="space-y-1.5">
             <Label htmlFor="date">Date</Label>
-            <Input id="date" name="date" type="date" disabled={isPending} />
+            <Input id="date" name="date" type="text" placeholder="YYYY-MM-DD" disabled={isPending} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="notes">Notes</Label>

@@ -35,7 +35,7 @@ export default async function EventsPage() {
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
           Events
           {events.length > 0 && (
-            <span className="text-muted-foreground font-normal text-lg ml-2">
+            <span className="text-gray-300 font-normal text-lg ml-2">
               {events.length}
             </span>
           )}
