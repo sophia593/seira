@@ -38,10 +38,7 @@ export default async function AppLayout({
 
   try {
     // 1. Check existing membership
-    let membership = await getUserMembership(
-      supabase as Parameters<typeof getUserMembership>[0],
-      user.id
-    )
+    let membership = await getUserMembership(supabase, user.id)
 
     // 2. If no membership, try auto-creating via admin client (once)
     if (!membership) {
@@ -108,10 +105,7 @@ export default async function AppLayout({
         org = data
       }
       if (!org) {
-        org = await getOrganization(
-          supabase as Parameters<typeof getOrganization>[0],
-          membership.org_id
-        )
+        org = await getOrganization(supabase, membership.org_id)
       }
       if (org) {
         initialOrg = {

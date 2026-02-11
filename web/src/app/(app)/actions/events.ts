@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { createEvent, updateEvent, deleteEvent } from '@/lib/db/events'
+import { isUuid } from '@/lib/validation'
 import type { EventStatus } from '@/lib/types/database'
 
 const VALID_STATUSES: EventStatus[] = ['upcoming', 'active', 'completed', 'archived']
@@ -16,10 +17,7 @@ async function getAuthenticatedOrg() {
     return { error: 'Not authenticated' }
   }
 
-  const membership = await getUserMembership(
-    supabase as Parameters<typeof getUserMembership>[0],
-    user.id
-  )
+  const membership = await getUserMembership(supabase, user.id)
   if (!membership) {
     return { error: 'No organization membership' }
   }
@@ -66,6 +64,8 @@ export async function updateEventAction(
   formData: FormData
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
 
@@ -100,6 +100,8 @@ export async function deleteEventAction(
   eventId: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
 

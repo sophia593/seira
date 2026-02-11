@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { createPartner, updatePartner, deletePartner } from '@/lib/db/partners'
+import { isUuid } from '@/lib/validation'
 
 async function getAuthenticatedOrg() {
   const supabase = await createClient()
@@ -13,10 +14,7 @@ async function getAuthenticatedOrg() {
     return { error: 'Not authenticated' }
   }
 
-  const membership = await getUserMembership(
-    supabase as Parameters<typeof getUserMembership>[0],
-    user.id
-  )
+  const membership = await getUserMembership(supabase, user.id)
   if (!membership) {
     return { error: 'No organization membership' }
   }
@@ -38,7 +36,7 @@ export async function createPartnerAction(
     if ('error' in auth) return { ok: false, error: auth.error }
 
     const eventId = str(formData, 'event_id')
-    if (!eventId) return { ok: false, error: 'Event ID is required' }
+    if (!eventId || !isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
 
     const name = str(formData, 'name')
     if (!name) return { ok: false, error: 'Partner name is required' }
@@ -51,8 +49,9 @@ export async function createPartnerAction(
       contract_notes: str(formData, 'contract_notes'),
     })
 
-    revalidatePath(`/events/${eventId}`)
     revalidatePath('/events')
+    revalidatePath('/dashboard')
+    revalidatePath(`/events/${eventId}`)
 
     return { ok: true, id: partner.id }
   } catch (err) {
@@ -67,6 +66,9 @@ export async function updatePartnerAction(
   formData: FormData
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
 
@@ -80,6 +82,8 @@ export async function updatePartnerAction(
       contract_notes: str(formData, 'contract_notes'),
     })
 
+    revalidatePath('/events')
+    revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
 
@@ -95,13 +99,17 @@ export async function deletePartnerAction(
   eventId: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
 
     await deletePartner(partnerId)
 
-    revalidatePath(`/events/${eventId}`)
     revalidatePath('/events')
+    revalidatePath('/dashboard')
+    revalidatePath(`/events/${eventId}`)
 
     return { ok: true }
   } catch (err) {

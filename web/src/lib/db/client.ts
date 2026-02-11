@@ -1,10 +1,10 @@
 // lib/db/client.ts
 // Shared database client utilities
 
-import { createClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { OrganizationMember } from '@/lib/types/database'
 
-export type SupabaseClient = ReturnType<typeof createClient>
+export type { SupabaseClient }
 
 /**
  * Get the current user's organization membership.

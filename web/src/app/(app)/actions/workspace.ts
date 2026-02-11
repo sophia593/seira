@@ -49,10 +49,7 @@ export async function renameWorkspaceAction(
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return { ok: false, error: 'Not authenticated' }
 
-    const membership = await getUserMembership(
-      supabase as Parameters<typeof getUserMembership>[0],
-      user.id
-    )
+    const membership = await getUserMembership(supabase, user.id)
     if (!membership) return { ok: false, error: 'No organization membership' }
 
     if (membership.role !== 'owner' && membership.role !== 'admin') {
@@ -67,11 +64,7 @@ export async function renameWorkspaceAction(
       return { ok: false, error: 'Workspace name must be 60 characters or fewer' }
     }
 
-    await updateOrganization(
-      supabase as Parameters<typeof updateOrganization>[0],
-      membership.org_id,
-      { name }
-    )
+    await updateOrganization(supabase, membership.org_id, { name })
 
     revalidatePath('/')
     revalidatePath('/settings')

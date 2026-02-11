@@ -44,10 +44,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const membership = await getUserMembership(
-    supabase as Parameters<typeof getUserMembership>[0],
-    user.id
-  )
+  const membership = await getUserMembership(supabase, user.id)
 
   if (!membership) {
     console.error('[Dashboard] No membership found after layout bootstrap')
@@ -66,10 +63,7 @@ export default async function DashboardPage() {
 
   const [orgResult, statsResult, eventsResult, overdueResult, needsProofResult] =
     await Promise.allSettled([
-      getOrganization(
-        supabase as Parameters<typeof getOrganization>[0],
-        orgId
-      ),
+      getOrganization(supabase, orgId),
       getDashboardStats(orgId),
       getUpcomingEvents(orgId),
       getOverdueDeliverables(orgId),

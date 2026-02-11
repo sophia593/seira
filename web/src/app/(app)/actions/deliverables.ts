@@ -9,6 +9,7 @@ import {
   updateDeliverableStatus,
   deleteDeliverable,
 } from '@/lib/db/deliverables'
+import { isUuid } from '@/lib/validation'
 import type { DeliverableCategory, DeliverableStatus, ProofRequired } from '@/lib/types/database'
 import { CATEGORIES, STATUS_FLOW, PROOF_REQUIRED_OPTIONS } from '@/lib/constants'
 
@@ -20,10 +21,7 @@ async function getAuthenticatedOrg() {
     return { error: 'Not authenticated' }
   }
 
-  const membership = await getUserMembership(
-    supabase as Parameters<typeof getUserMembership>[0],
-    user.id
-  )
+  const membership = await getUserMembership(supabase, user.id)
   if (!membership) {
     return { error: 'No organization membership' }
   }
@@ -45,10 +43,10 @@ export async function createDeliverableAction(
     if ('error' in auth) return { ok: false, error: auth.error }
 
     const partnerId = str(formData, 'partner_id')
-    if (!partnerId) return { ok: false, error: 'Partner ID is required' }
+    if (!partnerId || !isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
 
     const eventId = str(formData, 'event_id')
-    if (!eventId) return { ok: false, error: 'Event ID is required' }
+    if (!eventId || !isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
 
     const title = str(formData, 'title')
     if (!title) return { ok: false, error: 'Title is required' }
@@ -73,6 +71,8 @@ export async function createDeliverableAction(
       notes: str(formData, 'notes'),
     })
 
+    revalidatePath('/events')
+    revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
 
@@ -90,6 +90,10 @@ export async function updateDeliverableAction(
   formData: FormData
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    if (!isUuid(deliverableId)) return { ok: false, error: 'Invalid deliverable ID' }
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+    if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
 
@@ -114,6 +118,8 @@ export async function updateDeliverableAction(
       notes: str(formData, 'notes'),
     })
 
+    revalidatePath('/events')
+    revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
 
@@ -131,6 +137,10 @@ export async function advanceDeliverableStatusAction(
   newStatus: DeliverableStatus
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    if (!isUuid(deliverableId)) return { ok: false, error: 'Invalid deliverable ID' }
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+    if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
 
@@ -140,6 +150,8 @@ export async function advanceDeliverableStatusAction(
 
     await updateDeliverableStatus(deliverableId, newStatus)
 
+    revalidatePath('/events')
+    revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
 
@@ -156,11 +168,17 @@ export async function deleteDeliverableAction(
   partnerId: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    if (!isUuid(deliverableId)) return { ok: false, error: 'Invalid deliverable ID' }
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+    if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
 
     await deleteDeliverable(deliverableId)
 
+    revalidatePath('/events')
+    revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
 

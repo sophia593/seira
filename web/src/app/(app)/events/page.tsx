@@ -12,10 +12,7 @@ export default async function EventsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const membership = await getUserMembership(
-    supabase as Parameters<typeof getUserMembership>[0],
-    user.id
-  )
+  const membership = await getUserMembership(supabase, user.id)
 
   if (!membership) {
     console.error('[Events] No membership found after layout bootstrap')
