@@ -7,6 +7,8 @@ import { Save, Loader2, Check, AlertTriangle, Sun, Moon, Monitor, Eye, EyeOff, K
 import { getApi } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { useUserStore } from '@/stores/user-store'
+import { useOrgStore } from '@/stores/org-store'
+import { renameWorkspaceAction } from '@/app/(app)/actions/workspace'
 import { toast } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +35,10 @@ export default function SettingsPage() {
   const router = useRouter()
   const user = useUserStore((state) => state.user)
   const setUser = useUserStore((state) => state.setUser)
+  const orgId = useOrgStore((state) => state.orgId)
+  const orgName = useOrgStore((state) => state.orgName)
+  const orgRole = useOrgStore((state) => state.role)
+  const setOrg = useOrgStore((state) => state.setOrg)
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -40,6 +46,15 @@ export default function SettingsPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Workspace form state
+  const [workspaceName, setWorkspaceName] = useState('')
+  const [initialWorkspaceName, setInitialWorkspaceName] = useState('')
+  const [isSavingWorkspace, setIsSavingWorkspace] = useState(false)
+  const [workspaceSaved, setWorkspaceSaved] = useState(false)
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null)
+
+  const canRenameWorkspace = orgRole === 'owner' || orgRole === 'admin'
 
   // Form state
   const [name, setName] = useState('')
@@ -70,9 +85,21 @@ export default function SettingsPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
 
   // Dirty checking
+  const isWorkspaceDirty = useMemo(() => {
+    return workspaceName.trim() !== initialWorkspaceName.trim()
+  }, [workspaceName, initialWorkspaceName])
+
   const isProfileDirty = useMemo(() => {
     return name.trim() !== initialName.trim()
   }, [name, initialName])
+
+  // Initialize workspace form from org store
+  useEffect(() => {
+    if (orgName) {
+      setWorkspaceName(orgName)
+      setInitialWorkspaceName(orgName)
+    }
+  }, [orgName])
 
   // Initialize form from store
   useEffect(() => {
@@ -83,12 +110,53 @@ export default function SettingsPage() {
     }
   }, [user])
 
-  // Reset success state when form changes
+  // Reset success states when form changes
+  useEffect(() => {
+    if (isWorkspaceDirty) {
+      setWorkspaceSaved(false)
+      setWorkspaceError(null)
+    }
+  }, [isWorkspaceDirty])
+
   useEffect(() => {
     if (isProfileDirty) {
       setProfileSaved(false)
     }
   }, [isProfileDirty])
+
+  async function handleSaveWorkspace() {
+    if (!isWorkspaceDirty || !canRenameWorkspace) return
+
+    setIsSavingWorkspace(true)
+    setWorkspaceSaved(false)
+    setWorkspaceError(null)
+
+    try {
+      const formData = new FormData()
+      formData.set('name', workspaceName.trim())
+
+      const result = await renameWorkspaceAction(formData)
+
+      if (!result.ok) {
+        setWorkspaceError(result.error ?? 'Failed to rename workspace')
+        return
+      }
+
+      const trimmed = workspaceName.trim()
+      setInitialWorkspaceName(trimmed)
+      setOrg({ id: orgId!, name: trimmed, role: orgRole! })
+
+      setWorkspaceSaved(true)
+      toast.success('workspace renamed')
+      router.refresh()
+
+      setTimeout(() => setWorkspaceSaved(false), 3000)
+    } catch {
+      setWorkspaceError('something went wrong')
+    } finally {
+      setIsSavingWorkspace(false)
+    }
+  }
 
   async function handleSaveProfile() {
     if (!isProfileDirty) return
@@ -238,6 +306,53 @@ export default function SettingsPage() {
             Manage your profile and preferences.
           </p>
         </div>
+
+        {/* Workspace Section */}
+        <section className="mb-8 sm:mb-10">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 lowercase">
+            workspace
+          </h2>
+          <div className="space-y-3 sm:space-y-4 p-4 sm:p-6 bg-card rounded-xl border">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="workspaceName" className="text-sm">
+                workspace name
+              </Label>
+              <Input
+                id="workspaceName"
+                type="text"
+                value={workspaceName}
+                onChange={(e) => setWorkspaceName(e.target.value)}
+                placeholder="My Workspace"
+                className="text-sm"
+                disabled={!canRenameWorkspace}
+                maxLength={60}
+              />
+              {!canRenameWorkspace && (
+                <p className="text-xs text-muted-foreground">
+                  only owners and admins can rename the workspace
+                </p>
+              )}
+            </div>
+
+            {workspaceError && (
+              <p className="text-xs text-destructive flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                {workspaceError}
+              </p>
+            )}
+
+            {canRenameWorkspace && (
+              <SaveButton
+                onClick={handleSaveWorkspace}
+                isLoading={isSavingWorkspace}
+                isSaved={workspaceSaved}
+                isDirty={isWorkspaceDirty}
+                label="save workspace"
+                savedLabel="saved"
+              />
+            )}
+          </div>
+        </section>
 
         {/* Profile Section */}
         <section className="mb-8 sm:mb-10">
