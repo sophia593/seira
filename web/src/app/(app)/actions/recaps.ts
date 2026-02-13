@@ -81,8 +81,14 @@ export async function createRecapAction(
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
 
     return { ok: true, id: recap.id, shareToken: recap.share_token }
-  } catch (err) {
-    console.error('createRecapAction error:', err)
+  } catch (err: unknown) {
+    const e = err as Record<string, unknown>
+    console.error('createRecapAction error:', {
+      message: e?.message,
+      code: e?.code,
+      details: e?.details,
+      hint: e?.hint,
+    })
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to create recap' }
   }
 }
