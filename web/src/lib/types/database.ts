@@ -154,3 +154,43 @@ export interface CreateProofRecordInput {
   file_size: number;
   uploaded_by: string;
 }
+
+// === RECAP REPORTS ===
+
+export type RecapStatus = 'draft' | 'published' | 'archived';
+
+export interface RecapReport {
+  id: string;
+  org_id: string;
+  event_id: string;
+  partner_id: string;
+  share_token: string;
+  title: string;
+  status: RecapStatus;
+  cover_note: string | null;
+  generated_by: string;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecapData {
+  recap: RecapReport;
+  organization: { name: string };
+  event: { name: string; date: string | null; venue: string | null };
+  partner: { name: string; contact_name: string | null; contact_email: string | null };
+  deliverables: Array<{
+    id: string;
+    title: string;
+    category: DeliverableCategory;
+    status: DeliverableStatus;
+    due_date: string | null;
+    proofs: Proof[];
+  }>;
+  stats: {
+    total: number;
+    completed: number;
+    proved: number;
+    byCategory: Record<string, { total: number; completed: number }>;
+  };
+}

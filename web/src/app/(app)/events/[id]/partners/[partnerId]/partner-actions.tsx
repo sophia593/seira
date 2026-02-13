@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, FileText } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from '@/components/ui/sonner'
 import { updatePartnerAction, deletePartnerAction } from '@/app/(app)/actions/partners'
+import { createRecapAction } from '@/app/(app)/actions/recaps'
 import type { Partner } from '@/lib/types/database'
 
 interface PartnerActionsProps {
@@ -35,6 +36,24 @@ export function PartnerActions({ partner, eventId, deliverableCount = 0 }: Partn
   const [editError, setEditError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+
+  const handleGenerateRecap = () => {
+    setIsGenerating(true)
+    startTransition(async () => {
+      const formData = new FormData()
+      formData.append('event_id', eventId)
+      formData.append('partner_id', partner.id)
+
+      const result = await createRecapAction(formData)
+      if (!result.ok) {
+        toast.error(result.error ?? 'Failed to generate recap')
+        setIsGenerating(false)
+        return
+      }
+      router.push(`/events/${eventId}/partners/${partner.id}/recap/${result.id}`)
+    })
+  }
 
   const handleEdit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -74,6 +93,16 @@ export function PartnerActions({ partner, eventId, deliverableCount = 0 }: Partn
   return (
     <>
       <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleGenerateRecap}
+          isLoading={isGenerating}
+          className="border-[#C59C79] text-[#C59C79] hover:bg-[#C59C79]/5"
+        >
+          <FileText className="w-4 h-4 mr-1" />
+          Generate Recap
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
           <Pencil className="w-4 h-4 mr-1" />
           Edit

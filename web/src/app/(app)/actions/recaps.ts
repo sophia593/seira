@@ -1,0 +1,173 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/server'
+import { getUserMembership } from '@/lib/db/client'
+import { getEventById } from '@/lib/db/events'
+import { getPartnerById } from '@/lib/db/partners'
+import {
+  createRecap,
+  updateRecap,
+  publishRecap,
+  deleteRecap,
+} from '@/lib/db/recaps'
+import { isUuid } from '@/lib/validation'
+
+// ---------------------------------------------------------------------------
+// Auth helper
+// ---------------------------------------------------------------------------
+
+async function getAuthenticatedOrg() {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: 'Not authenticated' as const }
+  }
+
+  const membership = await getUserMembership(supabase, user.id)
+  if (!membership) {
+    return { error: 'No organization membership' as const }
+  }
+
+  return { userId: user.id, orgId: membership.org_id }
+}
+
+function str(formData: FormData, key: string): string | undefined {
+  const val = formData.get(key)
+  if (typeof val !== 'string' || val.trim() === '') return undefined
+  return val.trim()
+}
+
+// ---------------------------------------------------------------------------
+// Create
+// ---------------------------------------------------------------------------
+
+export async function createRecapAction(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string; id?: string; shareToken?: string }> {
+  try {
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+
+    const eventId = str(formData, 'event_id')
+    if (!eventId || !isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+
+    const partnerId = str(formData, 'partner_id')
+    if (!partnerId || !isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+
+    // Build default title from partner + event names
+    let title = str(formData, 'title')
+    if (!title) {
+      const [event, partner] = await Promise.all([
+        getEventById(eventId),
+        getPartnerById(partnerId),
+      ])
+      const partnerName = partner?.name ?? 'Partner'
+      const eventName = event?.name ?? 'Event'
+      title = `${partnerName} — ${eventName} Recap`
+    }
+
+    const coverNote = str(formData, 'cover_note')
+
+    const recap = await createRecap(auth.orgId, {
+      event_id: eventId,
+      partner_id: partnerId,
+      title,
+      cover_note: coverNote,
+      generated_by: auth.userId,
+    })
+
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+
+    return { ok: true, id: recap.id, shareToken: recap.share_token }
+  } catch (err) {
+    console.error('createRecapAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to create recap' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Update
+// ---------------------------------------------------------------------------
+
+export async function updateRecapAction(
+  recapId: string,
+  formData: FormData
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!isUuid(recapId)) return { ok: false, error: 'Invalid recap ID' }
+
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+
+    const title = str(formData, 'title')
+    if (!title) return { ok: false, error: 'Title is required' }
+
+    const coverNote = formData.get('cover_note') as string | null
+
+    await updateRecap(recapId, {
+      title,
+      cover_note: coverNote?.trim() || undefined,
+    })
+
+    return { ok: true }
+  } catch (err) {
+    console.error('updateRecapAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to update recap' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Publish
+// ---------------------------------------------------------------------------
+
+export async function publishRecapAction(
+  recapId: string
+): Promise<{ ok: boolean; error?: string; shareUrl?: string }> {
+  try {
+    if (!isUuid(recapId)) return { ok: false, error: 'Invalid recap ID' }
+
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+
+    const recap = await publishRecap(recapId)
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const shareUrl = `${baseUrl}/recap/${recap.share_token}`
+
+    return { ok: true, shareUrl }
+  } catch (err) {
+    console.error('publishRecapAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to publish recap' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Delete
+// ---------------------------------------------------------------------------
+
+export async function deleteRecapAction(
+  recapId: string,
+  eventId: string,
+  partnerId: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!isUuid(recapId)) return { ok: false, error: 'Invalid recap ID' }
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+    if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+
+    await deleteRecap(recapId)
+
+    revalidatePath(`/events/${eventId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+
+    return { ok: true }
+  } catch (err) {
+    console.error('deleteRecapAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to delete recap' }
+  }
+}

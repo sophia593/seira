@@ -3,9 +3,11 @@ import { getEventById } from '@/lib/db/events'
 import { getPartnerById } from '@/lib/db/partners'
 import { listDeliverablesByPartner } from '@/lib/db/deliverables'
 import { countProofByDeliverable, listProofByPartner } from '@/lib/db/proof'
+import { listRecapsByPartner } from '@/lib/db/recaps'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { PartnerActions } from './partner-actions'
 import { DeliverableSection } from './deliverable-section'
+import { RecapSection } from './recap-section'
 import { STATUS_FLOW, STATUS_CONFIG } from '@/lib/constants'
 import type { DeliverableStatus } from '@/lib/types/database'
 
@@ -25,11 +27,12 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
   if (!event || !partner) notFound()
   if (partner.event_id !== eventId) notFound()
 
-  // Fetch proof data
+  // Fetch proof data + recaps
   const deliverableIds = deliverables.map((d) => d.id)
-  const [proofCounts, allProofs] = await Promise.all([
+  const [proofCounts, allProofs, recaps] = await Promise.all([
     countProofByDeliverable(deliverableIds),
     listProofByPartner(partnerId),
+    listRecapsByPartner(partnerId),
   ])
 
   // Build proof map: deliverable_id → Proof[]
@@ -148,6 +151,12 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
         partnerId={partnerId}
         proofCounts={proofCounts}
         proofMap={proofMap}
+      />
+
+      <RecapSection
+        recaps={recaps}
+        eventId={eventId}
+        partnerId={partnerId}
       />
     </div>
   )
