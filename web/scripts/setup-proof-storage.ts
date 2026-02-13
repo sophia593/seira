@@ -83,7 +83,7 @@ async function checkTable() {
   const { error } = await supabase.from('proofs').select('id').limit(1)
 
   if (error) {
-    if (error.message.includes('does not exist') || error.code === '42P01') {
+    if (error.message.includes('does not exist') || error.message.includes('Could not find') || error.code === '42P01') {
       console.error(
         '   Proofs table does not exist.\n' +
         '   Please run the migration SQL in the Supabase SQL Editor:\n' +
@@ -108,13 +108,22 @@ async function checkTable() {
 async function verifyUploadFlow() {
   console.log('\n3. Testing upload/read/delete...')
 
-  const testPath = '_test-probe/verify.txt'
-  const testBlob = new Blob(['proof-storage-test'], { type: 'text/plain' })
+  const testPath = '_test-probe/verify.png'
+  // 1x1 transparent PNG (smallest valid PNG)
+  const pngBytes = new Uint8Array([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+    0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
+    0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x62, 0x00, 0x00, 0x00, 0x02,
+    0x00, 0x01, 0xe2, 0x21, 0xbc, 0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
+    0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+  ])
+  const testBlob = new Blob([pngBytes], { type: 'image/png' })
 
   // Upload
   const { error: uploadError } = await supabase.storage
     .from('proof')
-    .upload(testPath, testBlob, { contentType: 'text/plain', upsert: true })
+    .upload(testPath, testBlob, { contentType: 'image/png', upsert: true })
 
   if (uploadError) {
     console.error('   Upload failed:', uploadError.message)
