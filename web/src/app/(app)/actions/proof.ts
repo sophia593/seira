@@ -86,6 +86,13 @@ export async function uploadProofAction(
       return { ok: false, error: 'File type not allowed. Accepted: JPEG, PNG, WebP, GIF, PDF, MP4, MOV' }
     }
 
+    // Convert File to Buffer — File objects may not survive the Next.js
+    // server-action serialization boundary intact.
+    const fileBuffer = Buffer.from(await file.arrayBuffer())
+    const fileName = file.name
+    const fileType = file.type
+    const fileSize = file.size
+
     // 4. Verify deliverable exists
     const deliverable = await getDeliverableById(deliverableId)
     if (!deliverable) {
@@ -94,12 +101,12 @@ export async function uploadProofAction(
 
     // 5. Upload to Supabase Storage (admin client — bypasses RLS)
     const admin = createAdminClient()
-    const storagePath = buildStoragePath(orgId, deliverableId, file.name)
+    const storagePath = buildStoragePath(orgId, deliverableId, fileName)
 
     const { error: uploadError } = await admin.storage
       .from('proof')
-      .upload(storagePath, file, {
-        contentType: file.type,
+      .upload(storagePath, fileBuffer, {
+        contentType: fileType,
         upsert: false,
       })
 
@@ -119,8 +126,8 @@ export async function uploadProofAction(
         // Retry upload
         const { error: retryError } = await admin.storage
           .from('proof')
-          .upload(storagePath, file, {
-            contentType: file.type,
+          .upload(storagePath, fileBuffer, {
+            contentType: fileType,
             upsert: false,
           })
         if (retryError) {
@@ -145,9 +152,9 @@ export async function uploadProofAction(
         deliverable_id: deliverableId,
         org_id: orgId,
         file_url: urlData.publicUrl,
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
+        file_name: fileName,
+        file_type: fileType,
+        file_size: fileSize,
         uploaded_by: user.id,
       })
       .select()
