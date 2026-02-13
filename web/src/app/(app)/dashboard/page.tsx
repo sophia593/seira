@@ -145,7 +145,7 @@ export default async function DashboardPage() {
   const moreEventsCount = stats.activeEvents - upcomingEvents.length
 
   return (
-    <div className="px-4 py-6 md:px-8 md:py-8 max-w-6xl mx-auto">
+    <div className="px-4 py-6 pb-20 md:px-8 md:py-8 max-w-6xl mx-auto lg:pb-8">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>

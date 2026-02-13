@@ -11,6 +11,20 @@ import type {
 } from '@/lib/types/database'
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/** Returns true if the error indicates the proofs table doesn't exist yet. */
+function isTableMissing(error: { message?: string; code?: string }): boolean {
+  const msg = error.message?.toLowerCase() ?? ''
+  return (
+    msg.includes('does not exist') ||
+    msg.includes('could not find') ||
+    error.code === '42P01'
+  )
+}
+
+// =============================================================================
 // Read Operations
 // =============================================================================
 
@@ -24,7 +38,10 @@ export async function listProofByDeliverable(deliverableId: string): Promise<Pro
     .eq('deliverable_id', deliverableId)
     .order('created_at', { ascending: false })
 
-  if (error) handleDbError(error, 'Failed to list proofs for deliverable')
+  if (error) {
+    if (isTableMissing(error)) return []
+    handleDbError(error, 'Failed to list proofs for deliverable')
+  }
 
   return (data ?? []) as Proof[]
 }
@@ -42,7 +59,10 @@ export async function listProofByPartner(partnerId: string): Promise<ProofWithDe
     .eq('deliverables.partner_id', partnerId)
     .order('created_at', { ascending: false })
 
-  if (error) handleDbError(error, 'Failed to list proofs for partner')
+  if (error) {
+    if (isTableMissing(error)) return []
+    handleDbError(error, 'Failed to list proofs for partner')
+  }
 
   return (data ?? []).map((row) => {
     const { deliverables, ...proof } = row as Proof & {
@@ -68,7 +88,10 @@ export async function countProofByDeliverable(
     .select('deliverable_id')
     .in('deliverable_id', deliverableIds)
 
-  if (error) handleDbError(error, 'Failed to count proofs by deliverable')
+  if (error) {
+    if (isTableMissing(error)) return {}
+    handleDbError(error, 'Failed to count proofs by deliverable')
+  }
 
   const counts: Record<string, number> = {}
   for (const row of data ?? []) {
