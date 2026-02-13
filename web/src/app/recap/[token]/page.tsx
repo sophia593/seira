@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getRecapByShareToken, getRecapDataPublic } from '@/lib/db/recaps'
-import { RecapContent } from '@/components/recap/recap-content'
+import { PublicRecapReport } from '@/components/recap/public/public-recap-report'
 import { PublicRecapActions } from './actions-bar'
 
 interface RecapPageProps {
@@ -48,9 +48,14 @@ export default async function PublicRecapPage({ params }: RecapPageProps) {
   if (!data) notFound()
 
   return (
-    <div className="pt-16">
-      <PublicRecapActions recapId={recap.id} shareToken={token} />
-      <RecapContent data={data} />
+    <div className="min-h-screen bg-gray-50">
+      <PublicRecapActions
+        recapId={recap.id}
+        shareToken={token}
+        eventName={data.event.name}
+        partnerName={data.partner.name}
+      />
+      <PublicRecapReport data={data} />
     </div>
   )
 }

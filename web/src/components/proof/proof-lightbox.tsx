@@ -11,7 +11,7 @@ interface ProofLightboxProps {
   initialIndex: number
   open: boolean
   onClose: () => void
-  onDelete: (proofId: string, filePath: string) => void
+  onDelete?: (proofId: string, filePath: string) => void
 }
 
 export function ProofLightbox({ proofs, initialIndex, open, onClose, onDelete }: ProofLightboxProps) {
@@ -218,14 +218,16 @@ export function ProofLightbox({ proofs, initialIndex, open, onClose, onDelete }:
             <ExternalLink className="h-3.5 w-3.5" />
             Open original
           </a>
-          <button
-            type="button"
-            onClick={() => onDelete(currentProof.id, currentProof.file_url)}
-            className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Delete
-          </button>
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(currentProof.id, currentProof.file_url)}
+              className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </div>
