@@ -47,6 +47,9 @@ export default async function RecapPreviewPage({ params }: RecapPreviewPageProps
           eventId={eventId}
           partnerId={partnerId}
           shareUrl={shareUrl}
+          partnerContactEmail={partner.contact_email}
+          partnerName={partner.name}
+          eventName={event.name}
         />
       </div>
 

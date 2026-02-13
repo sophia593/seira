@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Trash2, Send, Copy, Check, ExternalLink } from 'lucide-react'
+import { Pencil, Trash2, Send, Copy, Check, ExternalLink, Download, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
@@ -30,9 +30,12 @@ interface RecapControlsProps {
   eventId: string
   partnerId: string
   shareUrl: string | null
+  partnerContactEmail?: string | null
+  partnerName?: string
+  eventName?: string
 }
 
-export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShareUrl }: RecapControlsProps) {
+export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShareUrl, partnerContactEmail, partnerName, eventName }: RecapControlsProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showEdit, setShowEdit] = useState(false)
@@ -44,6 +47,20 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
 
   const isDraft = recap.status === 'draft'
   const isPublished = recap.status === 'published'
+
+  const pdfUrl = `/api/recap/${recap.id}/pdf`
+
+  const buildMailtoUrl = () => {
+    if (!shareUrl) return null
+    const subject = encodeURIComponent(
+      `${eventName ?? 'Event'} — Sponsorship Recap for ${partnerName ?? 'Partner'}`
+    )
+    const body = encodeURIComponent(
+      `Hi${partnerContactEmail ? '' : ' there'},\n\nHere is your sponsorship recap report:\n${shareUrl}\n\nBest regards`
+    )
+    const to = partnerContactEmail ? encodeURIComponent(partnerContactEmail) : ''
+    return `mailto:${to}?subject=${subject}&body=${body}`
+  }
 
   const handleEdit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -121,6 +138,22 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
         <div className="flex-1" />
 
         {/* Actions */}
+        <a href={pdfUrl} download>
+          <Button variant="outline" size="sm" type="button">
+            <Download className="w-4 h-4 mr-1" />
+            Download PDF
+          </Button>
+        </a>
+
+        {isPublished && buildMailtoUrl() && (
+          <a href={buildMailtoUrl()!}>
+            <Button variant="outline" size="sm" type="button">
+              <Mail className="w-4 h-4 mr-1" />
+              Email
+            </Button>
+          </a>
+        )}
+
         <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
           <Pencil className="w-4 h-4 mr-1" />
           Edit

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Allow proof uploads up to 12 MB via server actions
+  serverExternalPackages: ['@react-pdf/renderer'],
   experimental: {
     serverActions: {
       bodySizeLimit: '12mb',
