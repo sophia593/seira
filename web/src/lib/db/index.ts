@@ -62,15 +62,11 @@ export {
 
 // Proofs
 export {
-  listProofs,
-  getProofById,
-  listProofsForEvent,
-  countProofs,
-  createProof,
-  updateProof,
-  deleteProof,
-  deleteProofsForDeliverable,
-  type CreateProofInput,
+  listProofByDeliverable,
+  listProofByPartner,
+  countProofByDeliverable,
+  createProofRecord,
+  deleteProofRecord,
 } from './proof'
 
 // Templates

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { getEventById } from '@/lib/db/events'
 import { getPartnerById } from '@/lib/db/partners'
 import { listDeliverablesByPartner } from '@/lib/db/deliverables'
+import { countProofByDeliverable, listProofByPartner } from '@/lib/db/proof'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { PartnerActions } from './partner-actions'
 import { DeliverableSection } from './deliverable-section'
@@ -24,11 +25,31 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
   if (!event || !partner) notFound()
   if (partner.event_id !== eventId) notFound()
 
+  // Fetch proof data
+  const deliverableIds = deliverables.map((d) => d.id)
+  const [proofCounts, allProofs] = await Promise.all([
+    countProofByDeliverable(deliverableIds),
+    listProofByPartner(partnerId),
+  ])
+
+  // Build proof map: deliverable_id → Proof[]
+  const proofMap: Record<string, typeof allProofs> = {}
+  for (const p of allProofs) {
+    const dId = p.deliverable_id
+    if (!proofMap[dId]) proofMap[dId] = []
+    proofMap[dId].push(p)
+  }
+
   // Compute status counts for chips
   const statusCounts = new Map<DeliverableStatus, number>()
   for (const d of deliverables) {
     statusCounts.set(d.status, (statusCounts.get(d.status) ?? 0) + 1)
   }
+
+  // Proof summary counts
+  const provedCount = statusCounts.get('proved') ?? 0
+  const doneCount = statusCounts.get('done') ?? 0
+  const needProofCount = doneCount // done but not yet proved
 
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
@@ -83,6 +104,37 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
                   </span>
                 )
               })}
+              {provedCount > 0 && (
+                <span className="border border-copper/30 bg-copper/5 rounded-full px-2.5 py-0.5 text-xs text-copper">
+                  {provedCount} of {deliverables.length} proved
+                </span>
+              )}
+              {needProofCount > 0 && (
+                <span className="border border-amber-200 bg-amber-50 rounded-full px-2.5 py-0.5 text-xs text-amber-600">
+                  {needProofCount} need proof
+                </span>
+              )}
+            </div>
+          )}
+
+          {deliverables.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-medium text-gray-500 mb-1.5">Proof collection</p>
+              <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full bg-copper rounded-full transition-all duration-300"
+                  style={{ width: `${deliverables.length > 0 ? Math.round((provedCount / deliverables.length) * 100) : 0}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {provedCount === deliverables.length ? (
+                  <span className="text-green-600 font-medium">All proof collected</span>
+                ) : provedCount > 0 ? (
+                  `${provedCount} of ${deliverables.length} deliverables have proof`
+                ) : (
+                  <span className="text-gray-300">No proof uploaded yet</span>
+                )}
+              </p>
             </div>
           )}
         </div>
@@ -94,6 +146,8 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
         deliverables={deliverables}
         eventId={eventId}
         partnerId={partnerId}
+        proofCounts={proofCounts}
+        proofMap={proofMap}
       />
     </div>
   )

@@ -1,179 +1,117 @@
 // lib/db/proof.ts
-// Proof CRUD operations
+// Proof data access — file-based proof records
 
-import { handleDbError, type SupabaseClient } from './client'
-import type { Proof, ProofType } from '@/lib/types/database'
+import { createClient } from '@/lib/supabase/server'
+import { handleDbError } from './client'
+import type {
+  Proof,
+  Deliverable,
+  ProofWithDeliverable,
+  CreateProofRecordInput,
+} from '@/lib/types/database'
 
 // =============================================================================
 // Read Operations
 // =============================================================================
 
-export async function listProofs(
-  supabase: SupabaseClient,
-  deliverableId: string
-): Promise<Proof[]> {
+/** List all proofs for a deliverable, newest first. */
+export async function listProofByDeliverable(deliverableId: string): Promise<Proof[]> {
+  const supabase = await createClient()
+
   const { data, error } = await supabase
     .from('proofs')
     .select('*')
     .eq('deliverable_id', deliverableId)
     .order('created_at', { ascending: false })
 
-  if (error) {
-    handleDbError(error, 'Failed to list proofs')
-  }
+  if (error) handleDbError(error, 'Failed to list proofs for deliverable')
 
   return (data ?? []) as Proof[]
 }
 
-export async function getProofById(
-  supabase: SupabaseClient,
-  proofId: string
-): Promise<Proof | null> {
-  const { data, error } = await supabase
-    .from('proofs')
-    .select('*')
-    .eq('id', proofId)
-    .single()
+/** List all proofs for a partner's deliverables, with deliverable metadata. */
+export async function listProofByPartner(partnerId: string): Promise<ProofWithDeliverable[]> {
+  const supabase = await createClient()
 
-  if (error) {
-    if (error.code === 'PGRST116') return null
-    handleDbError(error, 'Failed to get proof')
-  }
-
-  return data as Proof
-}
-
-/**
- * Get all proofs for an event (across all deliverables).
- */
-export async function listProofsForEvent(
-  supabase: SupabaseClient,
-  eventId: string
-): Promise<Proof[]> {
   const { data, error } = await supabase
     .from('proofs')
     .select(`
       *,
-      deliverables!inner (event_id)
+      deliverables!inner (id, title, partner_id, event_id)
     `)
-    .eq('deliverables.event_id', eventId)
+    .eq('deliverables.partner_id', partnerId)
     .order('created_at', { ascending: false })
 
-  if (error) {
-    handleDbError(error, 'Failed to list proofs for event')
-  }
+  if (error) handleDbError(error, 'Failed to list proofs for partner')
 
-  // Extract just the proof data
   return (data ?? []).map((row) => {
-    const { deliverables, ...proof } = row as Proof & { deliverables: unknown }
-    return proof
-  }) as Proof[]
+    const { deliverables, ...proof } = row as Proof & {
+      deliverables: Pick<Deliverable, 'id' | 'title' | 'partner_id' | 'event_id'>
+    }
+    return { ...proof, deliverable: deliverables } as ProofWithDeliverable
+  })
 }
 
 /**
- * Count proofs for a deliverable.
+ * Batch count proofs per deliverable.
+ * Returns a map of deliverable_id → proof count.
  */
-export async function countProofs(
-  supabase: SupabaseClient,
-  deliverableId: string
-): Promise<number> {
-  const { count, error } = await supabase
+export async function countProofByDeliverable(
+  deliverableIds: string[]
+): Promise<Record<string, number>> {
+  if (deliverableIds.length === 0) return {}
+
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
     .from('proofs')
-    .select('*', { count: 'exact', head: true })
-    .eq('deliverable_id', deliverableId)
+    .select('deliverable_id')
+    .in('deliverable_id', deliverableIds)
 
-  if (error) {
-    handleDbError(error, 'Failed to count proofs')
+  if (error) handleDbError(error, 'Failed to count proofs by deliverable')
+
+  const counts: Record<string, number> = {}
+  for (const row of data ?? []) {
+    counts[row.deliverable_id] = (counts[row.deliverable_id] ?? 0) + 1
   }
-
-  return count ?? 0
+  return counts
 }
 
 // =============================================================================
 // Write Operations
 // =============================================================================
 
-export interface CreateProofInput {
-  deliverable_id: string
-  type: ProofType
-  url: string
-  file_name?: string
-  note?: string
-  timestamp_note?: string
-  uploaded_by: string
-}
+/** Insert a new proof record. */
+export async function createProofRecord(input: CreateProofRecordInput): Promise<Proof> {
+  const supabase = await createClient()
 
-export async function createProof(
-  supabase: SupabaseClient,
-  input: CreateProofInput
-): Promise<Proof> {
   const { data, error } = await supabase
     .from('proofs')
     .insert({
       deliverable_id: input.deliverable_id,
-      type: input.type,
-      url: input.url,
-      file_name: input.file_name ?? null,
-      note: input.note ?? null,
-      timestamp_note: input.timestamp_note ?? null,
+      org_id: input.org_id,
+      file_url: input.file_url,
+      file_name: input.file_name,
+      file_type: input.file_type,
+      file_size: input.file_size,
       uploaded_by: input.uploaded_by,
     })
     .select()
     .single()
 
-  if (error) {
-    handleDbError(error, 'Failed to create proof')
-  }
+  if (error) handleDbError(error, 'Failed to create proof record')
 
   return data as Proof
 }
 
-export async function updateProof(
-  supabase: SupabaseClient,
-  proofId: string,
-  updates: Partial<Pick<Proof, 'note' | 'timestamp_note'>>
-): Promise<Proof> {
-  const { data, error } = await supabase
-    .from('proofs')
-    .update(updates)
-    .eq('id', proofId)
-    .select()
-    .single()
+/** Delete a proof record (does NOT delete the storage file). */
+export async function deleteProofRecord(proofId: string): Promise<void> {
+  const supabase = await createClient()
 
-  if (error) {
-    handleDbError(error, 'Failed to update proof')
-  }
-
-  return data as Proof
-}
-
-export async function deleteProof(
-  supabase: SupabaseClient,
-  proofId: string
-): Promise<void> {
   const { error } = await supabase
     .from('proofs')
     .delete()
     .eq('id', proofId)
 
-  if (error) {
-    handleDbError(error, 'Failed to delete proof')
-  }
-}
-
-/**
- * Delete all proofs for a deliverable.
- */
-export async function deleteProofsForDeliverable(
-  supabase: SupabaseClient,
-  deliverableId: string
-): Promise<void> {
-  const { error } = await supabase
-    .from('proofs')
-    .delete()
-    .eq('deliverable_id', deliverableId)
-
-  if (error) {
-    handleDbError(error, 'Failed to delete proofs for deliverable')
-  }
+  if (error) handleDbError(error, 'Failed to delete proof record')
 }

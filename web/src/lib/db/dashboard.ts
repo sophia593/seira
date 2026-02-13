@@ -3,7 +3,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
+import { countProofByDeliverable } from './proof'
 import type {
+  Event,
   EventWithCompletion,
   DeliverableWithPartner,
   Deliverable,
@@ -29,28 +31,42 @@ export interface DashboardStats {
 export async function getDashboardStats(orgId: string): Promise<DashboardStats> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('event_completion')
-    .select('status, total_deliverables, completed_deliverables, overdue_count')
+  // 1. All non-archived events for this org
+  const { data: events, error: eventError } = await supabase
+    .from('events')
+    .select('id, status')
     .eq('org_id', orgId)
     .neq('status', 'archived')
 
-  if (error) handleDbError(error, 'Failed to load dashboard stats')
+  if (eventError) handleDbError(eventError, 'Failed to load dashboard stats')
+  if (!events || events.length === 0) {
+    return { activeEvents: 0, totalDeliverables: 0, overdueCount: 0, completionPct: 0 }
+  }
 
-  const rows = data ?? []
+  const activeEvents = events.filter(
+    (e) => e.status === 'upcoming' || e.status === 'active'
+  ).length
 
-  let activeEvents = 0
+  // 2. All deliverables for those events
+  const eventIds = events.map((e) => e.id)
+  const { data: deliverables, error: delError } = await supabase
+    .from('deliverables')
+    .select('id, event_id, status, due_date')
+    .in('event_id', eventIds)
+
+  if (delError) handleDbError(delError, 'Failed to load deliverables for dashboard stats')
+
+  const today = new Date(new Date().toDateString())
   let totalDeliverables = 0
   let completedDeliverables = 0
   let overdueCount = 0
 
-  for (const row of rows) {
-    if (row.status === 'upcoming' || row.status === 'active') {
-      activeEvents++
+  for (const d of deliverables ?? []) {
+    totalDeliverables++
+    if (d.status === 'done' || d.status === 'proved') completedDeliverables++
+    if (d.due_date && d.status !== 'done' && d.status !== 'proved' && new Date(d.due_date) < today) {
+      overdueCount++
     }
-    totalDeliverables += row.total_deliverables ?? 0
-    completedDeliverables += row.completed_deliverables ?? 0
-    overdueCount += row.overdue_count ?? 0
   }
 
   return {
@@ -71,17 +87,50 @@ export async function getDashboardStats(orgId: string): Promise<DashboardStats> 
 export async function getUpcomingEvents(orgId: string): Promise<EventWithCompletion[]> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('event_completion')
+  // 1. Upcoming/active events, limit 5
+  const { data: events, error: eventError } = await supabase
+    .from('events')
     .select('*')
     .eq('org_id', orgId)
     .in('status', ['upcoming', 'active'])
     .order('date', { ascending: true, nullsFirst: false })
     .limit(5)
 
-  if (error) handleDbError(error, 'Failed to load upcoming events')
+  if (eventError) handleDbError(eventError, 'Failed to load upcoming events')
+  if (!events || events.length === 0) return []
 
-  return (data ?? []) as EventWithCompletion[]
+  // 2. Deliverables for those events
+  const eventIds = events.map((e) => e.id)
+  const { data: deliverables, error: delError } = await supabase
+    .from('deliverables')
+    .select('id, event_id, status, due_date')
+    .in('event_id', eventIds)
+
+  if (delError) handleDbError(delError, 'Failed to load deliverables for upcoming events')
+
+  // 3. Compute per-event stats
+  const today = new Date(new Date().toDateString())
+  const stats: Record<string, { total: number; completed: number; overdue: number }> = {}
+  for (const d of deliverables ?? []) {
+    const entry = stats[d.event_id] ?? { total: 0, completed: 0, overdue: 0 }
+    entry.total++
+    if (d.status === 'done' || d.status === 'proved') entry.completed++
+    if (d.due_date && d.status !== 'done' && d.status !== 'proved' && new Date(d.due_date) < today) {
+      entry.overdue++
+    }
+    stats[d.event_id] = entry
+  }
+
+  return (events as Event[]).map((e) => {
+    const s = stats[e.id] ?? { total: 0, completed: 0, overdue: 0 }
+    return {
+      ...e,
+      total_deliverables: s.total,
+      completed_deliverables: s.completed,
+      overdue_count: s.overdue,
+      completion_pct: s.total > 0 ? Math.round((s.completed / s.total) * 100) : 0,
+    }
+  })
 }
 
 // =============================================================================
@@ -126,7 +175,7 @@ export async function getOverdueDeliverables(orgId: string): Promise<Deliverable
 // Needs-proof deliverables list
 // =============================================================================
 
-/** Up to 10 deliverables with status 'done' (awaiting proof), with partner name. */
+/** Up to 10 deliverables with status 'done' and zero proofs, with partner name. */
 export async function getNeedsProofDeliverables(orgId: string): Promise<DeliverableWithPartner[]> {
   const supabase = await createClient()
 
@@ -148,12 +197,17 @@ export async function getNeedsProofDeliverables(orgId: string): Promise<Delivera
     .in('event_id', eventIds)
     .eq('status', 'done')
     .order('due_date', { ascending: true, nullsFirst: false })
-    .limit(10)
 
   if (error) handleDbError(error, 'Failed to load needs-proof deliverables')
 
-  return (data ?? []).map((row) => {
+  const rows = (data ?? []).map((row) => {
     const { partners, ...deliverable } = row as Deliverable & { partners: { id: string; name: string } }
     return { ...deliverable, partner: partners } as DeliverableWithPartner
   })
+
+  if (rows.length === 0) return []
+
+  // Filter to only deliverables with zero actual proofs
+  const proofCounts = await countProofByDeliverable(rows.map((r) => r.id))
+  return rows.filter((r) => (proofCounts[r.id] ?? 0) === 0).slice(0, 10)
 }

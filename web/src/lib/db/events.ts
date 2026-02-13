@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
+import { countProofByDeliverable } from './proof'
 import type { Event, CreateEventInput } from '@/lib/types/database'
 import { DEFAULT_EVENT_STATUS } from '@/lib/constants'
 
@@ -77,12 +78,20 @@ export async function listEventsWithCompletion(orgId: string) {
   const today = new Date(new Date().toDateString())
 
   const delStats: Record<string, { total: number; completed: number; overdue: number }> = {}
+  const doneDeliverableIds: string[] = []
+  const doneByEvent: Record<string, string[]> = {}
+
   for (const d of deliverables ?? []) {
     const entry = delStats[d.event_id] ?? { total: 0, completed: 0, overdue: 0 }
     entry.total++
     if (d.status === 'done' || d.status === 'proved') entry.completed++
     if (d.due_date && d.status !== 'done' && d.status !== 'proved' && new Date(d.due_date) < today) {
       entry.overdue++
+    }
+    if (d.status === 'done') {
+      doneDeliverableIds.push(d.id)
+      if (!doneByEvent[d.event_id]) doneByEvent[d.event_id] = []
+      doneByEvent[d.event_id].push(d.id)
     }
     delStats[d.event_id] = entry
   }
@@ -92,8 +101,15 @@ export async function listEventsWithCompletion(orgId: string) {
     partnerCounts[p.event_id] = (partnerCounts[p.event_id] ?? 0) + 1
   }
 
+  // 5. Compute needs_proof_count: done deliverables with zero proofs
+  const proofCounts = doneDeliverableIds.length > 0
+    ? await countProofByDeliverable(doneDeliverableIds)
+    : {}
+
   return (events as Event[]).map((e) => {
     const stats = delStats[e.id] ?? { total: 0, completed: 0, overdue: 0 }
+    const doneIds = doneByEvent[e.id] ?? []
+    const needsProofCount = doneIds.filter((id) => (proofCounts[id] ?? 0) === 0).length
     return {
       ...e,
       total_deliverables: stats.total,
@@ -101,6 +117,7 @@ export async function listEventsWithCompletion(orgId: string) {
       overdue_count: stats.overdue,
       completion_pct: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
       partner_count: partnerCounts[e.id] ?? 0,
+      needs_proof_count: needsProofCount,
     }
   })
 }

@@ -7,15 +7,23 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { DeliverableCard } from './deliverable-card'
 import { AddDeliverableDialog } from './add-deliverable-dialog'
 import { EditDeliverableDialog } from './edit-deliverable-dialog'
-import type { Deliverable } from '@/lib/types/database'
+import type { Deliverable, Proof } from '@/lib/types/database'
 
 interface DeliverableSectionProps {
   deliverables: Deliverable[]
   eventId: string
   partnerId: string
+  proofCounts: Record<string, number>
+  proofMap: Record<string, Proof[]>
 }
 
-export function DeliverableSection({ deliverables, eventId, partnerId }: DeliverableSectionProps) {
+export function DeliverableSection({
+  deliverables,
+  eventId,
+  partnerId,
+  proofCounts,
+  proofMap,
+}: DeliverableSectionProps) {
   const [showAdd, setShowAdd] = useState(false)
   const [editTarget, setEditTarget] = useState<Deliverable | null>(null)
 
@@ -51,6 +59,8 @@ export function DeliverableSection({ deliverables, eventId, partnerId }: Deliver
               deliverable={d}
               eventId={eventId}
               onEdit={setEditTarget}
+              proofCount={proofCounts[d.id] ?? 0}
+              proofs={proofMap[d.id] ?? []}
             />
           ))}
         </div>
@@ -67,6 +77,7 @@ export function DeliverableSection({ deliverables, eventId, partnerId }: Deliver
         deliverable={editTarget}
         eventId={eventId}
         onClose={() => setEditTarget(null)}
+        proofs={editTarget ? (proofMap[editTarget.id] ?? []) : []}
       />
     </div>
   )

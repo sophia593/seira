@@ -46,6 +46,11 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     completionMap[key] = { ...entry, pct: completionPct(entry.total, entry.completed) }
   }
 
+  // Proof readiness across all deliverables
+  const totalDeliverables = deliverables.length
+  const totalProved = deliverables.filter(d => d.status === 'proved').length
+  const proofPct = totalDeliverables > 0 ? Math.round((totalProved / totalDeliverables) * 100) : 0
+
   // First 3 deliverables per partner for inline preview
   const deliverablePreviewMap: Record<string, { id: string; title: string; status: DeliverableStatus; due_date: string | null }[]> = {}
   for (const d of deliverables) {
@@ -67,6 +72,25 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       <div className="flex items-start justify-between gap-4 mb-8">
         <div className="flex-1">
           <EventHeader event={event} />
+          {totalDeliverables > 0 && (
+            <div className="flex items-center gap-2.5 mt-2">
+              <span className="text-sm text-gray-400">
+                {totalProved === totalDeliverables ? (
+                  <span className="text-green-600">All proof collected</span>
+                ) : (
+                  `Proof: ${totalProved} of ${totalDeliverables} collected`
+                )}
+              </span>
+              {totalProved < totalDeliverables && (
+                <div className="w-16 h-1 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full bg-copper rounded-full"
+                    style={{ width: `${proofPct}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <EventActions event={event} />
       </div>

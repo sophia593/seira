@@ -15,7 +15,7 @@ import type { EventWithCompletion, DeliverableWithPartner, EventStatus } from '@
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SampleDataButton } from './sample-data-button'
-import { formatShortDate, CATEGORY_CONFIG } from '@/lib/constants'
+import { formatShortDate, CATEGORY_CONFIG, PROOF_REQUIRED_CONFIG } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -308,7 +308,7 @@ export default async function DashboardPage() {
                           <p className="text-sm font-medium truncate">{item.title}</p>
                           <span className="text-xs text-muted-foreground truncate">{item.partner.name}</span>
                           <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                            {CATEGORY_CONFIG[item.category].label}
+                            {PROOF_REQUIRED_CONFIG[item.proof_required]?.label ?? 'Proof'} needed &middot; {CATEGORY_CONFIG[item.category].label}
                           </p>
                         </div>
                       </Link>

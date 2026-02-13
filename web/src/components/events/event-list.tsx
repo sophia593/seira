@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, MoreHorizontal } from 'lucide-react'
+import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CreateEventDialog } from '@/app/(app)/events/create-event-dialog'
 import { deleteEventAction } from '@/app/(app)/actions/events'
@@ -148,6 +148,12 @@ export function EventList({ events }: EventListProps) {
                       {nextUpEvent.overdue_count > 0 && (
                         <span className="text-xs text-red-500 whitespace-nowrap">{nextUpEvent.overdue_count} overdue</span>
                       )}
+                      {(nextUpEvent.needs_proof_count ?? 0) > 0 && (
+                        <span className="text-xs text-amber-400 flex items-center gap-1 whitespace-nowrap">
+                          <AlertTriangle className="w-3 h-3" />
+                          {nextUpEvent.needs_proof_count} need proof
+                        </span>
+                      )}
                     </div>
                   )}
                   <Link
@@ -192,12 +198,18 @@ export function EventList({ events }: EventListProps) {
                     {event.partner_count} partner{event.partner_count !== 1 ? 's' : ''} · {event.total_deliverables} deliverable{event.total_deliverables !== 1 ? 's' : ''}
                   </span>
 
-                  {/* Progress bar + overdue */}
+                  {/* Progress bar + overdue + proof */}
                   {event.total_deliverables > 0 ? (
                     <div className="hidden sm:flex flex-col items-end shrink-0 gap-0.5">
                       <ProgressBar value={event.completion_pct} size="sm" className="w-24" />
                       {event.overdue_count > 0 && (
                         <span className="text-xs text-red-400">{event.overdue_count} overdue</span>
+                      )}
+                      {(event.needs_proof_count ?? 0) > 0 && (
+                        <span className="text-xs text-amber-400 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          {event.needs_proof_count} need proof
+                        </span>
                       )}
                     </div>
                   ) : (

@@ -65,14 +65,13 @@ export interface Deliverable {
 export interface Proof {
   id: string;
   deliverable_id: string;
-  type: ProofType;
-  url: string;
-  file_name: string | null;
-  note: string | null;
-  timestamp_note: string | null;
+  org_id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
   uploaded_by: string;
   created_at: string;
-  updated_at: string;
 }
 
 export interface Template {
@@ -105,10 +104,15 @@ export interface EventWithCompletion extends Event {
   completed_deliverables: number;
   overdue_count: number;
   completion_pct: number;
+  needs_proof_count?: number;
 }
 
 export interface DeliverableWithPartner extends Deliverable {
   partner: Pick<Partner, 'id' | 'name'>;
+}
+
+export interface ProofWithDeliverable extends Proof {
+  deliverable: Pick<Deliverable, 'id' | 'title' | 'partner_id' | 'event_id'>;
 }
 
 // === FORM TYPES ===
@@ -139,4 +143,14 @@ export interface CreateDeliverableInput {
   status?: DeliverableStatus;
   proof_required?: ProofRequired;
   notes?: string;
+}
+
+export interface CreateProofRecordInput {
+  deliverable_id: string;
+  org_id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  uploaded_by: string;
 }
