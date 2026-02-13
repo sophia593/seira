@@ -300,3 +300,72 @@
     transform: translateX(200%);
   }
 }
+
+/* =========================================================================
+   Print styles — clean output for recap pages
+   ========================================================================= */
+
+@media print {
+  /* Hide interactive chrome */
+  .print\:hidden,
+  nav,
+  button,
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  /* White background everywhere */
+  body,
+  html,
+  main,
+  [class*="bg-gray"],
+  [class*="bg-white"],
+  [class*="bg-amber"],
+  [class*="bg-green"] {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Remove shadows and hover effects */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Prevent deliverable cards from splitting across pages */
+  .print\:break-inside-avoid,
+  [class*="rounded-xl"][class*="border"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Keep images reasonable */
+  img {
+    max-width: 100% !important;
+    max-height: 300px !important;
+    object-fit: contain !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure links show URL */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.7em;
+    color: #666;
+    word-break: break-all;
+  }
+
+  /* Don't show URL for proof image links */
+  a[href^="http"] > img {
+    display: inline;
+  }
+  a:has(> img)::after {
+    content: none;
+  }
+
+  /* Clean page margins */
+  @page {
+    margin: 1.5cm;
+  }
+}

@@ -132,7 +132,10 @@ export async function updateRecap(
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (input.title !== undefined) updates.title = input.title
   if (input.cover_note !== undefined) updates.cover_note = input.cover_note || null
-  if (input.status !== undefined) updates.status = input.status
+  if (input.status !== undefined) {
+    updates.status = input.status
+    if (input.status === 'draft') updates.published_at = null
+  }
 
   const { data, error } = await supabase
     .from('recap_reports')

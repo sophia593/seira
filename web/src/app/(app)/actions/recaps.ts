@@ -144,6 +144,35 @@ export async function publishRecapAction(
 }
 
 // ---------------------------------------------------------------------------
+// Unpublish
+// ---------------------------------------------------------------------------
+
+export async function unpublishRecapAction(
+  recapId: string,
+  eventId: string,
+  partnerId: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!isUuid(recapId)) return { ok: false, error: 'Invalid recap ID' }
+
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+
+    await updateRecap(recapId, { status: 'draft' })
+
+    revalidatePath('/dashboard')
+    revalidatePath(`/events/${eventId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}/recap/${recapId}`)
+
+    return { ok: true }
+  } catch (err) {
+    console.error('unpublishRecapAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to unpublish recap' }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Delete
 // ---------------------------------------------------------------------------
 

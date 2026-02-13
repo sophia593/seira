@@ -54,6 +54,13 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
   const doneCount = statusCounts.get('done') ?? 0
   const needProofCount = doneCount // done but not yet proved
 
+  // Latest recap status for chip
+  const latestRecap = recaps[0] ?? null
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const recapPublicUrl = latestRecap?.status === 'published'
+    ? `${baseUrl}/recap/${latestRecap.share_token}`
+    : null
+
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
       <Breadcrumbs
@@ -115,6 +122,22 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
               {needProofCount > 0 && (
                 <span className="border border-amber-200 bg-amber-50 rounded-full px-2.5 py-0.5 text-xs text-amber-600">
                   {needProofCount} need proof
+                </span>
+              )}
+              {latestRecap?.status === 'published' && recapPublicUrl && (
+                <a
+                  href={recapPublicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 border border-green-200 bg-green-50 rounded-full px-2.5 py-0.5 text-xs text-green-700 hover:bg-green-100 transition-colors"
+                >
+                  Recap published
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                </a>
+              )}
+              {latestRecap?.status === 'draft' && (
+                <span className="border border-amber-200 bg-amber-50 rounded-full px-2.5 py-0.5 text-xs text-amber-600">
+                  Recap draft
                 </span>
               )}
             </div>

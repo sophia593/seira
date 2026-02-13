@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Trash2, Send, Copy, Check, ExternalLink, Download, Mail } from 'lucide-react'
+import { Pencil, Trash2, Send, Copy, Check, ExternalLink, Download, Mail, EyeOff, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ import { toast } from '@/components/ui/sonner'
 import {
   updateRecapAction,
   publishRecapAction,
+  unpublishRecapAction,
   deleteRecapAction,
 } from '@/app/(app)/actions/recaps'
 import type { RecapReport } from '@/lib/types/database'
@@ -86,8 +87,21 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
         toast.error(result.error ?? 'Failed to publish')
         return
       }
-      toast.success('Recap published')
+      toast.success('Recap published — share link is ready')
       setShareUrl(result.shareUrl ?? null)
+      router.refresh()
+    })
+  }
+
+  const handleUnpublish = () => {
+    startTransition(async () => {
+      const result = await unpublishRecapAction(recap.id, eventId, partnerId)
+      if (!result.ok) {
+        toast.error(result.error ?? 'Failed to unpublish')
+        return
+      }
+      toast.success('Recap reverted to draft')
+      setShareUrl(null)
       router.refresh()
     })
   }
@@ -123,6 +137,7 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
 
   return (
     <>
+      {/* Action bar */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Status badge */}
         <span
@@ -144,15 +159,6 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
             Download PDF
           </Button>
         </a>
-
-        {isPublished && buildMailtoUrl() && (
-          <a href={buildMailtoUrl()!}>
-            <Button variant="outline" size="sm" type="button">
-              <Mail className="w-4 h-4 mr-1" />
-              Email
-            </Button>
-          </a>
-        )}
 
         <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
           <Pencil className="w-4 h-4 mr-1" />
@@ -182,30 +188,61 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
         </Button>
       </div>
 
-      {/* Share URL */}
-      {shareUrl && (
-        <div className="flex items-center gap-2 mt-3">
-          <div className="flex-1 min-w-0">
-            <input
-              type="text"
-              readOnly
-              value={shareUrl}
-              className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600 truncate"
-              onClick={(e) => (e.target as HTMLInputElement).select()}
-            />
+      {/* Draft callout */}
+      {isDraft && (
+        <div className="flex items-start gap-2.5 mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-sm text-amber-700">
+            This recap is a draft. Publish it to generate a shareable link.
+          </p>
+        </div>
+      )}
+
+      {/* Share section */}
+      {isPublished && shareUrl && (
+        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+          <p className="text-xs font-medium text-gray-500 mb-2.5">Share</p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <input
+                type="text"
+                readOnly
+                value={shareUrl}
+                className="w-full rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 truncate"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+            </div>
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+            <a
+              href={shareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
-          <Button variant="outline" size="sm" onClick={handleCopy}>
-            {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-            {copied ? 'Copied' : 'Copy link'}
-          </Button>
-          <a
-            href={shareUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          <div className="flex items-center gap-3 mt-3">
+            {buildMailtoUrl() && (
+              <a href={buildMailtoUrl()!} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                <Mail className="w-3.5 h-3.5" />
+                Share via email
+              </a>
+            )}
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={handleUnpublish}
+              disabled={isPending}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+            >
+              <EyeOff className="w-3.5 h-3.5" />
+              Unpublish
+            </button>
+          </div>
         </div>
       )}
 
