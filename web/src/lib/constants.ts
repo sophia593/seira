@@ -202,6 +202,13 @@ export const EVENT_STATUS_CONFIG: Record<
 
 export const EVENT_STATUS_FLOW: EventStatus[] = ['upcoming', 'active', 'completed', 'archived'];
 
+export const EVENT_DOT_COLOR: Record<EventStatus, string> = {
+  upcoming: 'bg-copper',
+  active: 'bg-green-500',
+  completed: 'bg-gray-400',
+  archived: 'bg-gray-500',
+};
+
 // ============================================
 // PROOF REQUIRED TYPES
 // ============================================

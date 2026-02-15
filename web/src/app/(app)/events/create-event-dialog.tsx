@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createEventAction } from '@/app/(app)/actions/events'
+import { toast } from '@/components/ui/sonner'
 
 interface CreateEventDialogProps {
   open: boolean
@@ -40,6 +41,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
       }
       formRef.current?.reset()
       setError(null)
+      toast.success('Event created')
       onOpenChange(false)
       if (result.id) {
         router.push(`/events/${result.id}`)
@@ -112,7 +114,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
           <p className="text-[10px] tracking-widest text-gray-400 uppercase">Schedule & Notes</p>
           <div className="space-y-1.5">
             <Label htmlFor="date">Date</Label>
-            <Input id="date" name="date" type="text" placeholder="YYYY-MM-DD" disabled={isPending} />
+            <Input id="date" name="date" type="date" disabled={isPending} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="notes">Notes</Label>

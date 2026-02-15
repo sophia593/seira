@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createPartnerAction } from '@/app/(app)/actions/partners'
+import { toast } from '@/components/ui/sonner'
 
 interface AddPartnerDialogProps {
   open: boolean
@@ -42,6 +43,10 @@ export function AddPartnerDialog({ open, onOpenChange, eventId }: AddPartnerDial
       formRef.current?.reset()
       setError(null)
       onOpenChange(false)
+      toast.success('Partner added')
+      if (result.id) {
+        router.push(`/events/${eventId}/partners/${result.id}`)
+      }
       router.refresh()
     })
   }

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { UserMenu } from '@/components/layout/user-menu'
 import { LogoIcon } from '@/components/logo'
 import { useOrgStore } from '@/stores/org-store'
+import { EVENT_DOT_COLOR } from '@/lib/constants'
 
 // =============================================================================
 // Navigation Items
@@ -17,17 +18,6 @@ const NAV_ITEMS = [
   { href: '/events', label: 'Events', icon: CalendarDays },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
-
-// =============================================================================
-// Status Dot Colors (for recent events)
-// =============================================================================
-
-const STATUS_DOT: Record<string, string> = {
-  upcoming: 'bg-copper',
-  active: 'bg-green-500',
-  completed: 'bg-gray-400',
-  archived: 'bg-gray-500',
-}
 
 // =============================================================================
 // Types
@@ -112,7 +102,7 @@ function Sidebar({ recentEvents = [] }: { recentEvents?: RecentEvent[] }) {
                         : 'text-white/40 hover:text-white/60 hover:bg-white/5'
                     )}
                   >
-                    <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', STATUS_DOT[event.status] || 'bg-gray-500')} />
+                    <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', EVENT_DOT_COLOR[event.status as keyof typeof EVENT_DOT_COLOR] || 'bg-gray-500')} />
                     <span className="truncate">{event.name}</span>
                   </Link>
                 </li>

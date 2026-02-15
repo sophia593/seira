@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createDeliverableAction } from '@/app/(app)/actions/deliverables'
+import { toast } from '@/components/ui/sonner'
 import { CATEGORIES, CATEGORY_CONFIG, PROOF_REQUIRED_OPTIONS, PROOF_REQUIRED_CONFIG } from '@/lib/constants'
 
 interface AddDeliverableDialogProps {
@@ -51,6 +52,7 @@ export function AddDeliverableDialog({ open, onOpenChange, eventId, partnerId }:
       formRef.current?.reset()
       setError(null)
       onOpenChange(false)
+      toast.success('Deliverable added')
       router.refresh()
     })
   }
@@ -115,7 +117,7 @@ export function AddDeliverableDialog({ open, onOpenChange, eventId, partnerId }:
                 id="notes"
                 name="notes"
                 rows={3}
-                placeholder="e.g., 30-second rotation during 3rd–7th innings"
+                placeholder="e.g., 30-second rotation during breaks"
                 className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
@@ -128,8 +130,7 @@ export function AddDeliverableDialog({ open, onOpenChange, eventId, partnerId }:
               <Input
                 id="due_date"
                 name="due_date"
-                type="text"
-                placeholder="YYYY-MM-DD"
+                type="date"
               />
             </div>
             <div className="space-y-1.5">

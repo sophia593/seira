@@ -244,8 +244,7 @@ export function EditDeliverableDialog({ deliverable, eventId, onClose, proofs }:
                     <Input
                       id="edit-due_date"
                       name="due_date"
-                      type="text"
-                      placeholder="YYYY-MM-DD"
+                      type="date"
                       defaultValue={deliverable.due_date ?? ''}
                     />
                   </div>

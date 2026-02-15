@@ -15,7 +15,7 @@ import type { EventWithCompletion, DeliverableWithPartner, EventStatus } from '@
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SampleDataButton } from './sample-data-button'
-import { formatShortDate, CATEGORY_CONFIG, PROOF_REQUIRED_CONFIG } from '@/lib/constants'
+import { formatShortDate, CATEGORY_CONFIG, PROOF_REQUIRED_CONFIG, EVENT_DOT_COLOR } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -34,12 +34,6 @@ function settle<T>(result: PromiseSettledResult<T>, fallback: T, label: string):
   return fallback
 }
 
-const EVENT_DOT_COLOR: Record<EventStatus, string> = {
-  upcoming: 'bg-blue-500',
-  active: 'bg-amber-500',
-  completed: 'bg-copper',
-  archived: 'bg-gray-400',
-}
 
 function completionColor(pct: number): string | undefined {
   if (pct >= 80) return 'text-copper'
@@ -341,13 +335,6 @@ export default async function DashboardPage() {
         >
           <Plus className="h-3.5 w-3.5" />
           New Event
-        </Link>
-        <Link
-          href="/events"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add Partner
         </Link>
         <Link
           href="/events"

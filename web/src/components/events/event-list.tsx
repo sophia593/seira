@@ -19,19 +19,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { toast } from '@/components/ui/sonner'
-import { formatEventDate, formatShortDate } from '@/lib/constants'
+import { formatEventDate, formatShortDate, EVENT_DOT_COLOR } from '@/lib/constants'
 import type { EventStatus, EventWithCompletion } from '@/lib/types/database'
-
-// =============================================================================
-// Status Dot Colors
-// =============================================================================
-
-const STATUS_DOT: Record<EventStatus, string> = {
-  upcoming: 'bg-copper',
-  active: 'bg-green-500',
-  completed: 'bg-gray-300',
-  archived: 'bg-gray-200',
-}
 
 // =============================================================================
 // Types
@@ -183,7 +172,7 @@ export function EventList({ events }: EventListProps) {
                   {/* Status dot + name + venue/date */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={cn('h-2 w-2 rounded-full shrink-0', STATUS_DOT[event.status])} />
+                      <span className={cn('h-2 w-2 rounded-full shrink-0', EVENT_DOT_COLOR[event.status])} />
                       <span className="text-sm font-medium text-gray-900 truncate">{event.name}</span>
                     </div>
                     {(event.venue || event.date) && (
