@@ -4,6 +4,7 @@ import { CalendarDays, Users, ClipboardCheck, Plus, ArrowRight } from 'lucide-re
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { getOrganization } from '@/lib/db/organizations'
+import { CreateWorkspaceForm } from '../create-workspace-form'
 import {
   getDashboardStats,
   getUpcomingEvents,
@@ -54,16 +55,8 @@ export default async function DashboardPage() {
   const membership = await getUserMembership(supabase, user.id)
 
   if (!membership) {
-    console.error('[Dashboard] No membership found after layout bootstrap')
-    return (
-      <div className="px-4 py-6 md:px-8 md:py-8 max-w-6xl mx-auto">
-        <EmptyState
-          icon={CalendarDays}
-          title="Workspace setup incomplete"
-          description="Your workspace couldn't be created automatically. Please check server logs or contact support."
-        />
-      </div>
-    )
+    console.error('[Dashboard] No membership found after layout bootstrap — showing workspace creation form')
+    return <CreateWorkspaceForm />
   }
 
   const orgId = membership.org_id

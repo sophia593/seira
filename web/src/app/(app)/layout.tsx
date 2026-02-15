@@ -43,6 +43,7 @@ export default async function AppLayout({
 
     // 2. If no membership, try auto-creating via admin client (once)
     if (!membership) {
+      console.warn('[Org bootstrap] No membership via anon client for user', user.id, '— attempting admin bootstrap')
       const admin = tryCreateAdminClient()
 
       if (admin) {

@@ -529,6 +529,11 @@ export default function SignupPage() {
           </button>
         </form>
 
+        {/* Email confirmation note */}
+        <p className="text-xs text-center text-gray-400 mt-3">
+          we'll send a confirmation email to verify your address
+        </p>
+
         {/* Terms */}
         <p className="mt-5 text-center text-xs text-gray-400">
           by signing up, you agree to our{" "}
