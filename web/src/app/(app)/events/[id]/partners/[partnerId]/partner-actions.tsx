@@ -160,7 +160,7 @@ export function PartnerActions({ partner, eventId, deliverableCount = 0 }: Partn
                   name="contract_notes"
                   rows={3}
                   defaultValue={partner.contract_notes ?? ''}
-                  placeholder="e.g., $25K — 3x LED, 2 social, suite"
+                  placeholder="e.g., $35K — LED boards, 2 social posts, suite"
                   className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>

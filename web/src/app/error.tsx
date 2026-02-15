@@ -233,10 +233,10 @@ export default function Error({ error, reset }: ErrorProps) {
             size="sm"
             className="lowercase gap-2 text-muted-foreground"
           >
-            <Link href="/contact">
+            <a href="mailto:support@seira.global">
               <Mail className="w-4 h-4" />
               contact us
-            </Link>
+            </a>
           </Button>
 
           {/* Error reference */}

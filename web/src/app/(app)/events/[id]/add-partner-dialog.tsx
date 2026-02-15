@@ -78,7 +78,7 @@ export function AddPartnerDialog({ open, onOpenChange, eventId }: AddPartnerDial
               <Input
                 id="name"
                 name="name"
-                placeholder="e.g., Metro Credit Union"
+                placeholder="e.g., Apex Financial Group"
                 required
                 autoFocus
               />
@@ -90,7 +90,7 @@ export function AddPartnerDialog({ open, onOpenChange, eventId }: AddPartnerDial
                 id="contract_notes"
                 name="contract_notes"
                 rows={3}
-                placeholder="e.g., $25K — 3x LED, 2 social, suite"
+                placeholder="e.g., $35K — LED boards, 2 social posts, suite"
                 className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
@@ -103,7 +103,7 @@ export function AddPartnerDialog({ open, onOpenChange, eventId }: AddPartnerDial
               <Input
                 id="contact_name"
                 name="contact_name"
-                placeholder="e.g., Jane Smith"
+                placeholder="e.g., Dana Reyes"
               />
             </div>
             <div className="space-y-1.5">
@@ -112,7 +112,7 @@ export function AddPartnerDialog({ open, onOpenChange, eventId }: AddPartnerDial
                 id="contact_email"
                 name="contact_email"
                 type="email"
-                placeholder="e.g., jane@metrocu.com"
+                placeholder="e.g., dreyes@apexfg.com"
               />
             </div>
           </div>

@@ -74,7 +74,7 @@ export default function PrivacyPage() {
           effective date: january 1, 2026
         </p>
         <p className="text-xs text-muted-foreground mb-8">
-          last updated: january 13, 2026
+          last updated: february 12, 2026
         </p>
 
         {/* Introduction */}
@@ -96,9 +96,8 @@ export default function PrivacyPage() {
           <p className="font-medium text-foreground">Information You Provide Directly</p>
           <ul className="list-disc list-inside space-y-1.5 ml-2 mt-2">
             <li><span className="font-medium text-foreground">Account Information:</span> When you create an account, we collect your email address, name, and password. If you sign in via Google OAuth, we receive your name, email address, and profile picture from Google.</li>
-            <li><span className="font-medium text-foreground">Travel Preferences:</span> Home airport code, preferred cabin class, seat preference, and default budget that you voluntarily provide.</li>
-            <li><span className="font-medium text-foreground">Communications:</span> Chat conversations with our AI assistant, including event searches, travel inquiries, and trip planning details.</li>
-            <li><span className="font-medium text-foreground">Trip Information:</span> Saved trips, including event details, flight preferences, hotel preferences, and booking information.</li>
+            <li><span className="font-medium text-foreground">Organization Data:</span> Events, partners, deliverables, and associated metadata that you create within your workspace.</li>
+            <li><span className="font-medium text-foreground">Uploaded Files:</span> Proof-of-performance files (photos, videos, PDFs) that you upload to your workspace.</li>
             <li><span className="font-medium text-foreground">Support Inquiries:</span> Information you provide when contacting us for customer support.</li>
           </ul>
 
@@ -115,7 +114,7 @@ export default function PrivacyPage() {
         <Section icon={<Database className="w-4 h-4" />} title="how we use your information">
           <p>We use the information we collect for the following purposes:</p>
           <ul className="list-disc list-inside space-y-1.5 ml-2 mt-2">
-            <li><span className="font-medium text-foreground">Provide the Service:</span> To operate, maintain, and deliver the features and functionality of the Service, including searching for events, flights, and accommodations.</li>
+            <li><span className="font-medium text-foreground">Provide the Service:</span> To operate, maintain, and deliver the features and functionality of the Service, including managing events, tracking deliverables, and generating reports.</li>
             <li><span className="font-medium text-foreground">Personalization:</span> To remember your preferences and provide personalized recommendations.</li>
             <li><span className="font-medium text-foreground">Communication:</span> To send you service-related notices, updates, security alerts, and administrative messages.</li>
             <li><span className="font-medium text-foreground">Improvement:</span> To analyze usage patterns, diagnose technical issues, and improve the Service.</li>
@@ -139,11 +138,7 @@ export default function PrivacyPage() {
 
           <p className="font-medium text-foreground mt-4">Service Providers</p>
           <ul className="list-disc list-inside space-y-1.5 ml-2 mt-2">
-            <li><span className="font-medium text-foreground">Supabase:</span> Database hosting and user authentication services.</li>
-            <li><span className="font-medium text-foreground">Anthropic (Claude):</span> AI language model powering our chat assistant.</li>
-            <li><span className="font-medium text-foreground">Google (Gemini):</span> AI services for web research on venues and accommodations.</li>
-            <li><span className="font-medium text-foreground">Ticketmaster:</span> Event information and ticket availability data.</li>
-            <li><span className="font-medium text-foreground">Amadeus:</span> Flight search and pricing information.</li>
+            <li><span className="font-medium text-foreground">Supabase:</span> Database hosting, user authentication, and file storage services.</li>
             <li><span className="font-medium text-foreground">Vercel:</span> Website hosting and deployment.</li>
           </ul>
 
@@ -188,8 +183,8 @@ export default function PrivacyPage() {
           </p>
           <ul className="list-disc list-inside space-y-1.5 ml-2 mt-2">
             <li><span className="font-medium text-foreground">Account Information:</span> Retained until you delete your account.</li>
-            <li><span className="font-medium text-foreground">Conversation History:</span> Retained until you delete conversations or your account.</li>
-            <li><span className="font-medium text-foreground">Trip Information:</span> Retained until you delete trips or your account.</li>
+            <li><span className="font-medium text-foreground">Organization Data:</span> Events, partners, and deliverables retained until deleted by workspace owner or account closure.</li>
+            <li><span className="font-medium text-foreground">Uploaded Files:</span> Proof files retained until deleted or account closure.</li>
             <li><span className="font-medium text-foreground">Log Data:</span> Retained for up to 90 days for security and debugging purposes.</li>
           </ul>
           <p className="mt-3">
@@ -205,7 +200,7 @@ export default function PrivacyPage() {
           <p className="mt-2">Regardless of your location, you may:</p>
           <ul className="list-disc list-inside space-y-1.5 ml-2 mt-2">
             <li>Access and update your account information through Settings</li>
-            <li>Delete your conversations and saved trips at any time</li>
+            <li>Delete your events, partners, and uploaded proof files at any time</li>
             <li>Delete your account and all associated data</li>
             <li>Contact us to request information about your data</li>
           </ul>
@@ -362,9 +357,9 @@ export default function PrivacyPage() {
             terms of service
           </Link>
           <span className="mx-2">•</span>
-          <Link href="/contact" className="hover:text-foreground transition-colors">
-            contact
-          </Link>
+          <a href="mailto:support@seira.global" className="hover:text-foreground transition-colors">
+            support
+          </a>
           <span className="mx-2">•</span>
           <Link href="/" className="hover:text-foreground transition-colors">
             back to seira

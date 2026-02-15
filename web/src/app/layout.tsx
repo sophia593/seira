@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     default: "seira",
     template: "%s · seira",
   },
-  description: "plan trips around the events you love",
+  description: "sponsorship fulfillment and proof of performance",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

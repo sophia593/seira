@@ -89,7 +89,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             <Input
               id="name"
               name="name"
-              placeholder="e.g., Opening Night 2026"
+              placeholder="e.g., Legends Cup — Opening Night"
               required
               autoFocus
               disabled={isPending}

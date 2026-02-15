@@ -22,22 +22,22 @@ interface SeedDeliverable {
 
 const PARTNERS = [
   {
-    name: 'Metro Credit Union',
-    contact_name: 'Jane Smith',
-    contact_email: 'jane@metrocu.com',
-    contract_notes: '$25K — 3x LED rotations, 2 social posts, suite access',
+    name: 'Apex Financial Group',
+    contact_name: 'Dana Reyes',
+    contact_email: 'dreyes@apexfg.com',
+    contract_notes: '$35K — LED boards, 2 social posts, premium suite',
   },
   {
-    name: 'Coca-Cola',
-    contact_name: 'Marcus Lee',
-    contact_email: 'mlee@coca-cola.com',
-    contract_notes: '$40K — pouring rights, LED, digital campaign, 2 hospitality suites',
+    name: 'Brightwave Energy',
+    contact_name: 'Jordan Hale',
+    contact_email: 'jhale@brightwave.co',
+    contract_notes: '$50K — main stage banner, digital campaign, VIP hospitality, recap video',
   },
   {
-    name: 'Toyota',
-    contact_name: 'Sarah Chen',
-    contact_email: 'schen@toyota.com',
-    contract_notes: '$30K — car display activation, signage, talent appearance, content package',
+    name: 'Catalina Brewing Co.',
+    contact_name: 'Mia Rosario',
+    contact_email: 'mia@catalinabrewing.com',
+    contract_notes: '$20K — concourse signage, PA mentions, sampling activation',
   },
 ]
 
@@ -49,7 +49,7 @@ function makeDeliverables(): SeedDeliverable[] {
       status: 'in_progress',
       due_date: daysFromNow(5),
       proof_required: 'photo',
-      notes: '30-second rotation during 3rd–7th innings',
+      notes: '30-second rotation during breaks',
     },
     {
       title: 'Social media post',
@@ -81,7 +81,7 @@ function makeDeliverables(): SeedDeliverable[] {
       status: 'not_started',
       due_date: daysFromNow(-3),
       proof_required: 'file',
-      notes: '15-second read during 5th inning break',
+      notes: '15-second read during halftime break',
     },
     {
       title: 'Recap video clip',
@@ -126,8 +126,8 @@ export async function seedSampleDataAction(): Promise<{ ok: boolean; error?: str
 
     // Insert 2 events
     const eventRows = [
-      { org_id: orgId, name: 'Home Opener vs Eagles', status: 'upcoming', date: daysFromNow(10), venue: 'Riverside Arena', notes: 'Season opener — all partners activated' },
-      { org_id: orgId, name: 'Friday Night Concert Series', status: 'upcoming', date: daysFromNow(25), venue: 'Riverside Arena', notes: 'First of 4 concert nights this season' },
+      { org_id: orgId, name: 'Legends Cup — Opening Night', status: 'upcoming', date: daysFromNow(10), venue: 'Meridian Field', notes: 'Season opener — full partner activation' },
+      { org_id: orgId, name: 'Neon Nights Music Festival', status: 'upcoming', date: daysFromNow(25), venue: 'Harborview Pavilion', notes: 'Two-day festival, 3 stages' },
     ]
 
     const { data: events, error: eventsError } = await supabase

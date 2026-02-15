@@ -11,7 +11,7 @@ import { CheckCircle, Loader2 } from 'lucide-react'
  * Shown briefly after email verification or OAuth callback.
  * Shows contextual messaging based on the `from` query param
  * (e.g. ?from=signup → "email verified"), then redirects to
- * the stored redirect URL or /trips.
+ * the stored redirect URL or /dashboard.
  */
 
 function AuthCompleteContent() {

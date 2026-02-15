@@ -29,7 +29,7 @@ export default function TermsPage() {
           terms of service
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
-          last updated: january 2026
+          last updated: february 2026
         </p>
 
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8">
@@ -46,13 +46,13 @@ export default function TermsPage() {
             <h2 className="text-lg font-medium mb-3 lowercase">what seira is</h2>
             <div className="space-y-3 text-muted-foreground">
               <p>
-                Seira is an AI assistant that helps you discover live events and plan trips to attend them.
-                We search for events, suggest flights, research hotels, and help you organize your travel plans.
+                Seira is a sponsorship fulfillment platform that helps rights holders track partner
+                deliverables, collect proof of performance, and generate recap reports.
               </p>
               <p>
-                <strong className="text-foreground">Important:</strong> Seira does not book or purchase anything on your behalf.
-                We provide information and links to third-party services (Ticketmaster, airlines, hotels) where you
-                complete your own bookings.
+                <strong className="text-foreground">Important:</strong> Seira stores data you provide
+                (events, partners, deliverables, proof files) in your organization&apos;s workspace.
+                We do not process payments or manage contracts.
               </p>
             </div>
           </section>
@@ -89,24 +89,19 @@ export default function TermsPage() {
             </div>
           </section>
 
-          {/* Information Accuracy */}
+          {/* Data Accuracy */}
           <section>
-            <h2 className="text-lg font-medium mb-3 lowercase">information accuracy</h2>
+            <h2 className="text-lg font-medium mb-3 lowercase">data accuracy</h2>
             <div className="space-y-3 text-muted-foreground">
               <p>
-                Seira provides information from third-party sources like Ticketmaster and web searches.
-                While we try to be accurate:
+                Seira displays information that you and your team enter. While we work to keep the
+                platform reliable:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-2">
-                <li>Event details, prices, and availability can change at any time</li>
-                <li>Flight prices are estimates and may differ when you book</li>
-                <li>Hotel information is for reference—always verify before booking</li>
-                <li>AI-generated responses may occasionally contain errors</li>
+                <li>The accuracy of event, partner, and deliverable data depends on what you enter</li>
+                <li>Generated reports reflect the current state of your data at time of creation</li>
+                <li>We are not responsible for errors in user-provided content</li>
               </ul>
-              <p className="mt-3">
-                <strong className="text-foreground">Always verify important details</strong> directly with the
-                event venue, airline, or hotel before making purchases.
-              </p>
             </div>
           </section>
 
@@ -115,16 +110,16 @@ export default function TermsPage() {
             <h2 className="text-lg font-medium mb-3 lowercase">third-party services</h2>
             <div className="space-y-3 text-muted-foreground">
               <p>
-                When you click links to book tickets, flights, or hotels, you're leaving Seira and
-                using third-party services. Those services have their own terms and privacy policies.
+                Seira relies on third-party infrastructure to operate, including Supabase for data
+                storage and authentication, Vercel for hosting, and cloud storage for proof files.
+                These services have their own terms and privacy policies.
               </p>
               <p>
-                We're not responsible for:
+                We&apos;re not responsible for:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-2">
-                <li>Transactions you make on other websites</li>
-                <li>Content or accuracy of third-party sites</li>
-                <li>Issues with bookings made elsewhere</li>
+                <li>Outages or issues with third-party infrastructure providers</li>
+                <li>Data loss caused by external service failures beyond our control</li>
               </ul>
             </div>
           </section>
@@ -134,8 +129,8 @@ export default function TermsPage() {
             <h2 className="text-lg font-medium mb-3 lowercase">intellectual property</h2>
             <div className="space-y-3 text-muted-foreground">
               <p>
-                Seira's design, code, and branding are owned by us. Your conversations and trip plans
-                belong to you.
+                Seira&apos;s design, code, and branding are owned by us. Your event data, partner
+                information, deliverables, and uploaded proof files belong to you.
               </p>
               <p>
                 You grant us permission to use your data to provide and improve the service, as
@@ -155,9 +150,9 @@ export default function TermsPage() {
                 Seira is provided "as is" without warranties. To the maximum extent permitted by law:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-2">
-                <li>We're not liable for missed events, flights, or travel issues</li>
-                <li>We're not liable for decisions you make based on our information</li>
-                <li>We're not liable for losses from service interruptions</li>
+                <li>We&apos;re not liable for inaccuracies in data you or your team enter</li>
+                <li>We&apos;re not liable for decisions you make based on reports generated by the platform</li>
+                <li>We&apos;re not liable for losses from service interruptions or data unavailability</li>
                 <li>Our total liability is limited to what you paid us (if anything)</li>
               </ul>
             </div>

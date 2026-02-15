@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, createContext, useContext } from "rea
 import { useRouter, usePathname } from "next/navigation"
 import { useUserStore } from "@/stores/user-store"
 import { useOrgStore } from "@/stores/org-store"
-import { getApi } from "@/lib/api"
 import { createClient } from "@/lib/supabase/client"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { toast } from "@/components/ui/sonner"
@@ -93,7 +92,6 @@ export function AppShellProvider({
 
   // User store
   const setUser = useUserStore((state) => state.setUser)
-  const setPreferences = useUserStore((state) => state.setPreferences)
   const setLoading = useUserStore((state) => state.setLoading)
   const setHydrated = useUserStore((state) => state.setHydrated)
 
@@ -126,6 +124,7 @@ export function AppShellProvider({
     // Hydrate user store
     setUser(initialUser)
     setHydrated(true)
+    setLoading(false)
 
     // Hydrate org store
     if (initialOrg) {
@@ -134,22 +133,7 @@ export function AppShellProvider({
 
     // Set initial session expiry (24 hours from now)
     setSessionExpiresAt(new Date(Date.now() + SESSION_DURATION_MS))
-
-    async function fetchUserData() {
-      try {
-        const api = getApi()
-        const data = await api.getMe()
-        setUser(data.user)
-        setPreferences(data.preferences)
-      } catch {
-        // Silent fail - session user data is still valid
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUserData()
-  }, [initialUser, initialOrg, setUser, setPreferences, setLoading, setHydrated, setOrg])
+  }, [initialUser, initialOrg, setUser, setLoading, setHydrated, setOrg])
 
   // ===========================================================================
   // Online/Offline Detection
