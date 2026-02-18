@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SlideOver } from '@/components/ui/slide-over'
+import { Modal } from '@/components/ui/modal'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +27,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from '@/components/ui/sonner'
 import { useOrg } from '@/hooks/use-org'
-import { updateEventAction, deleteEventAction } from '@/app/(app)/actions/events'
+import { updateEventAction, deleteEventAction, duplicateEventAction } from '@/app/(app)/actions/events'
 import { EVENT_STATUS_FLOW, EVENT_STATUS_CONFIG } from '@/lib/constants'
 import type { Event, EventStatus } from '@/lib/types/database'
 
@@ -40,10 +41,13 @@ export function EventActions({ event }: EventActionsProps) {
   const formRef = useRef<HTMLFormElement>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showCopyDialog, setShowCopyDialog] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  const [copyError, setCopyError] = useState<string | null>(null)
   const [editStatus, setEditStatus] = useState<EventStatus>(event.status)
   const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
 
   const handleEdit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -82,6 +86,28 @@ export function EventActions({ event }: EventActionsProps) {
     }
   }
 
+  const handleCopy = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setCopyError(null)
+    setIsCopying(true)
+    try {
+      const formData = new FormData(e.currentTarget)
+      const result = await duplicateEventAction(event.id, formData)
+      if (!result.ok) {
+        setCopyError(result.error ?? 'Failed to duplicate event')
+        setIsCopying(false)
+        return
+      }
+      toast.success('Event duplicated')
+      setShowCopyDialog(false)
+      router.push(`/events/${result.id}`)
+      router.refresh()
+    } catch {
+      setCopyError('Failed to duplicate event')
+      setIsCopying(false)
+    }
+  }
+
   return (
     <>
       {canEdit && (
@@ -89,6 +115,10 @@ export function EventActions({ event }: EventActionsProps) {
           <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
             <Pencil className="w-4 h-4 mr-1" />
             Edit
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setShowCopyDialog(true); setCopyError(null) }}>
+            <Copy className="w-4 h-4 mr-1" />
+            Copy
           </Button>
           {isAdmin && (
             <Button
@@ -205,6 +235,58 @@ export function EventActions({ event }: EventActionsProps) {
           )}
         </form>
       </SlideOver>
+
+      {/* Copy event modal */}
+      <Modal
+        open={showCopyDialog}
+        onClose={() => { if (!isCopying) setShowCopyDialog(false) }}
+        title="Copy Event"
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCopyDialog(false)}
+              disabled={isCopying}
+              className="text-sm text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <Button type="submit" form="copy-event-form" isLoading={isCopying} loadingText="Duplicating..." className="bg-kurobeni text-white hover:bg-blackberry rounded-md">
+              Duplicate Event
+            </Button>
+          </div>
+        }
+      >
+        <form id="copy-event-form" onSubmit={handleCopy} className="space-y-4">
+          <p className="text-sm text-gray-500">
+            This will create a new event with the same partners and deliverable structure. All statuses will be reset and no proof will be carried over.
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="copy-name">Event Name *</Label>
+            <Input
+              id="copy-name"
+              name="name"
+              defaultValue={`${event.name} (Copy)`}
+              required
+              autoFocus
+              disabled={isCopying}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="copy-date">Date</Label>
+            <Input
+              id="copy-date"
+              name="date"
+              type="date"
+              defaultValue=""
+              disabled={isCopying}
+            />
+          </div>
+          {copyError && (
+            <p className="text-sm text-destructive">{copyError}</p>
+          )}
+        </form>
+      </Modal>
 
       {/* Delete confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
