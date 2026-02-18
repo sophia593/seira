@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
+import { canManageRecaps } from '@/lib/permissions'
 import { getEventById } from '@/lib/db/events'
 import { getPartnerById } from '@/lib/db/partners'
 import {
@@ -11,7 +12,10 @@ import {
   publishRecap,
   deleteRecap,
 } from '@/lib/db/recaps'
+import { tryCreateAdminClient } from '@/lib/supabase/admin'
+import { notifyOrgAdmins } from '@/lib/db/notifications'
 import { isUuid } from '@/lib/validation'
+import type { OrgRole } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
 // Auth helper
@@ -30,7 +34,7 @@ async function getAuthenticatedOrg() {
     return { error: 'No organization membership' as const }
   }
 
-  return { userId: user.id, orgId: membership.org_id }
+  return { userId: user.id, orgId: membership.org_id, role: membership.role as OrgRole }
 }
 
 function str(formData: FormData, key: string): string | undefined {
@@ -49,6 +53,7 @@ export async function createRecapAction(
   try {
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageRecaps(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     const eventId = str(formData, 'event_id')
     if (!eventId || !isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
@@ -106,16 +111,24 @@ export async function updateRecapAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageRecaps(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     const title = str(formData, 'title')
     if (!title) return { ok: false, error: 'Title is required' }
 
+    const eventId = str(formData, 'event_id')
+    const partnerId = str(formData, 'partner_id')
     const coverNote = formData.get('cover_note') as string | null
 
     await updateRecap(recapId, {
       title,
       cover_note: coverNote?.trim() || undefined,
     })
+
+    if (eventId && partnerId) {
+      revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+      revalidatePath(`/events/${eventId}/partners/${partnerId}/recap/${recapId}`)
+    }
 
     return { ok: true }
   } catch (err) {
@@ -137,10 +150,24 @@ export async function publishRecapAction(
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
 
+    if (!canManageRecaps(auth.role)) {
+      return { ok: false, error: 'You do not have permission to publish recaps' }
+    }
+
     const recap = await publishRecap(recapId)
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const shareUrl = `${baseUrl}/recap/${recap.share_token}`
+
+    // Notify org admins
+    const admin = tryCreateAdminClient()
+    if (admin) {
+      notifyOrgAdmins(admin, auth.orgId, auth.userId, {
+        type: 'recap_published',
+        title: `Recap "${recap.title}" published`,
+        link: shareUrl,
+      }).catch(() => {}) // Non-critical
+    }
 
     return { ok: true, shareUrl }
   } catch (err) {
@@ -163,6 +190,10 @@ export async function unpublishRecapAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+
+    if (!canManageRecaps(auth.role)) {
+      return { ok: false, error: 'You do not have permission to unpublish recaps' }
+    }
 
     await updateRecap(recapId, { status: 'draft' })
 
@@ -194,6 +225,10 @@ export async function deleteRecapAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+
+    if (!canManageRecaps(auth.role)) {
+      return { ok: false, error: 'You do not have permission to delete recaps' }
+    }
 
     await deleteRecap(recapId)
 

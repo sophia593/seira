@@ -2,12 +2,14 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, CalendarDays, Settings, Plus, ChevronDown } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Settings, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserMenu } from '@/components/layout/user-menu'
+import { NotificationBell } from '@/components/layout/notification-bell'
+import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher'
 import { LogoIcon } from '@/components/logo'
-import { useOrgStore } from '@/stores/org-store'
 import { EVENT_DOT_COLOR } from '@/lib/constants'
+import { useOrg } from '@/hooks/use-org'
 
 // =============================================================================
 // Navigation Items
@@ -35,29 +37,25 @@ interface RecentEvent {
 
 function Sidebar({ recentEvents = [] }: { recentEvents?: RecentEvent[] }) {
   const pathname = usePathname()
-  const orgName = useOrgStore((state) => state.orgName)
+  const { canEdit } = useOrg()
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 border-r border-white/10 bg-kurobeni text-white h-full overflow-hidden">
+    <aside className="hidden md:flex flex-col w-60 border-r border-white/10 bg-kurobeni text-white h-full overflow-hidden">
       {/* Workspace header */}
-      <div className="px-4 py-4 border-b border-white/10">
-        <div className="flex items-center gap-1.5">
-          <span className="font-semibold text-sm truncate">{orgName || 'Workspace'}</span>
-          <ChevronDown className="w-3 h-3 text-white/40 shrink-0" />
-        </div>
-        <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">Starter</p>
-      </div>
+      <WorkspaceSwitcher />
 
       {/* Quick action */}
-      <div className="px-3 pt-3">
-        <Link
-          href="/events"
-          className="flex items-center gap-2 w-full h-8 rounded-md border border-white/10 px-3 text-white/50 text-xs hover:bg-white/5 hover:text-white/70 transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New event</span>
-        </Link>
-      </div>
+      {canEdit && (
+        <div className="px-3 pt-3">
+          <Link
+            href="/events"
+            className="flex items-center gap-2 w-full h-8 rounded-md border border-white/10 px-3 text-white/50 text-xs hover:bg-white/5 hover:text-white/70 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New event</span>
+          </Link>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3">
@@ -126,8 +124,9 @@ function Sidebar({ recentEvents = [] }: { recentEvents?: RecentEvent[] }) {
 
 function TopBar() {
   return (
-    <header className="hidden lg:flex h-14 items-center justify-end px-6 border-b bg-background">
-      <div className="flex items-center gap-3">
+    <header className="hidden md:flex h-14 items-center justify-end px-6 border-b bg-background">
+      <div className="flex items-center gap-2">
+        <NotificationBell />
         <UserMenu />
       </div>
     </header>
@@ -148,13 +147,16 @@ function MobileHeader() {
   const pageLabel = currentItem?.label || 'seira'
 
   return (
-    <header className="lg:hidden flex h-14 items-center justify-between px-4 border-b border-white/10 bg-kurobeni text-white">
+    <header className="md:hidden flex h-14 items-center justify-between px-4 border-b border-white/10 bg-kurobeni text-white">
       <div className="flex items-center gap-2">
         <LogoIcon size="sm" className="text-copper" />
         <span className="text-white/30">/</span>
         <span className="font-medium text-sm">{pageLabel}</span>
       </div>
-      <UserMenu isCollapsed variant="sidebar" />
+      <div className="flex items-center gap-1">
+        <NotificationBell />
+        <UserMenu isCollapsed variant="sidebar" />
+      </div>
     </header>
   )
 }
@@ -167,7 +169,7 @@ function MobileBottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 border-t border-white/10 bg-kurobeni/95 backdrop-blur-sm z-50">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 border-t border-white/10 bg-kurobeni/95 backdrop-blur-sm z-50">
       <ul className="flex h-full">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -218,7 +220,7 @@ export function AppShell({ children, recentEvents }: AppShellProps) {
         <MobileHeader />
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
           {children}
         </main>
 

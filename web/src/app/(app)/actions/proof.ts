@@ -2,10 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, tryCreateAdminClient } from '@/lib/supabase/admin'
 import { getUserMembership } from '@/lib/db/client'
 import { getDeliverableById, updateDeliverableStatus } from '@/lib/db/deliverables'
+import { notifyOrgAdmins } from '@/lib/db/notifications'
+import { canEditContent, canDeleteProof } from '@/lib/permissions'
 import { isUuid } from '@/lib/validation'
+import type { OrgRole } from '@/lib/types/database'
 import {
   isAllowedProofType,
   MAX_PROOF_SIZE,
@@ -32,7 +35,7 @@ async function getAuthenticatedContext() {
     return { error: 'No organization membership' as const }
   }
 
-  return { supabase, user, orgId: membership.org_id }
+  return { supabase, user, orgId: membership.org_id, role: membership.role as OrgRole }
 }
 
 // ---------------------------------------------------------------------------
@@ -64,6 +67,7 @@ export async function uploadProofAction(
     // 1. Auth
     const auth = await getAuthenticatedContext()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canEditContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
     const { user, orgId } = auth
 
     // 2. Validate deliverable_id
@@ -179,7 +183,18 @@ export async function uploadProofAction(
       await updateDeliverableStatus(deliverableId, 'proved')
     }
 
-    // 9. Revalidate
+    // 9. Notify org admins
+    const notifyAdmin = tryCreateAdminClient()
+    if (notifyAdmin) {
+      notifyOrgAdmins(notifyAdmin, orgId, user.id, {
+        type: 'proof_uploaded',
+        title: `Proof uploaded for "${deliverable.title}"`,
+        body: fileName,
+        link: `/events/${deliverable.event_id}/partners/${deliverable.partner_id}`,
+      }).catch(() => {}) // Non-critical
+    }
+
+    // 10. Revalidate
     const eventId = deliverable.event_id
     const partnerId = deliverable.partner_id
     revalidatePath('/events')
@@ -212,9 +227,13 @@ export async function deleteProofAction(
     if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
     if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
 
-    // 2. Auth
+    // 2. Auth + role check
     const auth = await getAuthenticatedContext()
     if ('error' in auth) return { ok: false, error: auth.error }
+
+    if (!canDeleteProof(auth.role)) {
+      return { ok: false, error: 'You do not have permission to delete proofs' }
+    }
 
     // 3. Delete from storage (admin client — bypasses RLS)
     const admin = createAdminClient()

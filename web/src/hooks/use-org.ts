@@ -7,6 +7,7 @@ interface UseOrgResult {
   role: OrgRole
   isOwner: boolean
   isAdmin: boolean
+  canEdit: boolean
 }
 
 /**
@@ -29,6 +30,7 @@ export function useOrg(): UseOrgResult {
     role,
     isOwner: role === 'owner',
     isAdmin: role === 'owner' || role === 'admin',
+    canEdit: role === 'owner' || role === 'admin' || role === 'contributor',
   }
 }
 
@@ -52,5 +54,6 @@ export function useOrgSafe(): UseOrgResult | null {
     role,
     isOwner: role === 'owner',
     isAdmin: role === 'owner' || role === 'admin',
+    canEdit: role === 'owner' || role === 'admin' || role === 'contributor',
   }
 }

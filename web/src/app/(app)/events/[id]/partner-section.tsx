@@ -20,9 +20,10 @@ import {
 import { toast } from '@/components/ui/sonner'
 import { AddPartnerDialog } from './add-partner-dialog'
 import { deletePartnerAction } from '@/app/(app)/actions/partners'
+import { useOrg } from '@/hooks/use-org'
 import { cn } from '@/lib/utils'
 import { STATUS_CONFIG, formatShortDate } from '@/lib/constants'
-import type { Partner, DeliverableStatus } from '@/lib/types/database'
+import type { Partner, DeliverableStatus, DeliverableCategory, ProofRequired } from '@/lib/types/database'
 
 // =============================================================================
 // Types
@@ -37,11 +38,20 @@ interface DeliverablePreview {
   id: string; title: string; status: DeliverableStatus; due_date: string | null
 }
 
+export interface TemplateOption {
+  id: string
+  name: string
+  deliverableCount: number
+  isGlobal: boolean
+  deliverables: { title: string; category: DeliverableCategory; proof_required: ProofRequired; notes?: string }[]
+}
+
 interface PartnerSectionProps {
   partners: Partner[]
   eventId: string
   completionMap: Record<string, PartnerStats>
   deliverablePreviewMap?: Record<string, DeliverablePreview[]>
+  templates?: TemplateOption[]
 }
 
 type FilterMode = 'all' | 'has_overdue'
@@ -62,8 +72,9 @@ const BAR_COLORS = {
 // Component
 // =============================================================================
 
-export function PartnerSection({ partners, eventId, completionMap, deliverablePreviewMap }: PartnerSectionProps) {
+export function PartnerSection({ partners, eventId, completionMap, deliverablePreviewMap, templates }: PartnerSectionProps) {
   const router = useRouter()
+  const { canEdit, isAdmin } = useOrg()
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [filter, setFilter] = useState<FilterMode>('all')
   const [sort, setSort] = useState<SortMode>('name')
@@ -134,10 +145,12 @@ export function PartnerSection({ partners, eventId, completionMap, deliverablePr
             <span className="text-muted-foreground font-normal text-sm ml-2">({partners.length})</span>
           )}
         </h2>
-        <Button size="sm" onClick={() => setShowAddDialog(true)} className="gap-1 bg-kurobeni text-white hover:bg-blackberry">
-          <Plus className="w-4 h-4" />
-          Add Partner
-        </Button>
+        {canEdit && (
+          <Button size="sm" onClick={() => setShowAddDialog(true)} className="gap-1 bg-kurobeni text-white hover:bg-blackberry">
+            <Plus className="w-4 h-4" />
+            Add Partner
+          </Button>
+        )}
       </div>
 
       {partners.length === 0 ? (
@@ -145,12 +158,12 @@ export function PartnerSection({ partners, eventId, completionMap, deliverablePr
           icon={Users}
           title="No partners yet"
           description="Add a sponsor or partner to start tracking their deliverables."
-          action={
+          action={canEdit ? (
             <Button onClick={() => setShowAddDialog(true)} className="gap-1 bg-kurobeni text-white hover:bg-blackberry h-10 px-5">
               <Plus className="w-4 h-4" />
               Add Partner
             </Button>
-          }
+          ) : undefined}
         />
       ) : (
         <>
@@ -163,7 +176,7 @@ export function PartnerSection({ partners, eventId, completionMap, deliverablePr
               )}
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-gray-300 mr-1">Sort:</span>
+              <span className="text-[10px] text-gray-500 mr-1">Sort:</span>
               <FilterBtn active={sort === 'name'} onClick={() => setSort('name')}>Name</FilterBtn>
               <FilterBtn active={sort === 'completion'} onClick={() => setSort('completion')}>Completion</FilterBtn>
               <FilterBtn active={sort === 'overdue'} onClick={() => setSort('overdue')}>Overdue</FilterBtn>
@@ -240,20 +253,24 @@ export function PartnerSection({ partners, eventId, completionMap, deliverablePr
                     <div className="w-16 shrink-0" />
 
                     {/* Hover actions */}
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); router.push(`/events/${eventId}/partners/${partner.id}`) }}
-                        className="h-7 w-7 rounded-md hover:bg-gray-100 flex items-center justify-center"
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-gray-400" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(partner) }}
-                        className="h-7 w-7 rounded-md hover:bg-gray-100 flex items-center justify-center"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-gray-400" />
-                      </button>
-                    </div>
+                    {canEdit && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); router.push(`/events/${eventId}/partners/${partner.id}`) }}
+                          className="h-7 w-7 rounded-md hover:bg-gray-100 flex items-center justify-center"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-gray-400" />
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(partner) }}
+                            className="h-7 w-7 rounded-md hover:bg-gray-100 flex items-center justify-center"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-gray-400" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Expanded deliverable preview */}
@@ -280,6 +297,12 @@ export function PartnerSection({ partners, eventId, completionMap, deliverablePr
             })}
           </div>
 
+          {visiblePartners.length === 0 && filter !== 'all' && (
+            <p className="text-sm text-gray-400 py-6 text-center">
+              No partners with overdue deliverables
+            </p>
+          )}
+
           {/* Section footer */}
           {partners.length >= 5 && (
             <p className="text-xs text-gray-300 text-center py-2">Showing {visiblePartners.length} partners</p>
@@ -287,7 +310,7 @@ export function PartnerSection({ partners, eventId, completionMap, deliverablePr
         </>
       )}
 
-      <AddPartnerDialog open={showAddDialog} onOpenChange={setShowAddDialog} eventId={eventId} />
+      <AddPartnerDialog open={showAddDialog} onOpenChange={setShowAddDialog} eventId={eventId} templates={templates} />
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setIsDeleting(false) } }}>

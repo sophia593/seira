@@ -24,20 +24,31 @@ export function PublicRecapReport({ data }: PublicRecapReportProps) {
 
       {/* White card overlapping hero */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="bg-white rounded-t-2xl -mt-10 relative z-10 px-6 sm:px-10 pt-10 pb-12 shadow-sm print:mt-0 print:rounded-none print:shadow-none">
+        <div className="bg-white rounded-t-3xl -mt-16 relative z-10 px-8 sm:px-12 pt-12 pb-12 shadow-[0_-4px_30px_rgba(0,0,0,0.06)] print:mt-0 print:rounded-none print:shadow-none">
           <FulfillmentRing
             total={stats.total}
             completed={stats.completed}
             proved={stats.proved}
+            inProgress={stats.inProgress}
           />
 
-          <CategoryBreakdown byCategory={stats.byCategory} />
+          <div className="mt-14">
+            <CategoryBreakdown byCategory={stats.byCategory} />
+          </div>
 
-          <CompletionTimeline deliverables={deliverables} />
+          <div className="border-t border-gray-100 mt-16 pt-16 print:border-gray-200">
+            <CompletionTimeline deliverables={deliverables} />
+          </div>
 
-          <DeliverablesSection deliverables={deliverables} />
+          <div className="border-t border-gray-100 mt-16 pt-16 print:border-gray-200">
+            <DeliverablesSection deliverables={deliverables} />
+          </div>
 
-          <ReportFooter publishedAt={recap.published_at} />
+          <ReportFooter
+            publishedAt={recap.published_at}
+            contactName={partner.contact_name}
+            contactEmail={partner.contact_email}
+          />
         </div>
       </div>
     </>

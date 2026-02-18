@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from '@/components/ui/sonner'
+import { useOrg } from '@/hooks/use-org'
 import { updateEventAction, deleteEventAction } from '@/app/(app)/actions/events'
 import { EVENT_STATUS_FLOW, EVENT_STATUS_CONFIG } from '@/lib/constants'
 import type { Event, EventStatus } from '@/lib/types/database'
@@ -35,6 +36,7 @@ interface EventActionsProps {
 
 export function EventActions({ event }: EventActionsProps) {
   const router = useRouter()
+  const { canEdit, isAdmin } = useOrg()
   const formRef = useRef<HTMLFormElement>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -82,21 +84,25 @@ export function EventActions({ event }: EventActionsProps) {
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
-          <Pencil className="w-4 h-4 mr-1" />
-          Edit
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowDeleteDialog(true)}
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className="w-4 h-4 mr-1" />
-          Delete
-        </Button>
-      </div>
+      {canEdit && (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+            <Pencil className="w-4 h-4 mr-1" />
+            Edit
+          </Button>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Delete
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Edit slide-over */}
       <SlideOver
@@ -156,8 +162,7 @@ export function EventActions({ event }: EventActionsProps) {
                 <Input
                   id="edit-date"
                   name="date"
-                  type="text"
-                  placeholder="YYYY-MM-DD"
+                  type="date"
                   defaultValue={event.date ?? ''}
                   disabled={isPending}
                 />

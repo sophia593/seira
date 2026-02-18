@@ -69,6 +69,94 @@ export async function getUserOrganizations(
     .filter((org): org is Organization => org !== null)
 }
 
+export interface UserOrgWithRole {
+  id: string
+  name: string
+  role: OrgRole
+  created_at: string
+}
+
+/**
+ * Get all organizations a user belongs to, including their role in each.
+ */
+export async function getUserOrganizationsWithRoles(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<UserOrgWithRole[]> {
+  const { data, error } = await supabase
+    .from('organization_members')
+    .select('role, organizations(id, name, created_at)')
+    .eq('user_id', userId)
+
+  if (error) {
+    handleDbError(error, 'Failed to get user organizations with roles')
+  }
+
+  return (data ?? [])
+    .map((row) => {
+      const r = row as { role: OrgRole; organizations: Organization | Organization[] | null }
+      const org = Array.isArray(r.organizations) ? r.organizations[0] ?? null : r.organizations
+      if (!org) return null
+      return {
+        id: org.id,
+        name: org.name,
+        role: r.role,
+        created_at: org.created_at,
+      }
+    })
+    .filter((item): item is UserOrgWithRole => item !== null)
+}
+
+export interface MemberWithProfile {
+  user_id: string
+  org_id: string
+  role: OrgRole
+  created_at: string
+  name: string | null
+  email: string
+  avatar_url: string | null
+}
+
+/**
+ * Get organization members with profile data (name, email, avatar).
+ * Joins organization_members with the users table.
+ */
+export async function getOrganizationMembersWithProfiles(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<MemberWithProfile[]> {
+  const { data, error } = await supabase
+    .from('organization_members')
+    .select('user_id, org_id, role, created_at, users(name, email, avatar_url)')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    handleDbError(error, 'Failed to get organization members with profiles')
+  }
+
+  return (data ?? []).map((row) => {
+    const r = row as unknown as {
+      user_id: string
+      org_id: string
+      role: OrgRole
+      created_at: string
+      users: { name: string | null; email: string; avatar_url: string | null } | { name: string | null; email: string; avatar_url: string | null }[] | null
+    }
+    // Handle both single object and array results from Supabase join
+    const user = Array.isArray(r.users) ? r.users[0] ?? null : r.users
+    return {
+      user_id: r.user_id,
+      org_id: r.org_id,
+      role: r.role,
+      created_at: r.created_at,
+      name: user?.name ?? null,
+      email: user?.email ?? '',
+      avatar_url: user?.avatar_url ?? null,
+    }
+  })
+}
+
 // =============================================================================
 // Write Operations
 // =============================================================================
@@ -133,7 +221,7 @@ export async function addOrganizationMember(
   supabase: SupabaseClient,
   orgId: string,
   userId: string,
-  role: OrgRole = 'member'
+  role: OrgRole = 'contributor'
 ): Promise<OrganizationMember> {
   const { data, error } = await supabase
     .from('organization_members')
@@ -186,5 +274,72 @@ export async function removeOrganizationMember(
 
   if (error) {
     handleDbError(error, 'Failed to remove organization member')
+  }
+}
+
+/**
+ * Transfer ownership from current owner to a new user.
+ * Demotes the current owner to admin and promotes the target to owner.
+ */
+export async function transferOwnership(
+  supabase: SupabaseClient,
+  orgId: string,
+  currentOwnerId: string,
+  newOwnerId: string
+): Promise<void> {
+  // Demote current owner to admin
+  const { error: demoteError } = await supabase
+    .from('organization_members')
+    .update({ role: 'admin' })
+    .eq('org_id', orgId)
+    .eq('user_id', currentOwnerId)
+
+  if (demoteError) {
+    handleDbError(demoteError, 'Failed to demote current owner')
+  }
+
+  // Promote new owner
+  const { error: promoteError } = await supabase
+    .from('organization_members')
+    .update({ role: 'owner' })
+    .eq('org_id', orgId)
+    .eq('user_id', newOwnerId)
+
+  if (promoteError) {
+    // Rollback: restore original owner
+    await supabase
+      .from('organization_members')
+      .update({ role: 'owner' })
+      .eq('org_id', orgId)
+      .eq('user_id', currentOwnerId)
+    handleDbError(promoteError, 'Failed to promote new owner')
+  }
+
+  // Update organizations.created_by to reflect new owner
+  const { error: orgError } = await supabase
+    .from('organizations')
+    .update({ created_by: newOwnerId })
+    .eq('id', orgId)
+
+  if (orgError) {
+    console.error('[transferOwnership] Failed to update created_by:', orgError)
+  }
+}
+
+/**
+ * Delete an organization and all related data.
+ * Uses admin client to bypass RLS. CASCADE handles child rows.
+ */
+export async function deleteOrganization(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('organizations')
+    .delete()
+    .eq('id', orgId)
+
+  if (error) {
+    handleDbError(error, 'Failed to delete organization')
   }
 }

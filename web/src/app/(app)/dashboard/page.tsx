@@ -76,6 +76,7 @@ export default async function DashboardPage() {
   const overdueItems = settle(overdueResult, [] as DeliverableWithPartner[], 'getOverdueDeliverables')
   const needsProofItems = settle(needsProofResult, [] as DeliverableWithPartner[], 'getNeedsProofDeliverables')
 
+  const isViewer = membership.role === 'viewer'
   const isEmpty = stats.activeEvents === 0 && stats.totalDeliverables === 0
 
   // ---------------------------------------------------------------------------
@@ -107,15 +108,17 @@ export default async function DashboardPage() {
             ))}
           </div>
 
-          <div className="mt-10 flex items-center justify-center gap-3">
-            <Link
-              href="/events"
-              className="inline-flex items-center justify-center bg-kurobeni text-white rounded-md h-10 px-6 text-sm font-medium hover:bg-blackberry transition-colors"
-            >
-              Create your first event
-            </Link>
-            <SampleDataButton />
-          </div>
+          {!isViewer && (
+            <div className="mt-10 flex items-center justify-center gap-3">
+              <Link
+                href="/events"
+                className="inline-flex items-center justify-center bg-kurobeni text-white rounded-md h-10 px-6 text-sm font-medium hover:bg-blackberry transition-colors"
+              >
+                Create your first event
+              </Link>
+              <SampleDataButton />
+            </div>
+          )}
         </div>
       </div>
     )
@@ -132,7 +135,7 @@ export default async function DashboardPage() {
   const moreEventsCount = stats.activeEvents - upcomingEvents.length
 
   return (
-    <div className="px-4 py-6 pb-24 md:px-8 md:py-8 max-w-6xl mx-auto lg:pb-8">
+    <div className="px-4 py-6 pb-24 md:px-8 md:py-8 max-w-5xl mx-auto lg:pb-8">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
@@ -177,10 +180,14 @@ export default async function DashboardPage() {
 
           {upcomingEvents.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6">
-              No upcoming events.{' '}
-              <Link href="/events" className="underline hover:text-foreground transition-colors duration-150">
-                Create one
-              </Link>
+              No upcoming events.{!isViewer && (
+                <>
+                  {' '}
+                  <Link href="/events" className="underline hover:text-foreground transition-colors duration-150">
+                    Create one
+                  </Link>
+                </>
+              )}
             </p>
           ) : (
             <div className="divide-y divide-border">
@@ -322,13 +329,15 @@ export default async function DashboardPage() {
 
       {/* Quick actions */}
       <div className="border-t border-gray-100 pt-6 mt-6 flex items-center gap-4 flex-wrap">
-        <Link
-          href="/events"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New Event
-        </Link>
+        {!isViewer && (
+          <Link
+            href="/events"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Event
+          </Link>
+        )}
         <Link
           href="/events"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"

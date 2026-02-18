@@ -1,7 +1,7 @@
 // lib/types/database.ts
 // Seira v1.1 — Core database types
 
-export type OrgRole = 'owner' | 'admin' | 'member';
+export type OrgRole = 'owner' | 'admin' | 'contributor' | 'viewer';
 export type EventStatus = 'upcoming' | 'active' | 'completed' | 'archived';
 export type DeliverableStatus = 'not_started' | 'in_progress' | 'done' | 'proved';
 export type DeliverableCategory = 'in-venue' | 'digital' | 'hospitality' | 'signage' | 'talent' | 'content';
@@ -78,8 +78,9 @@ export interface Template {
   id: string;
   org_id: string | null;
   name: string;
-  industry: 'sports' | 'venue' | 'festival' | 'film' | null;
+  industry: string | null;
   deliverables: TemplateDeliverable[];
+  share_token: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -155,6 +156,47 @@ export interface CreateProofRecordInput {
   uploaded_by: string;
 }
 
+// === INVITATIONS ===
+
+export type InviteStatus = 'pending' | 'accepted' | 'revoked';
+
+export interface Invitation {
+  id: string;
+  org_id: string;
+  invite_code: string;
+  role: OrgRole;
+  created_by: string;
+  accepted_by: string | null;
+  accepted_at: string | null;
+  expires_at: string;
+  status: InviteStatus;
+  created_at: string;
+}
+
+// === NOTIFICATIONS ===
+
+export type NotificationType =
+  | 'invite_accepted'
+  | 'proof_uploaded'
+  | 'recap_published'
+  | 'deliverable_completed'
+  | 'member_joined'
+  | 'role_changed'
+  | 'member_removed';
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  org_id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  link: string | null;
+  metadata: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+}
+
 // === RECAP REPORTS ===
 
 export type RecapStatus = 'draft' | 'published' | 'archived';
@@ -185,12 +227,13 @@ export interface RecapData {
     category: DeliverableCategory;
     status: DeliverableStatus;
     due_date: string | null;
-    proofs: Proof[];
+    proofs: (Proof & { uploader_name: string | null })[];
   }>;
   stats: {
     total: number;
     completed: number;
     proved: number;
+    inProgress: number;
     byCategory: Record<string, { total: number; completed: number }>;
   };
 }

@@ -1,12 +1,15 @@
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { tryCreateAdminClient } from "@/lib/supabase/admin"
-import { getUserMembership } from "@/lib/db/client"
+import { getUserMembership, getUserMembershipForOrg } from "@/lib/db/client"
 import { getOrganization } from "@/lib/db/organizations"
 import { listEvents } from "@/lib/db/events"
+import { getUnreadCount } from "@/lib/db/notifications"
 import { AppShell } from "@/components/app-shell"
 import { AppShellProvider } from "./provider"
 import { CreateWorkspaceForm } from "./create-workspace-form"
+import { isUuid } from "@/lib/validation"
 import type { OrgRole } from "@/lib/types/database"
 
 export default async function AppLayout({
@@ -38,8 +41,19 @@ export default async function AppLayout({
   let initialOrg: { id: string; name: string; role: OrgRole } | null = null
 
   try {
-    // 1. Check existing membership
-    let membership = await getUserMembership(supabase, user.id)
+    // 0. Check for cookie-selected org
+    const cookieStore = await cookies()
+    const selectedOrgId = cookieStore.get('seira_org_id')?.value
+
+    // 1. Check existing membership (prefer cookie-selected org)
+    let membership = selectedOrgId && isUuid(selectedOrgId)
+      ? await getUserMembershipForOrg(supabase, user.id, selectedOrgId)
+      : null
+
+    // Fall back to first membership if cookie is stale/absent
+    if (!membership) {
+      membership = await getUserMembership(supabase, user.id)
+    }
 
     // 2. If no membership, try auto-creating via admin client (once)
     if (!membership) {
@@ -113,7 +127,7 @@ export default async function AppLayout({
         initialOrg = {
           id: org.id,
           name: org.name,
-          role: (membership.role as OrgRole) ?? "owner",
+          role: (membership.role as OrgRole) ?? "admin",
         }
       }
     }
@@ -132,21 +146,26 @@ export default async function AppLayout({
     )
   }
 
-  // Fetch recent events for sidebar (best-effort, don't block on failure)
+  // Fetch recent events and unread count in parallel (best-effort)
   let recentEvents: { id: string; name: string; status: string }[] = []
+  let unreadNotificationCount = 0
   try {
-    const allEvents = await listEvents(initialOrg.id)
+    const [allEvents, unread] = await Promise.all([
+      listEvents(initialOrg.id),
+      getUnreadCount(supabase, user.id, initialOrg.id),
+    ])
     recentEvents = allEvents.slice(0, 3).map((e) => ({
       id: e.id,
       name: e.name,
       status: e.status,
     }))
+    unreadNotificationCount = unread
   } catch {
     // Non-critical — sidebar just won't show recent events
   }
 
   return (
-    <AppShellProvider initialUser={user} initialOrg={initialOrg}>
+    <AppShellProvider initialUser={user} initialOrg={initialOrg} initialUnreadCount={unreadNotificationCount}>
       <AppShell recentEvents={recentEvents}>{children}</AppShell>
     </AppShellProvider>
   )

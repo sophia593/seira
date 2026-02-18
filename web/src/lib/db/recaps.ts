@@ -242,18 +242,49 @@ async function fetchRecapData(
     proofs = (proofData ?? []) as Proof[]
   }
 
-  // 4. Build proof map
-  const proofMap: Record<string, Proof[]> = {}
-  for (const p of proofs) {
-    if (!proofMap[p.deliverable_id]) proofMap[p.deliverable_id] = []
-    proofMap[p.deliverable_id].push(p)
+  // 4. Resolve uploader display names
+  const uploaderIds = [...new Set(proofs.map((p) => p.uploaded_by).filter(Boolean))]
+  const uploaderNames: Record<string, string> = {}
+  if (uploaderIds.length > 0) {
+    try {
+      const admin = createAdminClient()
+      await Promise.all(
+        uploaderIds.map(async (id) => {
+          try {
+            const { data } = await admin.auth.admin.getUserById(id)
+            if (data?.user) {
+              uploaderNames[id] =
+                data.user.user_metadata?.full_name ||
+                data.user.user_metadata?.name ||
+                data.user.email?.split('@')[0] ||
+                'Team member'
+            }
+          } catch {
+            // Individual lookup failed — skip
+          }
+        })
+      )
+    } catch {
+      // Admin client not available — skip name resolution
+    }
   }
 
-  // 5. Compute stats
+  // 5. Build proof map with uploader names
+  const proofMap: Record<string, (Proof & { uploader_name: string | null })[]> = {}
+  for (const p of proofs) {
+    if (!proofMap[p.deliverable_id]) proofMap[p.deliverable_id] = []
+    proofMap[p.deliverable_id].push({
+      ...p,
+      uploader_name: uploaderNames[p.uploaded_by] ?? null,
+    })
+  }
+
+  // 6. Compute stats
   const completedStatuses: DeliverableStatus[] = ['done', 'proved']
   const total = deliverables.length
   const completed = deliverables.filter((d) => completedStatuses.includes(d.status)).length
   const proved = deliverables.filter((d) => d.status === 'proved').length
+  const inProgress = deliverables.filter((d) => d.status === 'in_progress').length
 
   const byCategory: Record<string, { total: number; completed: number }> = {}
   for (const d of deliverables) {
@@ -271,6 +302,6 @@ async function fetchRecapData(
       ...d,
       proofs: proofMap[d.id] ?? [],
     })),
-    stats: { total, completed, proved, byCategory },
+    stats: { total, completed, proved, inProgress, byCategory },
   }
 }

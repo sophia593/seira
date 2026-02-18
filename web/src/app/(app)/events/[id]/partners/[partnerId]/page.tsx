@@ -1,9 +1,11 @@
 import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 import { getEventById } from '@/lib/db/events'
 import { getPartnerById } from '@/lib/db/partners'
 import { listDeliverablesByPartner } from '@/lib/db/deliverables'
 import { countProofByDeliverable, listProofByPartner } from '@/lib/db/proof'
 import { listRecapsByPartner } from '@/lib/db/recaps'
+import { listTemplates } from '@/lib/db/templates'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { PartnerActions } from './partner-actions'
 import { DeliverableSection } from './deliverable-section'
@@ -27,12 +29,14 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
   if (!event || !partner) notFound()
   if (partner.event_id !== eventId) notFound()
 
-  // Fetch proof data + recaps
+  // Fetch proof data + recaps + templates
+  const supabase = await createClient()
   const deliverableIds = deliverables.map((d) => d.id)
-  const [proofCounts, allProofs, recaps] = await Promise.all([
+  const [proofCounts, allProofs, recaps, templates] = await Promise.all([
     countProofByDeliverable(deliverableIds),
     listProofByPartner(partnerId),
     listRecapsByPartner(partnerId),
+    listTemplates(supabase, event.org_id),
   ])
 
   // Build proof map: deliverable_id → Proof[]
@@ -52,7 +56,9 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
   // Proof summary counts
   const provedCount = statusCounts.get('proved') ?? 0
   const doneCount = statusCounts.get('done') ?? 0
-  const needProofCount = doneCount // done but not yet proved
+  const needProofCount = deliverables.filter(
+    (d) => d.status === 'done' && (proofCounts[d.id] ?? 0) === 0
+  ).length
 
   // Latest recap status for chip
   const latestRecap = recaps[0] ?? null
@@ -174,6 +180,7 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
         partnerId={partnerId}
         proofCounts={proofCounts}
         proofMap={proofMap}
+        templates={templates}
       />
 
       <RecapSection

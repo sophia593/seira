@@ -10,7 +10,8 @@ import {
   deleteDeliverable,
 } from '@/lib/db/deliverables'
 import { isUuid } from '@/lib/validation'
-import type { DeliverableCategory, DeliverableStatus, ProofRequired } from '@/lib/types/database'
+import { canEditContent, canManageContent } from '@/lib/permissions'
+import type { DeliverableCategory, DeliverableStatus, OrgRole, ProofRequired } from '@/lib/types/database'
 import { CATEGORIES, STATUS_FLOW, PROOF_REQUIRED_OPTIONS } from '@/lib/constants'
 
 async function getAuthenticatedOrg() {
@@ -26,7 +27,7 @@ async function getAuthenticatedOrg() {
     return { error: 'No organization membership' }
   }
 
-  return { orgId: membership.org_id }
+  return { orgId: membership.org_id, role: membership.role as OrgRole }
 }
 
 function str(formData: FormData, key: string): string | undefined {
@@ -41,6 +42,7 @@ export async function createDeliverableAction(
   try {
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     const partnerId = str(formData, 'partner_id')
     if (!partnerId || !isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
@@ -96,6 +98,7 @@ export async function updateDeliverableAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     const title = str(formData, 'title')
     if (!title) return { ok: false, error: 'Title is required' }
@@ -143,6 +146,7 @@ export async function advanceDeliverableStatusAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canEditContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     if (!STATUS_FLOW.includes(newStatus)) {
       return { ok: false, error: 'Invalid status' }
@@ -174,6 +178,7 @@ export async function deleteDeliverableAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     await deleteDeliverable(deliverableId)
 

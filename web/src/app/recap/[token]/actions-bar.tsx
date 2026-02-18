@@ -28,15 +28,15 @@ export function PublicRecapActions({
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-sm border-b z-50 print:hidden transition-shadow ${
+      className={`fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-xl border-b z-50 print:hidden transition-shadow ${
         scrolled ? 'shadow-md border-gray-100' : 'border-transparent'
       }`}
     >
       <div className="max-w-5xl mx-auto px-6 h-full flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-1.5">
-          <GlobeIcon size={18} className="text-[#C59C79]" />
-          <span className="text-sm font-semibold text-[#281822] lowercase">seira</span>
+          <GlobeIcon size={18} className="text-copper" />
+          <span className="text-sm font-semibold text-kurobeni lowercase">seira</span>
         </div>
 
         {/* Center context */}
@@ -57,7 +57,7 @@ export function PublicRecapActions({
           <a
             href={pdfUrl}
             download
-            className="inline-flex items-center gap-1.5 rounded-md bg-[#281822] text-white px-4 h-8 text-xs font-medium hover:bg-[#281822]/90 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-kurobeni text-white px-4 h-8 text-xs font-medium hover:bg-blackberry transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Download PDF</span>

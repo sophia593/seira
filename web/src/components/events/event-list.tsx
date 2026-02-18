@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useOrg } from '@/hooks/use-org'
 import { CreateEventDialog } from '@/app/(app)/events/create-event-dialog'
 import { deleteEventAction } from '@/app/(app)/actions/events'
 import {
@@ -39,6 +40,7 @@ interface EventListProps {
 
 export function EventList({ events }: EventListProps) {
   const router = useRouter()
+  const { isAdmin } = useOrg()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<EventListItem | null>(null)
@@ -89,12 +91,14 @@ export function EventList({ events }: EventListProps) {
             <span className="text-gray-300 font-normal text-lg ml-2">{events.length}</span>
           )}
         </h1>
-        <button
-          onClick={() => setShowCreateDialog(true)}
-          className="bg-kurobeni text-white text-sm rounded-md h-9 px-4 hover:bg-blackberry transition-colors"
-        >
-          + New event
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreateDialog(true)}
+            className="bg-kurobeni text-white text-sm rounded-md h-9 px-4 hover:bg-blackberry transition-colors"
+          >
+            + New event
+          </button>
+        )}
       </div>
       <p className="text-sm text-gray-400 mb-6">
         Manage games, concerts, and sponsor fulfillment in one place.
@@ -108,12 +112,14 @@ export function EventList({ events }: EventListProps) {
           <p className="text-xs text-muted-foreground mt-1 mb-4">
             Create your first event to start tracking partner deliverables.
           </p>
-          <button
-            onClick={() => setShowCreateDialog(true)}
-            className="bg-kurobeni text-white text-sm rounded-md h-9 px-4 hover:bg-blackberry transition-colors"
-          >
-            + new event
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowCreateDialog(true)}
+              className="bg-kurobeni text-white text-sm rounded-md h-9 px-4 hover:bg-blackberry transition-colors"
+            >
+              + new event
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -235,17 +241,19 @@ export function EventList({ events }: EventListProps) {
                       >
                         Edit
                       </Link>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setMenuOpenId(null)
-                          setDeleteTarget(event)
-                        }}
-                        className="flex w-full items-center px-3 py-1.5 text-sm text-red-600 hover:bg-gray-50 transition-colors"
-                      >
-                        Delete
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setMenuOpenId(null)
+                            setDeleteTarget(event)
+                          }}
+                          className="flex w-full items-center px-3 py-1.5 text-sm text-red-600 hover:bg-gray-50 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

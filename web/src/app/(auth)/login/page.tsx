@@ -66,6 +66,7 @@ function LoginForm() {
   // Show message from redirect (e.g., after signup)
   const message = searchParams.get("message")
   const redirectTo = searchParams.get("redirect")
+  const inviteCode = searchParams.get("invite")
 
   // Parse callback error params (e.g., ?error=expired from /callback)
   const callbackError = parseAuthCallbackError(searchParams)
@@ -111,8 +112,8 @@ function LoginForm() {
         return
       }
 
-      // Redirect to specified URL or default to dashboard
-      router.push(redirectTo || "/dashboard")
+      // Redirect to invite page, specified URL, or dashboard
+      router.push(inviteCode ? `/invite/${inviteCode}` : (redirectTo || "/dashboard"))
       router.refresh()
     } catch {
       setFormError('something went wrong. please try again.')
@@ -127,7 +128,9 @@ function LoginForm() {
 
     try {
       // Store redirect URL for post-OAuth redirect
-      if (redirectTo) {
+      if (inviteCode) {
+        localStorage.setItem('seira_invite_code', inviteCode)
+      } else if (redirectTo) {
         localStorage.setItem('seira_auth_redirect', redirectTo)
       }
 

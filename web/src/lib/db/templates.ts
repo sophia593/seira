@@ -96,7 +96,7 @@ export async function listGlobalTemplates(
 
 export interface CreateTemplateInput {
   name: string
-  industry?: Template['industry']
+  industry?: string | null
   deliverables: TemplateDeliverable[]
 }
 
@@ -181,4 +181,71 @@ export async function duplicateTemplate(
     industry: source.industry,
     deliverables: source.deliverables,
   })
+}
+
+// =============================================================================
+// Share Token Operations
+// =============================================================================
+
+/**
+ * Get a template by its public share token.
+ */
+export async function getTemplateByShareToken(
+  supabase: SupabaseClient,
+  token: string
+): Promise<Template | null> {
+  const { data, error } = await supabase
+    .from('templates')
+    .select('*')
+    .eq('share_token', token)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') return null
+    return null
+  }
+
+  return data as Template
+}
+
+/**
+ * Generate a share token for a template.
+ */
+export async function generateShareToken(
+  supabase: SupabaseClient,
+  templateId: string,
+  orgId: string
+): Promise<string> {
+  const token = crypto.randomUUID()
+
+  const { error } = await supabase
+    .from('templates')
+    .update({ share_token: token })
+    .eq('id', templateId)
+    .eq('org_id', orgId)
+
+  if (error) {
+    handleDbError(error, 'Failed to generate share token')
+  }
+
+  return token
+}
+
+/**
+ * Revoke the share token for a template (set to null).
+ */
+export async function revokeShareToken(
+  supabase: SupabaseClient,
+  templateId: string,
+  orgId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('templates')
+    .update({ share_token: null })
+    .eq('id', templateId)
+    .eq('org_id', orgId)
+
+  if (error) {
+    handleDbError(error, 'Failed to revoke share token')
+  }
 }

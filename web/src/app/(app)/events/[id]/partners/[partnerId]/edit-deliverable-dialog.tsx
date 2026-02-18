@@ -32,6 +32,7 @@ import { deleteProofAction } from '@/app/(app)/actions/proof'
 import { CATEGORIES, CATEGORY_CONFIG, PROOF_REQUIRED_OPTIONS, PROOF_REQUIRED_CONFIG } from '@/lib/constants'
 import { isImageType, isVideoType, isPdfType, formatFileSize } from '@/lib/proof-utils'
 import { cn } from '@/lib/utils'
+import { useOrg } from '@/hooks/use-org'
 import type { Deliverable, Proof } from '@/lib/types/database'
 
 interface EditDeliverableDialogProps {
@@ -43,6 +44,7 @@ interface EditDeliverableDialogProps {
 
 export function EditDeliverableDialog({ deliverable, eventId, onClose, proofs }: EditDeliverableDialogProps) {
   const router = useRouter()
+  const { isAdmin } = useOrg()
   const formRef = useRef<HTMLFormElement>(null)
   const [editError, setEditError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -168,16 +170,20 @@ export function EditDeliverableDialog({ deliverable, eventId, onClose, proofs }:
         title="Edit Deliverable"
         footer={
           <div className="flex items-center justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="w-4 h-4 mr-1" />
-              Delete
-            </Button>
+            {isAdmin ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete
+              </Button>
+            ) : (
+              <div />
+            )}
             <div className="flex items-center gap-3">
               <button
                 type="button"

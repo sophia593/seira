@@ -7,23 +7,26 @@ interface FulfillmentRingProps {
   total: number
   completed: number
   proved: number
+  inProgress: number
 }
 
 function easeOutCubic(t: number) {
   return 1 - Math.pow(1 - t, 3)
 }
 
-export function FulfillmentRing({ total, completed, proved }: FulfillmentRingProps) {
+export function FulfillmentRing({ total, completed, proved, inProgress }: FulfillmentRingProps) {
   const { ref, inView } = useInView({ threshold: 0.3 })
   const [displayPct, setDisplayPct] = useState(0)
   const [displayTotal, setDisplayTotal] = useState(0)
   const [displayCompleted, setDisplayCompleted] = useState(0)
   const [displayProved, setDisplayProved] = useState(0)
-  const [displayPending, setDisplayPending] = useState(0)
+  const [displayInProgress, setDisplayInProgress] = useState(0)
+  const [displayAwaitingProof, setDisplayAwaitingProof] = useState(0)
   const animatedRef = useRef(false)
 
   const targetPct = total > 0 ? Math.round((proved / total) * 100) : 0
-  const pending = total - completed
+  const awaitingProof = completed - proved
+  const awaitingCompletion = total - completed
 
   const radius = 72
   const circumference = 2 * Math.PI * radius
@@ -45,7 +48,8 @@ export function FulfillmentRing({ total, completed, proved }: FulfillmentRingPro
       setDisplayTotal(Math.round(eased * total))
       setDisplayCompleted(Math.round(eased * completed))
       setDisplayProved(Math.round(eased * proved))
-      setDisplayPending(Math.round(eased * pending))
+      setDisplayInProgress(Math.round(eased * inProgress))
+      setDisplayAwaitingProof(Math.round(eased * awaitingProof))
 
       if (progress < 1) {
         requestAnimationFrame(tick)
@@ -53,7 +57,7 @@ export function FulfillmentRing({ total, completed, proved }: FulfillmentRingPro
     }
 
     requestAnimationFrame(tick)
-  }, [inView, targetPct, total, completed, proved, pending])
+  }, [inView, targetPct, total, completed, proved, inProgress, awaitingProof])
 
   return (
     <div ref={ref} className="text-center">
@@ -66,8 +70,8 @@ export function FulfillmentRing({ total, completed, proved }: FulfillmentRingPro
             cy="90"
             r={radius}
             fill="none"
-            stroke="#e5e7eb"
-            strokeWidth="8"
+            stroke="#f3f4f6"
+            strokeWidth="6"
           />
           {/* Progress circle */}
           <circle
@@ -75,8 +79,8 @@ export function FulfillmentRing({ total, completed, proved }: FulfillmentRingPro
             cy="90"
             r={radius}
             fill="none"
-            stroke="#C59C79"
-            strokeWidth="8"
+            stroke="var(--color-copper)"
+            strokeWidth="6"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={inView ? targetOffset : circumference}
@@ -88,8 +92,8 @@ export function FulfillmentRing({ total, completed, proved }: FulfillmentRingPro
             x="90"
             y="85"
             textAnchor="middle"
-            className="fill-[#281822] text-4xl sm:text-5xl font-bold"
-            style={{ fontSize: '42px', fontWeight: 700 }}
+            className="fill-kurobeni text-4xl sm:text-5xl font-bold"
+            style={{ fontSize: '42px', fontWeight: 700, fontFamily: 'var(--font-space-grotesk), system-ui, sans-serif' }}
           >
             {displayPct}%
           </text>
@@ -98,23 +102,28 @@ export function FulfillmentRing({ total, completed, proved }: FulfillmentRingPro
             y="108"
             textAnchor="middle"
             className="fill-gray-400"
-            style={{ fontSize: '12px' }}
+            style={{ fontSize: '12px', fontFamily: 'var(--font-space-grotesk), system-ui, sans-serif' }}
           >
-            proved
+            verified
           </text>
         </svg>
       </div>
 
       {/* Flanking stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 mt-10">
         <StatItem label="Promised" value={displayTotal} dotColor="bg-gray-300" />
-        <StatItem label="Completed" value={displayCompleted} dotColor="bg-green-400" />
-        <StatItem label="Proof Collected" value={displayProved} dotColor="bg-[#C59C79]" />
-        <StatItem label="Pending" value={displayPending} dotColor="bg-gray-300" />
+        <StatItem label="Fulfilled" value={displayCompleted} dotColor="bg-green-400" />
+        <StatItem label="Proof Collected" value={displayProved} dotColor="bg-copper" />
+        <StatItem label="In Progress" value={displayInProgress} dotColor="bg-blue-400" />
+        <StatItem label="Awaiting Proof" value={displayAwaitingProof} dotColor="bg-amber-400" />
       </div>
 
-      <p className="text-base text-gray-500 text-center mt-4">
-        {proved} of {total} deliverables fulfilled with proof
+      {/* Summary text */}
+      <p className="text-sm text-gray-500 text-center mt-6">
+        {completed} deliverable{completed !== 1 ? 's' : ''} fulfilled, {proved} verified with proof
+        {awaitingCompletion > 0 && (
+          <>, {awaitingCompletion} awaiting completion</>
+        )}
       </p>
     </div>
   )

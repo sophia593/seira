@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { createPartner, updatePartner, deletePartner } from '@/lib/db/partners'
 import { isUuid } from '@/lib/validation'
+import { canManageContent } from '@/lib/permissions'
+import type { OrgRole } from '@/lib/types/database'
 
 async function getAuthenticatedOrg() {
   const supabase = await createClient()
@@ -19,7 +21,7 @@ async function getAuthenticatedOrg() {
     return { error: 'No organization membership' }
   }
 
-  return { orgId: membership.org_id }
+  return { supabase, orgId: membership.org_id, role: membership.role as OrgRole }
 }
 
 function str(formData: FormData, key: string): string | undefined {
@@ -34,6 +36,7 @@ export async function createPartnerAction(
   try {
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     const eventId = str(formData, 'event_id')
     if (!eventId || !isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
@@ -49,9 +52,35 @@ export async function createPartnerAction(
       contract_notes: str(formData, 'contract_notes'),
     })
 
+    // Insert deliverables if provided (from template or manually added)
+    const deliverablesJson = str(formData, 'deliverables')
+    if (deliverablesJson) {
+      try {
+        const deliverables = JSON.parse(deliverablesJson) as { title: string; category: string; proof_required: string }[]
+        const validRows = deliverables
+          .filter((d) => d.title?.trim())
+          .map((d) => ({
+            partner_id: partner.id,
+            event_id: eventId,
+            title: d.title.trim(),
+            category: d.category,
+            proof_required: d.proof_required,
+            notes: null,
+            status: 'not_started',
+          }))
+        if (validRows.length > 0) {
+          await auth.supabase.from('deliverables').insert(validRows)
+        }
+      } catch (err) {
+        console.error('createPartnerAction deliverables error:', err)
+        // Non-fatal — partner was created, deliverables just weren't seeded
+      }
+    }
+
     revalidatePath('/events')
     revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
+    revalidatePath(`/events/${eventId}/partners/${partner.id}`)
 
     return { ok: true, id: partner.id }
   } catch (err) {
@@ -71,6 +100,7 @@ export async function updatePartnerAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     const name = str(formData, 'name')
     if (!name) return { ok: false, error: 'Partner name is required' }
@@ -104,6 +134,7 @@ export async function deletePartnerAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     await deletePartner(partnerId)
 

@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
-import type { DeliverableCategory, DeliverableStatus, ProofRequired } from '@/lib/types/database'
+import type { DeliverableCategory, DeliverableStatus, ProofRequired, TemplateDeliverable } from '@/lib/types/database'
+import type { SupabaseClient } from '@/lib/db/client'
 
 function daysFromNow(n: number): string {
   const d = new Date()
@@ -94,6 +95,88 @@ function makeDeliverables(): SeedDeliverable[] {
   ]
 }
 
+// ---------------------------------------------------------------------------
+// Global template seed data
+// ---------------------------------------------------------------------------
+
+const GLOBAL_TEMPLATES: {
+  name: string
+  industry: 'sports' | 'venue' | 'festival' | 'film'
+  deliverables: TemplateDeliverable[]
+}[] = [
+  {
+    name: 'Sports Package',
+    industry: 'sports',
+    deliverables: [
+      { title: 'LED board rotation', category: 'in-venue', proof_required: 'photo' },
+      { title: 'PA announcements', category: 'in-venue', proof_required: 'file' },
+      { title: 'Social media post', category: 'digital', proof_required: 'screenshot' },
+      { title: 'Logo on event program', category: 'signage', proof_required: 'photo' },
+      { title: 'VIP hospitality suite', category: 'hospitality', proof_required: 'photo' },
+      { title: 'Halftime feature', category: 'content', proof_required: 'photo' },
+    ],
+  },
+  {
+    name: 'Venue Package',
+    industry: 'venue',
+    deliverables: [
+      { title: 'Naming rights signage', category: 'signage', proof_required: 'photo' },
+      { title: 'Digital display rotation', category: 'digital', proof_required: 'screenshot' },
+      { title: 'Welcome desk branding', category: 'signage', proof_required: 'photo' },
+      { title: 'Event program ad', category: 'content', proof_required: 'file' },
+      { title: 'VIP lounge branding', category: 'hospitality', proof_required: 'photo' },
+      { title: 'Post-event social recap', category: 'digital', proof_required: 'screenshot' },
+    ],
+  },
+  {
+    name: 'Festival Package',
+    industry: 'festival',
+    deliverables: [
+      { title: 'Stage banner', category: 'signage', proof_required: 'photo' },
+      { title: 'Branded activation booth', category: 'in-venue', proof_required: 'photo' },
+      { title: 'Social media story', category: 'digital', proof_required: 'screenshot' },
+      { title: 'Artist meet & greet access', category: 'hospitality', proof_required: 'photo' },
+      { title: 'On-site sampling', category: 'in-venue', proof_required: 'photo' },
+      { title: 'Festival app banner', category: 'digital', proof_required: 'screenshot' },
+      { title: 'Post-festival recap video', category: 'content', proof_required: 'file' },
+    ],
+  },
+  {
+    name: 'Film Package',
+    industry: 'film',
+    deliverables: [
+      { title: 'Red carpet backdrop', category: 'signage', proof_required: 'photo' },
+      { title: 'Program book ad', category: 'content', proof_required: 'file' },
+      { title: 'Pre-show reel placement', category: 'digital', proof_required: 'file' },
+      { title: 'VIP after-party branding', category: 'hospitality', proof_required: 'photo' },
+      { title: 'Social media post', category: 'digital', proof_required: 'screenshot' },
+      { title: 'Press wall logo', category: 'signage', proof_required: 'photo' },
+    ],
+  },
+]
+
+async function seedGlobalTemplates(supabase: SupabaseClient): Promise<void> {
+  // Check if global templates already exist
+  const { count } = await supabase
+    .from('templates')
+    .select('*', { count: 'exact', head: true })
+    .is('org_id', null)
+
+  if ((count ?? 0) > 0) return
+
+  const rows = GLOBAL_TEMPLATES.map((t) => ({
+    org_id: null,
+    name: t.name,
+    industry: t.industry,
+    deliverables: t.deliverables,
+  }))
+
+  const { error } = await supabase.from('templates').insert(rows)
+  if (error) {
+    console.error('Failed to seed global templates:', error)
+  }
+}
+
 export async function seedSampleDataAction(): Promise<{ ok: boolean; error?: string }> {
   try {
     const supabase = await createClient()
@@ -109,6 +192,9 @@ export async function seedSampleDataAction(): Promise<{ ok: boolean; error?: str
     }
 
     const orgId = membership.org_id
+
+    // Ensure global templates exist
+    await seedGlobalTemplates(supabase)
 
     // Guardrail: only seed if workspace is empty
     const { count, error: countError } = await supabase

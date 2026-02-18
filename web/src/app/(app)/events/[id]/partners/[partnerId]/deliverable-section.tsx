@@ -7,7 +7,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { DeliverableCard } from './deliverable-card'
 import { AddDeliverableDialog } from './add-deliverable-dialog'
 import { EditDeliverableDialog } from './edit-deliverable-dialog'
-import type { Deliverable, Proof } from '@/lib/types/database'
+import { useOrg } from '@/hooks/use-org'
+import type { Deliverable, Proof, Template } from '@/lib/types/database'
 
 interface DeliverableSectionProps {
   deliverables: Deliverable[]
@@ -15,6 +16,7 @@ interface DeliverableSectionProps {
   partnerId: string
   proofCounts: Record<string, number>
   proofMap: Record<string, Proof[]>
+  templates?: Template[]
 }
 
 export function DeliverableSection({
@@ -23,7 +25,9 @@ export function DeliverableSection({
   partnerId,
   proofCounts,
   proofMap,
+  templates,
 }: DeliverableSectionProps) {
+  const { canEdit } = useOrg()
   const [showAdd, setShowAdd] = useState(false)
   const [editTarget, setEditTarget] = useState<Deliverable | null>(null)
 
@@ -31,7 +35,7 @@ export function DeliverableSection({
     <div className="mt-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Deliverables</h2>
-        {deliverables.length > 0 && (
+        {canEdit && deliverables.length > 0 && (
           <Button size="sm" onClick={() => setShowAdd(true)} className="bg-kurobeni text-white hover:bg-blackberry">
             <Plus className="w-4 h-4 mr-1" />
             Add
@@ -44,12 +48,12 @@ export function DeliverableSection({
           icon={ClipboardList}
           title="No deliverables yet"
           description="Add a deliverable to start tracking fulfillment for this partner."
-          action={
+          action={canEdit ? (
             <Button size="sm" onClick={() => setShowAdd(true)} className="bg-kurobeni text-white hover:bg-blackberry">
               <Plus className="w-4 h-4 mr-1" />
               Add Deliverable
             </Button>
-          }
+          ) : undefined}
         />
       ) : (
         <div className="divide-y divide-gray-100">
@@ -71,6 +75,7 @@ export function DeliverableSection({
         onOpenChange={setShowAdd}
         eventId={eventId}
         partnerId={partnerId}
+        templates={templates}
       />
 
       <EditDeliverableDialog

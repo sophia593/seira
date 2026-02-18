@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Upload, Plus, Check, AlertTriangle } from 'lucide-react'
 import { uploadProofAction } from '@/app/(app)/actions/proof'
+import { toast } from '@/components/ui/sonner'
 import { ALLOWED_PROOF_TYPES, MAX_PROOF_SIZE, isAllowedProofType } from '@/lib/proof-utils'
 import { cn } from '@/lib/utils'
 import type { DeliverableStatus } from '@/lib/types/database'
@@ -33,7 +34,6 @@ export function ProofUploadButton({
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
 
   const needsProof = currentStatus === 'done' && !hasProof
@@ -41,16 +41,15 @@ export function ProofUploadButton({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setError(null)
 
     // Client-side validation
     if (file.size > MAX_PROOF_SIZE) {
-      setError('File too large — max 10 MB')
+      toast.error('File too large — max 10 MB')
       e.target.value = ''
       return
     }
     if (!isAllowedProofType(file.type)) {
-      setError('Unsupported file type')
+      toast.error('Unsupported file type')
       e.target.value = ''
       return
     }
@@ -67,7 +66,7 @@ export function ProofUploadButton({
       if (fileRef.current) fileRef.current.value = ''
 
       if (!result.ok) {
-        setError(result.error ?? 'Upload failed')
+        toast.error(result.error ?? 'Upload failed')
         return
       }
 
@@ -142,9 +141,6 @@ export function ProofUploadButton({
         </button>
       )}
 
-      {error && (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
-      )}
     </div>
   )
 }

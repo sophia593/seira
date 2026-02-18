@@ -1,9 +1,11 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { getUserMembership } from '@/lib/db/client'
 import { getRecapById, getRecapData } from '@/lib/db/recaps'
 import { getEventById } from '@/lib/db/events'
 import { getPartnerById } from '@/lib/db/partners'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
-import { RecapContent } from '@/components/recap/recap-content'
+import { PublicRecapReport } from '@/components/recap/public/public-recap-report'
 import { RecapControls } from './recap-controls'
 
 interface RecapPreviewPageProps {
@@ -21,6 +23,15 @@ export default async function RecapPreviewPage({ params }: RecapPreviewPageProps
 
   if (!recap || !event || !partner) notFound()
   if (recap.partner_id !== partnerId || recap.event_id !== eventId) notFound()
+
+  // Viewers can only access published recaps
+  if (recap.status !== 'published') {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+    const membership = await getUserMembership(supabase, user.id)
+    if (membership?.role === 'viewer') notFound()
+  }
 
   const data = await getRecapData(recapId)
   if (!data) notFound()
@@ -53,7 +64,9 @@ export default async function RecapPreviewPage({ params }: RecapPreviewPageProps
         />
       </div>
 
-      <RecapContent data={data} />
+      <div className="bg-gray-50">
+        <PublicRecapReport data={data} />
+      </div>
     </div>
   )
 }

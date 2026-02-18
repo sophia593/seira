@@ -7,6 +7,7 @@ import { FileText, Copy, Check, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { toast } from '@/components/ui/sonner'
+import { useOrg } from '@/hooks/use-org'
 import { createRecapAction } from '@/app/(app)/actions/recaps'
 import type { RecapReport } from '@/lib/types/database'
 
@@ -18,7 +19,11 @@ interface RecapSectionProps {
 
 export function RecapSection({ recaps, eventId, partnerId }: RecapSectionProps) {
   const router = useRouter()
+  const { isAdmin, canEdit } = useOrg()
   const [isGenerating, setIsGenerating] = useState(false)
+
+  // Viewers can only see published recaps
+  const visibleRecaps = canEdit ? recaps : recaps.filter((r) => r.status === 'published')
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -40,18 +45,18 @@ export function RecapSection({ recaps, eventId, partnerId }: RecapSectionProps) 
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">Recaps</h2>
-          {recaps.length > 0 && (
+          {visibleRecaps.length > 0 && (
             <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
-              {recaps.length}
+              {visibleRecaps.length}
             </span>
           )}
         </div>
-        {recaps.length > 0 && (
+        {isAdmin && visibleRecaps.length > 0 && (
           <Button
             size="sm"
             onClick={handleGenerate}
             isLoading={isGenerating}
-            className="border-[#C59C79] text-[#C59C79] hover:bg-[#C59C79]/5"
+            className="border-copper text-copper hover:bg-copper/5"
             variant="outline"
           >
             <FileText className="w-4 h-4 mr-1" />
@@ -60,27 +65,27 @@ export function RecapSection({ recaps, eventId, partnerId }: RecapSectionProps) 
         )}
       </div>
 
-      {recaps.length === 0 ? (
+      {visibleRecaps.length === 0 ? (
         <EmptyState
           icon={FileText}
           title="No recaps yet"
           description="Generate a recap to create a shareable proof summary for this partner."
-          action={
+          action={isAdmin ? (
             <Button
               size="sm"
               onClick={handleGenerate}
               isLoading={isGenerating}
-              className="border-[#C59C79] text-[#C59C79] hover:bg-[#C59C79]/5"
+              className="border-copper text-copper hover:bg-copper/5"
               variant="outline"
             >
               <FileText className="w-4 h-4 mr-1" />
               Generate Recap
             </Button>
-          }
+          ) : undefined}
         />
       ) : (
         <div className="divide-y divide-gray-100">
-          {recaps.map((recap) => (
+          {visibleRecaps.map((recap) => (
             <RecapRow
               key={recap.id}
               recap={recap}

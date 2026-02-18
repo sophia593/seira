@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { createEvent, updateEvent, deleteEvent } from '@/lib/db/events'
 import { isUuid } from '@/lib/validation'
-import type { EventStatus } from '@/lib/types/database'
+import { canManageContent } from '@/lib/permissions'
+import type { EventStatus, OrgRole } from '@/lib/types/database'
 
 const VALID_STATUSES: EventStatus[] = ['upcoming', 'active', 'completed', 'archived']
 
@@ -22,7 +23,7 @@ async function getAuthenticatedOrg() {
     return { error: 'No organization membership' }
   }
 
-  return { orgId: membership.org_id }
+  return { orgId: membership.org_id, role: membership.role as OrgRole }
 }
 
 function str(formData: FormData, key: string): string | undefined {
@@ -37,6 +38,7 @@ export async function createEventAction(
   try {
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     const name = str(formData, 'name')
     if (!name) return { ok: false, error: 'Event name is required' }
@@ -68,6 +70,7 @@ export async function updateEventAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     const name = str(formData, 'name')
     if (!name) return { ok: false, error: 'Event name is required' }
@@ -104,6 +107,7 @@ export async function deleteEventAction(
 
     const auth = await getAuthenticatedOrg()
     if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     await deleteEvent(eventId)
 

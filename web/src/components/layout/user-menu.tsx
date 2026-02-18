@@ -108,7 +108,7 @@ export function UserMenu({ isCollapsed = false, variant = 'default' }: UserMenuP
   }
 
   function handleProfile() {
-    router.push('/settings/profile')
+    router.push('/settings')
     setIsOpen(false)
   }
 

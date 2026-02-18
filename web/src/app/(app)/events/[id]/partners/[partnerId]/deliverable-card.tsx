@@ -8,6 +8,8 @@ import { toast } from '@/components/ui/sonner'
 import { ProofUploadButton } from '@/components/proof/proof-upload-button'
 import { ProofThumbnails } from '@/components/proof/proof-thumbnails'
 import { advanceDeliverableStatusAction } from '@/app/(app)/actions/deliverables'
+import { useOrg } from '@/hooks/use-org'
+import { canDeleteProof } from '@/lib/permissions'
 import { STATUS_FLOW, STATUS_CONFIG, isOverdue, formatShortDate } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { Deliverable, DeliverableStatus, Proof } from '@/lib/types/database'
@@ -22,6 +24,7 @@ interface DeliverableCardProps {
 
 export function DeliverableCard({ deliverable, eventId, onEdit, proofCount, proofs }: DeliverableCardProps) {
   const router = useRouter()
+  const { role, canEdit } = useOrg()
   const [isPending, startTransition] = useTransition()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -64,8 +67,8 @@ export function DeliverableCard({ deliverable, eventId, onEdit, proofCount, proo
 
   return (
     <div
-      className="px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
-      onClick={() => onEdit(deliverable)}
+      className={cn('px-4 py-3 transition-colors', canEdit && 'hover:bg-gray-50 cursor-pointer')}
+      onClick={canEdit ? () => onEdit(deliverable) : undefined}
     >
       <div className="flex items-center gap-4">
         {overdue && (
@@ -87,29 +90,43 @@ export function DeliverableCard({ deliverable, eventId, onEdit, proofCount, proo
           </div>
         </div>
 
-        {/* Inline status dropdown */}
+        {/* Inline status dropdown (or read-only badge for viewers) */}
         <div className="relative shrink-0" ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setDropdownOpen(!dropdownOpen)
-            }}
-            disabled={isPending}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
-              config.bgColor,
-              config.color,
-              config.borderColor,
-              isPending && 'opacity-50',
-              'hover:ring-2 hover:ring-gray-900/10'
-            )}
-          >
-            <span className={cn('h-1.5 w-1.5 rounded-full', config.dotColor)} />
-            <span>{config.label}</span>
-          </button>
+          {canEdit ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setDropdownOpen(!dropdownOpen)
+              }}
+              disabled={isPending}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+                config.bgColor,
+                config.color,
+                config.borderColor,
+                isPending && 'opacity-50',
+                'hover:ring-2 hover:ring-gray-900/10'
+              )}
+            >
+              <span className={cn('h-1.5 w-1.5 rounded-full', config.dotColor)} />
+              <span>{config.label}</span>
+            </button>
+          ) : (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                config.bgColor,
+                config.color,
+                config.borderColor,
+              )}
+            >
+              <span className={cn('h-1.5 w-1.5 rounded-full', config.dotColor)} />
+              <span>{config.label}</span>
+            </span>
+          )}
 
-          {dropdownOpen && (
+          {canEdit && dropdownOpen && (
             <div className="absolute right-0 top-full mt-1 z-[80] w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
               {STATUS_FLOW.map((status) => {
                 const sc = STATUS_CONFIG[status]
@@ -147,15 +164,18 @@ export function DeliverableCard({ deliverable, eventId, onEdit, proofCount, proo
               partnerId={deliverable.partner_id}
               deliverableId={deliverable.id}
               maxVisible={4}
+              canDelete={canDeleteProof(role)}
             />
-            <ProofUploadButton
-              deliverableId={deliverable.id}
-              eventId={eventId}
-              partnerId={deliverable.partner_id}
-              compact
-            />
+            {canEdit && (
+              <ProofUploadButton
+                deliverableId={deliverable.id}
+                eventId={eventId}
+                partnerId={deliverable.partner_id}
+                compact
+              />
+            )}
           </div>
-        ) : needsProof ? (
+        ) : needsProof && canEdit ? (
           <div className="flex items-center gap-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -170,7 +190,7 @@ export function DeliverableCard({ deliverable, eventId, onEdit, proofCount, proo
               hasProof={false}
             />
           </div>
-        ) : (
+        ) : canEdit ? (
           <ProofUploadButton
             deliverableId={deliverable.id}
             eventId={eventId}
@@ -178,7 +198,7 @@ export function DeliverableCard({ deliverable, eventId, onEdit, proofCount, proo
             currentStatus={deliverable.status}
             hasProof={proofCount > 0}
           />
-        )}
+        ) : null}
       </div>
     </div>
   )

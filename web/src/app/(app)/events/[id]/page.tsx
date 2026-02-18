@@ -1,7 +1,10 @@
 import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { getUserMembership } from '@/lib/db/client'
 import { getEventById } from '@/lib/db/events'
 import { listPartnersByEvent } from '@/lib/db/partners'
 import { listDeliverablesByEvent } from '@/lib/db/deliverables'
+import { listTemplates } from '@/lib/db/templates'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { EventHeader, EventActions } from '@/components/event-detail'
 import { PartnerSection } from './partner-section'
@@ -20,9 +23,17 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     notFound()
   }
 
-  const [partners, deliverables] = await Promise.all([
+  // Fetch org context for template listing
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const membership = user ? await getUserMembership(supabase, user.id) : null
+
+  const [partners, deliverables, templates] = await Promise.all([
     listPartnersByEvent(eventId),
     listDeliverablesByEvent(eventId),
+    membership
+      ? listTemplates(supabase, membership.org_id, { includeGlobal: true })
+      : Promise.resolve([]),
   ])
 
   // Compute per-partner stats (plain object — serializable across server→client)
@@ -100,6 +111,13 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
         eventId={eventId}
         completionMap={completionMap}
         deliverablePreviewMap={deliverablePreviewMap}
+        templates={templates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          deliverableCount: t.deliverables.length,
+          isGlobal: t.org_id === null,
+          deliverables: t.deliverables.map((d) => ({ title: d.title, category: d.category, proof_required: d.proof_required, notes: d.notes })),
+        }))}
       />
     </div>
   )

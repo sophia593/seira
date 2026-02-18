@@ -24,6 +24,8 @@ import {
   unpublishRecapAction,
   deleteRecapAction,
 } from '@/app/(app)/actions/recaps'
+import { useOrg } from '@/hooks/use-org'
+import { canManageRecaps } from '@/lib/permissions'
 import type { RecapReport } from '@/lib/types/database'
 
 interface RecapControlsProps {
@@ -38,6 +40,8 @@ interface RecapControlsProps {
 
 export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShareUrl, partnerContactEmail, partnerName, eventName }: RecapControlsProps) {
   const router = useRouter()
+  const { role } = useOrg()
+  const hasManagePermission = canManageRecaps(role)
   const [isPending, startTransition] = useTransition()
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
@@ -160,12 +164,14 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
           </Button>
         </a>
 
-        <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
-          <Pencil className="w-4 h-4 mr-1" />
-          Edit
-        </Button>
+        {hasManagePermission && (
+          <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+            <Pencil className="w-4 h-4 mr-1" />
+            Edit
+          </Button>
+        )}
 
-        {isDraft && (
+        {hasManagePermission && isDraft && (
           <Button
             size="sm"
             onClick={handlePublish}
@@ -177,15 +183,17 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
           </Button>
         )}
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowDelete(true)}
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className="w-4 h-4 mr-1" />
-          Delete
-        </Button>
+        {hasManagePermission && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDelete(true)}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Delete
+          </Button>
+        )}
       </div>
 
       {/* Draft callout */}
@@ -233,15 +241,17 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
               </a>
             )}
             <div className="flex-1" />
-            <button
-              type="button"
-              onClick={handleUnpublish}
-              disabled={isPending}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-            >
-              <EyeOff className="w-3.5 h-3.5" />
-              Unpublish
-            </button>
+            {hasManagePermission && (
+              <button
+                type="button"
+                onClick={handleUnpublish}
+                disabled={isPending}
+                className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+              >
+                <EyeOff className="w-3.5 h-3.5" />
+                Unpublish
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -268,6 +278,8 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
         }
       >
         <form id="edit-recap-form" onSubmit={handleEdit}>
+          <input type="hidden" name="event_id" value={eventId} />
+          <input type="hidden" name="partner_id" value={partnerId} />
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="edit-recap-title">Title *</Label>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileText, Play, X } from 'lucide-react'
 import { deleteProofAction } from '@/app/(app)/actions/proof'
+import { toast } from '@/components/ui/sonner'
 import { ProofLightbox } from './proof-lightbox'
 import { isImageType, isVideoType, isPdfType } from '@/lib/proof-utils'
 import { cn } from '@/lib/utils'
@@ -16,6 +17,8 @@ interface ProofThumbnailsProps {
   deliverableId: string
   /** Max thumbnails to show before "+N" overflow */
   maxVisible?: number
+  /** Whether the current user can delete proofs (owner/admin only) */
+  canDelete?: boolean
   className?: string
 }
 
@@ -25,6 +28,7 @@ export function ProofThumbnails({
   partnerId,
   deliverableId,
   maxVisible = 4,
+  canDelete = false,
   className,
 }: ProofThumbnailsProps) {
   const router = useRouter()
@@ -50,7 +54,11 @@ export function ProofThumbnails({
       )
       if (result.ok) {
         router.refresh()
+      } else {
+        toast.error(result.error ?? 'Failed to delete proof')
       }
+    } catch {
+      toast.error('Failed to delete proof')
     } finally {
       setDeletingId(null)
     }
@@ -69,7 +77,11 @@ export function ProofThumbnails({
       )
       if (result.ok) {
         router.refresh()
+      } else {
+        toast.error(result.error ?? 'Failed to delete proof')
       }
+    } catch {
+      toast.error('Failed to delete proof')
     } finally {
       setDeletingId(null)
     }
@@ -115,15 +127,17 @@ export function ProofThumbnails({
               )}
             </button>
 
-            {/* Hover delete button */}
-            <button
-              type="button"
-              onClick={(e) => handleDelete(e, proof)}
-              disabled={deletingId === proof.id}
-              className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-500"
-            >
-              <X className="h-3 w-3 text-gray-400 hover:text-red-500" />
-            </button>
+            {/* Hover delete button (owner/admin only) */}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={(e) => handleDelete(e, proof)}
+                disabled={deletingId === proof.id}
+                className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-500"
+              >
+                <X className="h-3 w-3 text-gray-400 hover:text-red-500" />
+              </button>
+            )}
           </div>
         ))}
 
@@ -143,7 +157,7 @@ export function ProofThumbnails({
         initialIndex={lightboxIndex}
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
-        onDelete={handleLightboxDelete}
+        onDelete={canDelete ? handleLightboxDelete : undefined}
       />
     </>
   )

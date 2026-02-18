@@ -19,7 +19,7 @@ export function RecapContent({ data }: RecapContentProps) {
     <div className="max-w-4xl mx-auto px-6 py-12 print:px-0 print:py-0">
       {/* Header */}
       <header className="pb-6 border-b border-gray-200 mb-8">
-        <p className="text-xl font-semibold text-[#281822]">{organization.name}</p>
+        <p className="text-xl font-semibold text-kurobeni">{organization.name}</p>
         <p className="text-xs uppercase tracking-widest text-gray-400 mt-1">
           Sponsorship Recap Report
         </p>
@@ -27,7 +27,7 @@ export function RecapContent({ data }: RecapContentProps) {
 
       {/* Title section */}
       <section className="mb-8">
-        <h1 className="text-3xl font-bold text-[#281822]">{event.name}</h1>
+        <h1 className="text-3xl font-bold text-kurobeni">{event.name}</h1>
         <p className="text-xl text-gray-500 mt-1">{partner.name}</p>
         {(event.date || event.venue) && (
           <p className="text-sm text-gray-400 mt-2">
@@ -37,7 +37,7 @@ export function RecapContent({ data }: RecapContentProps) {
           </p>
         )}
         {recap.cover_note && (
-          <div className="border-l-4 border-[#C59C79] bg-[#C59C79]/5 px-5 py-4 mt-6 rounded-r-lg">
+          <div className="border-l-4 border-copper bg-copper/5 px-5 py-4 mt-6 rounded-r-lg">
             <p className="text-sm text-gray-600 italic whitespace-pre-wrap">{recap.cover_note}</p>
           </div>
         )}
@@ -59,13 +59,13 @@ export function RecapContent({ data }: RecapContentProps) {
           />
           <div>
             <p className="text-xs uppercase tracking-wider text-gray-400 mb-1">Fulfillment Rate</p>
-            <p className="text-3xl font-bold text-[#C59C79]">{fulfillmentPct}%</p>
+            <p className="text-3xl font-bold text-copper">{fulfillmentPct}%</p>
           </div>
         </div>
         {/* Progress bar */}
         <div className="mt-4 h-2 w-full rounded-full bg-gray-200 overflow-hidden">
           <div
-            className="h-full bg-[#C59C79] rounded-full transition-all duration-300"
+            className="h-full bg-copper rounded-full transition-all duration-300"
             style={{ width: `${fulfillmentPct}%` }}
           />
         </div>
@@ -94,7 +94,7 @@ export function RecapContent({ data }: RecapContentProps) {
                   </p>
                   <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
                     <div
-                      className="h-full bg-[#C59C79] rounded-full transition-all"
+                      className="h-full bg-copper rounded-full transition-all"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -156,7 +156,7 @@ export function RecapContent({ data }: RecapContentProps) {
                             href={proof.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block rounded-lg overflow-hidden border border-gray-100 hover:border-[#C59C79] transition-colors"
+                            className="block rounded-lg overflow-hidden border border-gray-100 hover:border-copper transition-colors"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -170,7 +170,7 @@ export function RecapContent({ data }: RecapContentProps) {
                             href={proof.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 rounded-lg border border-gray-100 px-4 py-3 hover:border-[#C59C79] transition-colors"
+                            className="flex items-center gap-2 rounded-lg border border-gray-100 px-4 py-3 hover:border-copper transition-colors"
                           >
                             <FileText className="w-5 h-5 text-red-400 shrink-0" />
                             <span className="text-sm text-gray-600 truncate">View PDF</span>
@@ -181,7 +181,7 @@ export function RecapContent({ data }: RecapContentProps) {
                             href={proof.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 rounded-lg border border-gray-100 px-4 py-3 hover:border-[#C59C79] transition-colors"
+                            className="flex items-center gap-2 rounded-lg border border-gray-100 px-4 py-3 hover:border-copper transition-colors"
                           >
                             <Play className="w-5 h-5 text-blue-400 shrink-0" />
                             <span className="text-sm text-gray-600 truncate">View Video</span>
@@ -192,7 +192,7 @@ export function RecapContent({ data }: RecapContentProps) {
                             href={proof.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 rounded-lg border border-gray-100 px-4 py-3 hover:border-[#C59C79] transition-colors"
+                            className="flex items-center gap-2 rounded-lg border border-gray-100 px-4 py-3 hover:border-copper transition-colors"
                           >
                             <FileText className="w-5 h-5 text-gray-400 shrink-0" />
                             <span className="text-sm text-gray-600 truncate">{proof.file_name}</span>
@@ -222,7 +222,7 @@ export function RecapContent({ data }: RecapContentProps) {
             href="https://seira.global"
             target="_blank"
             rel="noreferrer"
-            className="text-gray-500 hover:text-[#C59C79] transition-colors underline underline-offset-2"
+            className="text-gray-500 hover:text-copper transition-colors underline underline-offset-2"
           >
             Seira
           </a>

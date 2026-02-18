@@ -7,6 +7,8 @@ import { getRecapDataPublic } from '@/lib/db/recaps'
 import { RecapPDF } from '@/lib/pdf/recap-pdf'
 import type { RecapData, Proof } from '@/lib/types/database'
 
+type RecapProof = Proof & { uploader_name: string | null }
+
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
@@ -135,16 +137,16 @@ async function validateProofImages(data: RecapData): Promise<RecapData> {
 
       // HEAD-check each image (3 s timeout)
       const results = await Promise.all(
-        limited.map(async (proof): Promise<Proof | null> => {
+        limited.map(async (proof): Promise<RecapProof | null> => {
           const ok = await isImageReachable(proof.file_url)
           return ok ? proof : null
         }),
       )
 
-      const validated = results.filter((p): p is Proof => p !== null)
+      const validated = results.filter((p): p is RecapProof => p !== null)
       const anyExcluded = results.some((p) => p === null)
 
-      const finalProofs: Proof[] = [...validated, ...nonImageProofs]
+      const finalProofs: RecapProof[] = [...validated, ...nonImageProofs]
 
       // If images existed but ALL were excluded → add an "[Image unavailable]" marker
       // that renders as a non-image placeholder in the PDF.
@@ -159,6 +161,7 @@ async function validateProofImages(data: RecapData): Promise<RecapData> {
           file_size: 0,
           uploaded_by: '',
           created_at: new Date().toISOString(),
+          uploader_name: null,
         })
       }
 

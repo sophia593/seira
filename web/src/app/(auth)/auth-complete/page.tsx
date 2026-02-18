@@ -24,11 +24,14 @@ function AuthCompleteContent() {
   const isSignup = from === 'signup'
 
   useEffect(() => {
-    // Check for stored redirect URL
+    // Check for invite code first, then stored redirect URL
+    const inviteCode = searchParams.get('invite') || localStorage.getItem('seira_invite_code')
+    localStorage.removeItem('seira_invite_code')
+
     const redirectUrl = localStorage.getItem('seira_auth_redirect')
     localStorage.removeItem('seira_auth_redirect')
 
-    const destination = redirectUrl || '/dashboard'
+    const destination = inviteCode ? `/invite/${inviteCode}` : (redirectUrl || '/dashboard')
 
     // Brief delay so the user sees the success message
     const redirectTimer = setTimeout(() => {

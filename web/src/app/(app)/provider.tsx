@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, createContext, useContext } from "rea
 import { useRouter, usePathname } from "next/navigation"
 import { useUserStore } from "@/stores/user-store"
 import { useOrgStore } from "@/stores/org-store"
+import { useNotificationStore } from "@/stores/notification-store"
 import { createClient } from "@/lib/supabase/client"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { toast } from "@/components/ui/sonner"
@@ -29,6 +30,7 @@ interface InitialOrg {
 interface AppShellProviderProps {
   initialUser: User
   initialOrg: InitialOrg | null
+  initialUnreadCount?: number
   children: React.ReactNode
 }
 
@@ -85,6 +87,7 @@ const TABLET_BREAKPOINT = 1024
 export function AppShellProvider({
   initialUser,
   initialOrg,
+  initialUnreadCount = 0,
   children,
 }: AppShellProviderProps) {
   const router = useRouter()
@@ -97,6 +100,9 @@ export function AppShellProvider({
 
   // Org store
   const setOrg = useOrgStore((state) => state.setOrg)
+
+  // Notification store
+  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount)
 
   // Connection state
   const [isOnline, setIsOnline] = useState(true)
@@ -131,9 +137,12 @@ export function AppShellProvider({
       setOrg(initialOrg)
     }
 
+    // Hydrate notification store
+    setUnreadCount(initialUnreadCount)
+
     // Set initial session expiry (24 hours from now)
     setSessionExpiresAt(new Date(Date.now() + SESSION_DURATION_MS))
-  }, [initialUser, initialOrg, setUser, setLoading, setHydrated, setOrg])
+  }, [initialUser, initialOrg, initialUnreadCount, setUser, setLoading, setHydrated, setOrg, setUnreadCount])
 
   // ===========================================================================
   // Online/Offline Detection

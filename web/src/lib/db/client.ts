@@ -29,6 +29,29 @@ export async function getUserMembership(
 }
 
 /**
+ * Get the current user's membership for a specific org.
+ * Used by the layout to resolve the cookie-selected org.
+ */
+export async function getUserMembershipForOrg(
+  supabase: SupabaseClient,
+  userId: string,
+  orgId: string
+): Promise<OrganizationMember | null> {
+  const { data, error } = await supabase
+    .from('organization_members')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('org_id', orgId)
+    .maybeSingle()
+
+  if (error || !data) {
+    return null
+  }
+
+  return data as OrganizationMember
+}
+
+/**
  * Get the current user's org_id.
  * Throws if user has no org membership.
  */
