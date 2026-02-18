@@ -37,6 +37,19 @@ export function canChangeRole(role: OrgRole): boolean {
   return role === 'owner' || role === 'admin'
 }
 
+/**
+ * Check if actor can change a specific target's role.
+ * Nobody can change the owner's role.
+ * Owner and admin can change non-owner roles.
+ */
+export function canChangeTargetRole(
+  actorRole: OrgRole,
+  targetRole: OrgRole
+): boolean {
+  if (targetRole === 'owner') return false
+  return actorRole === 'owner' || actorRole === 'admin'
+}
+
 /** Only the owner can delete the workspace */
 export function canDeleteWorkspace(role: OrgRole): boolean {
   return role === 'owner'

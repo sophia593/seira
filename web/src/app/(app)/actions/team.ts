@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { tryCreateAdminClient } from '@/lib/supabase/admin'
 import { getUserMembership } from '@/lib/db/client'
-import { updateMemberRole, removeOrganizationMember } from '@/lib/db/organizations'
+import { getOrganizationMembers, updateMemberRole, removeOrganizationMember } from '@/lib/db/organizations'
 import { createNotification } from '@/lib/db/notifications'
 import { canChangeRole, canRemoveMember } from '@/lib/permissions'
 import { isUuid } from '@/lib/validation'
@@ -60,6 +60,16 @@ export async function updateMemberRoleAction(
       return { ok: false, error: 'You cannot change your own role' }
     }
 
+    // Verify target exists and is not the owner
+    const members = await getOrganizationMembers(auth.supabase, auth.orgId)
+    const target = members.find((m) => m.user_id === targetUserId)
+    if (!target) {
+      return { ok: false, error: 'Member not found' }
+    }
+    if (target.role === 'owner') {
+      return { ok: false, error: "Cannot change the owner's role" }
+    }
+
     await updateMemberRole(auth.supabase, auth.orgId, targetUserId, newRole as OrgRole)
 
     // Notify the target user
@@ -103,13 +113,14 @@ export async function removeMemberAction(
       return { ok: false, error: 'You cannot remove yourself from the workspace' }
     }
 
-    // Get target's role to check permissions
-    const targetRole = formData.get('target_role') as OrgRole | null
-    if (!targetRole) {
-      return { ok: false, error: 'Target role is required' }
+    // Look up the target's actual role from the database (don't trust client data)
+    const orgMembers = await getOrganizationMembers(auth.supabase, auth.orgId)
+    const targetMember = orgMembers.find((m) => m.user_id === targetUserId)
+    if (!targetMember) {
+      return { ok: false, error: 'Member not found' }
     }
 
-    if (!canRemoveMember(auth.role, targetRole)) {
+    if (!canRemoveMember(auth.role, targetMember.role)) {
       return { ok: false, error: 'You do not have permission to remove this member' }
     }
 

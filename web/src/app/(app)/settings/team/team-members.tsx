@@ -46,7 +46,7 @@ import { Modal } from '@/components/ui/modal'
 import { toast } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
 import { updateMemberRoleAction, removeMemberAction } from '@/app/(app)/actions/team'
-import { canChangeRole, canRemoveMember } from '@/lib/permissions'
+import { canChangeTargetRole, canRemoveMember } from '@/lib/permissions'
 import { ROLE_CONFIG } from '@/lib/role-config'
 import { InviteDialog } from './invite-dialog'
 import type { OrgRole } from '@/lib/types/database'
@@ -657,6 +657,115 @@ function ChangeRoleDialog({
 }
 
 // =============================================================================
+// OwnerCard — dedicated card for the workspace owner, no actions
+// =============================================================================
+
+function OwnerCard({
+  member,
+  isCurrentUser,
+  isExpanded,
+  onToggleExpand,
+}: {
+  member: MemberWithProfile
+  isCurrentUser: boolean
+  isExpanded: boolean
+  onToggleExpand: () => void
+}) {
+  const name = displayName(member)
+  const colors = ROLE_COLORS.owner
+
+  return (
+    <div
+      className={cn(
+        'relative border rounded-xl overflow-hidden transition-all duration-200',
+        isExpanded ? 'shadow-sm border-amber-200' : 'hover:shadow-sm border-amber-100',
+      )}
+    >
+      {/* Permanent amber accent bar */}
+      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-amber-400" />
+
+      {/* Main card content */}
+      <div
+        className="flex items-center gap-3.5 px-4 py-3.5 cursor-pointer"
+        onClick={onToggleExpand}
+      >
+        {/* Avatar with amber ring + crown */}
+        <div className="relative shrink-0">
+          <AvatarUser
+            src={member.avatar_url}
+            name={name}
+            size="lg"
+            className="ring-2 ring-amber-200"
+          />
+          <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 border-2 border-white shadow-sm">
+            <Crown className="w-2.5 h-2.5 text-amber-600" />
+          </span>
+        </div>
+
+        {/* Info */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-gray-900 truncate">{name}</p>
+            {isCurrentUser && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500">
+                you
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 truncate mt-0.5">{member.email}</p>
+          {member.created_at && (
+            <div className="flex items-center gap-1 mt-1">
+              <Calendar className="w-3 h-3 text-gray-300" />
+              <span className="text-[11px] text-gray-400">
+                Joined {formatDate(member.created_at)}
+                <span className="text-gray-300 ml-1">({relativeTime(member.created_at)})</span>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Role badge */}
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border shrink-0',
+            colors.badgeBg, colors.badgeText, colors.badgeBorder,
+          )}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Owner
+        </span>
+
+        {/* Info text instead of actions */}
+        <span className="text-[11px] text-gray-400 shrink-0 hidden sm:block">
+          Full access
+        </span>
+
+        {/* Expand chevron */}
+        <div className="shrink-0 text-gray-300">
+          {isExpanded ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
+        </div>
+      </div>
+
+      {/* Expandable detail panel */}
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows] duration-300 ease-in-out',
+          isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+        )}
+      >
+        <div className="overflow-hidden">
+          {isExpanded && <MemberExpandedDetail role="owner" />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
 // MemberCard
 // =============================================================================
 
@@ -680,7 +789,7 @@ function MemberCard({
   const name = displayName(member)
   const colors = ROLE_COLORS[member.role]
   const RoleIcon = ROLE_ICON_COMPONENT[member.role]
-  const showRoleChange = !isCurrentUser && canChangeRole(currentUserRole)
+  const showRoleChange = !isCurrentUser && canChangeTargetRole(currentUserRole, member.role)
   const showRemove = !isCurrentUser && canRemoveMember(currentUserRole, member.role)
   const hasActions = showRoleChange || showRemove
 
@@ -877,16 +986,31 @@ export function TeamMembers({ members, currentUserId, currentUserRole, isManager
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
   const [roleChangeTarget, setRoleChangeTarget] = useState<MemberWithProfile | null>(null)
 
-  // Role counts
+  // Split owner from regular members
+  const owner = useMemo(() => members.find((m) => m.role === 'owner') ?? null, [members])
+  const nonOwnerMembers = useMemo(() => members.filter((m) => m.role !== 'owner'), [members])
+
+  // Role counts (all members including owner)
   const roleCounts = useMemo(() => {
     const counts: Record<OrgRole, number> = { owner: 0, admin: 0, contributor: 0, viewer: 0 }
     members.forEach((m) => { counts[m.role]++ })
     return counts
   }, [members])
 
-  // Filtered + sorted members
+  // Show owner card? (visible in 'all' or 'owner' filter, and matches search)
+  const showOwner = useMemo(() => {
+    if (!owner) return false
+    if (roleFilter !== 'all' && roleFilter !== 'owner') return false
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      return displayName(owner).toLowerCase().includes(q) || owner.email.toLowerCase().includes(q)
+    }
+    return true
+  }, [owner, roleFilter, searchQuery])
+
+  // Filtered + sorted non-owner members
   const filteredMembers = useMemo(() => {
-    let result = [...members]
+    let result = [...nonOwnerMembers]
 
     // Search filter
     if (searchQuery.trim()) {
@@ -898,7 +1022,10 @@ export function TeamMembers({ members, currentUserId, currentUserRole, isManager
       )
     }
 
-    // Role filter
+    // Role filter (owner filter shows only the owner card, so hide non-owners)
+    if (roleFilter === 'owner') {
+      return []
+    }
     if (roleFilter !== 'all') {
       result = result.filter((m) => m.role === roleFilter)
     }
@@ -920,7 +1047,7 @@ export function TeamMembers({ members, currentUserId, currentUserRole, isManager
     })
 
     return result
-  }, [members, searchQuery, roleFilter, sortBy])
+  }, [nonOwnerMembers, searchQuery, roleFilter, sortBy])
 
   // Handlers
   function handleToggleExpand(memberId: string) {
@@ -941,7 +1068,6 @@ export function TeamMembers({ members, currentUserId, currentUserRole, isManager
     startTransition(async () => {
       const formData = new FormData()
       formData.set('user_id', removeTarget.user_id)
-      formData.set('target_role', removeTarget.role)
       const result = await removeMemberAction(formData)
       if (!result.ok) {
         toast.error(result.error ?? 'Failed to remove member')
@@ -1061,15 +1187,25 @@ export function TeamMembers({ members, currentUserId, currentUserRole, isManager
         </div>
       </div>
 
+      {/* Owner card */}
+      {showOwner && owner && (
+        <OwnerCard
+          member={owner}
+          isCurrentUser={owner.user_id === currentUserId}
+          isExpanded={expandedMemberId === owner.user_id}
+          onToggleExpand={() => handleToggleExpand(owner.user_id)}
+        />
+      )}
+
       {/* Member cards */}
-      {filteredMembers.length === 0 ? (
+      {filteredMembers.length === 0 && !showOwner ? (
         <FilterEmptyState
           hasSearch={searchQuery.length > 0}
           hasRoleFilter={roleFilter !== 'all'}
           onClearSearch={() => setSearchQuery('')}
           onClearRoleFilter={() => setRoleFilter('all')}
         />
-      ) : (
+      ) : filteredMembers.length > 0 ? (
         <div className="space-y-2">
           {filteredMembers.map((member) => (
             <MemberCard
@@ -1084,7 +1220,7 @@ export function TeamMembers({ members, currentUserId, currentUserRole, isManager
             />
           ))}
         </div>
-      )}
+      ) : null}
 
       {/* Change role dialog */}
       {roleChangeTarget && (
