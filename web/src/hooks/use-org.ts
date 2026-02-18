@@ -12,16 +12,23 @@ interface UseOrgResult {
 
 /**
  * Hook to access organization context.
- * Throws if org context is not yet hydrated.
+ * Returns safe defaults (viewer-level permissions) before store hydration
+ * to prevent SSR crashes. Re-renders with real values once hydrated.
  */
 export function useOrg(): UseOrgResult {
   const orgId = useOrgStore((state) => state.orgId)
   const orgName = useOrgStore((state) => state.orgName)
   const role = useOrgStore((state) => state.role)
-  const isHydrated = useOrgStore((state) => state.isHydrated)
 
-  if (!isHydrated || !orgId || !orgName || !role) {
-    throw new Error('Organization context not available. Ensure useOrg is used within an authenticated route.')
+  if (!orgId || !orgName || !role) {
+    return {
+      orgId: orgId ?? '',
+      orgName: orgName ?? '',
+      role: role ?? 'viewer',
+      isOwner: false,
+      isAdmin: false,
+      canEdit: false,
+    }
   }
 
   return {
