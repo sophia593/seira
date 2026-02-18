@@ -31,11 +31,17 @@ import { updateEventAction, deleteEventAction, duplicateEventAction } from '@/ap
 import { EVENT_STATUS_FLOW, EVENT_STATUS_CONFIG } from '@/lib/constants'
 import type { Event, EventStatus } from '@/lib/types/database'
 
-interface EventActionsProps {
-  event: Event
+interface SeasonOption {
+  id: string
+  name: string
 }
 
-export function EventActions({ event }: EventActionsProps) {
+interface EventActionsProps {
+  event: Event
+  seasons?: SeasonOption[]
+}
+
+export function EventActions({ event, seasons = [] }: EventActionsProps) {
   const router = useRouter()
   const { canEdit, isAdmin } = useOrg()
   const formRef = useRef<HTMLFormElement>(null)
@@ -45,6 +51,7 @@ export function EventActions({ event }: EventActionsProps) {
   const [editError, setEditError] = useState<string | null>(null)
   const [copyError, setCopyError] = useState<string | null>(null)
   const [editStatus, setEditStatus] = useState<EventStatus>(event.status)
+  const [editSeasonId, setEditSeasonId] = useState<string>(event.season_id ?? '')
   const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
@@ -55,6 +62,7 @@ export function EventActions({ event }: EventActionsProps) {
 
     const formData = new FormData(e.currentTarget)
     formData.set('status', editStatus)
+    if (editSeasonId) formData.set('season_id', editSeasonId)
 
     startTransition(async () => {
       const result = await updateEventAction(event.id, formData)
@@ -216,6 +224,22 @@ export function EventActions({ event }: EventActionsProps) {
                 </Select>
               </div>
             </div>
+            {seasons.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Season</Label>
+                <Select value={editSeasonId || 'none'} onValueChange={(v) => setEditSeasonId(v === 'none' ? '' : v)} disabled={isPending}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="No season" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No season</SelectItem>
+                    {seasons.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="edit-notes">Notes</Label>
               <textarea

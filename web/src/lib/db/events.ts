@@ -141,6 +141,7 @@ export async function createEvent(
       venue: input.venue ?? null,
       status: input.status ?? DEFAULT_EVENT_STATUS,
       notes: input.notes ?? null,
+      season_id: input.season_id ?? null,
     })
     .select()
     .single()
@@ -164,6 +165,7 @@ export async function updateEvent(
   if (input.venue !== undefined) updates.venue = input.venue || null
   if (input.status !== undefined) updates.status = input.status
   if (input.notes !== undefined) updates.notes = input.notes || null
+  if (input.season_id !== undefined) updates.season_id = input.season_id || null
 
   const { data, error } = await supabase
     .from('events')

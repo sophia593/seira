@@ -31,8 +31,32 @@ export interface Event {
   venue: string | null;
   status: EventStatus;
   notes: string | null;
+  season_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Season {
+  id: string;
+  org_id: string;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSeasonInput {
+  name: string;
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface SeasonWithStats extends Season {
+  event_count: number;
+  total_deliverables: number;
+  completed_deliverables: number;
+  completion_pct: number;
 }
 
 export interface Partner {
@@ -124,6 +148,7 @@ export interface CreateEventInput {
   venue?: string;
   status?: EventStatus;
   notes?: string;
+  season_id?: string | null;
 }
 
 export interface CreatePartnerInput {

@@ -6,24 +6,39 @@ import { SlideOver } from '@/components/ui/slide-over'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { createEventAction } from '@/app/(app)/actions/events'
 import { toast } from '@/components/ui/sonner'
+
+interface SeasonOption {
+  id: string
+  name: string
+}
 
 interface CreateEventDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  seasons?: SeasonOption[]
 }
 
-export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps) {
+export function CreateEventDialog({ open, onOpenChange, seasons = [] }: CreateEventDialogProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string>('')
 
   const handleClose = () => {
     if (isPending) return
     formRef.current?.reset()
     setError(null)
+    setSelectedSeasonId('')
     onOpenChange(false)
   }
 
@@ -32,6 +47,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
     setError(null)
 
     const formData = new FormData(e.currentTarget)
+    if (selectedSeasonId) formData.set('season_id', selectedSeasonId)
 
     startTransition(async () => {
       const result = await createEventAction(formData)
@@ -116,6 +132,22 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             <Label htmlFor="date">Date</Label>
             <Input id="date" name="date" type="date" disabled={isPending} />
           </div>
+          {seasons.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Season</Label>
+              <Select value={selectedSeasonId} onValueChange={(v) => setSelectedSeasonId(v === 'none' ? '' : v)} disabled={isPending}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No season" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No season</SelectItem>
+                  {seasons.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="notes">Notes</Label>
             <textarea

@@ -29,16 +29,22 @@ import type { EventStatus, EventWithCompletion } from '@/lib/types/database'
 
 type EventListItem = EventWithCompletion & { partner_count: number }
 
+export interface SeasonOption {
+  id: string
+  name: string
+}
+
 interface EventListProps {
   events: EventListItem[]
   orgId: string
+  seasons?: SeasonOption[]
 }
 
 // =============================================================================
 // Component
 // =============================================================================
 
-export function EventList({ events }: EventListProps) {
+export function EventList({ events, seasons = [] }: EventListProps) {
   const router = useRouter()
   const { isAdmin } = useOrg()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -263,7 +269,7 @@ export function EventList({ events }: EventListProps) {
         </>
       )}
 
-      <CreateEventDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} />
+      <CreateEventDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} seasons={seasons} />
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setIsDeleting(false) } }}>

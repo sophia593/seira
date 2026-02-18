@@ -45,14 +45,18 @@ export async function createEventAction(
     const name = str(formData, 'name')
     if (!name) return { ok: false, error: 'Event name is required' }
 
+    const seasonId = str(formData, 'season_id')
+
     const event = await createEvent(auth.orgId, {
       name,
       date: str(formData, 'date'),
       venue: str(formData, 'venue'),
       notes: str(formData, 'notes'),
+      season_id: seasonId || null,
     })
 
     revalidatePath('/events')
+    revalidatePath('/seasons')
     revalidatePath('/dashboard')
     revalidatePath(`/events/${event.id}`)
 
@@ -82,15 +86,19 @@ export async function updateEventAction(
       ? (statusRaw as EventStatus)
       : undefined
 
+    const seasonId = str(formData, 'season_id')
+
     await updateEvent(eventId, {
       name,
       date: str(formData, 'date'),
       venue: str(formData, 'venue'),
       status,
       notes: str(formData, 'notes'),
+      season_id: seasonId ?? null,
     })
 
     revalidatePath('/events')
+    revalidatePath('/seasons')
     revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
 

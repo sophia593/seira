@@ -5,6 +5,7 @@ import { getEventById } from '@/lib/db/events'
 import { listPartnersByEvent } from '@/lib/db/partners'
 import { listDeliverablesByEvent } from '@/lib/db/deliverables'
 import { listTemplates } from '@/lib/db/templates'
+import { listSeasons } from '@/lib/db/seasons'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { EventHeader, EventActions } from '@/components/event-detail'
 import { PartnerSection } from './partner-section'
@@ -28,11 +29,14 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const { data: { user } } = await supabase.auth.getUser()
   const membership = user ? await getUserMembership(supabase, user.id) : null
 
-  const [partners, deliverables, templates] = await Promise.all([
+  const [partners, deliverables, templates, seasons] = await Promise.all([
     listPartnersByEvent(eventId),
     listDeliverablesByEvent(eventId),
     membership
       ? listTemplates(supabase, membership.org_id, { includeGlobal: true })
+      : Promise.resolve([]),
+    membership
+      ? listSeasons(membership.org_id)
       : Promise.resolve([]),
   ])
 
@@ -103,7 +107,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             </div>
           )}
         </div>
-        <EventActions event={event} />
+        <EventActions event={event} seasons={seasons.map((s) => ({ id: s.id, name: s.name }))} />
       </div>
 
       <PartnerSection

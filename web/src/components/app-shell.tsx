@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, CalendarDays, Settings, Plus } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Layers, Settings, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserMenu } from '@/components/layout/user-menu'
 import { NotificationBell } from '@/components/layout/notification-bell'
@@ -18,6 +18,7 @@ import { useOrg } from '@/hooks/use-org'
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/events', label: 'Events', icon: CalendarDays },
+  { href: '/seasons', label: 'Seasons', icon: Layers },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
