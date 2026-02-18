@@ -10,8 +10,11 @@ import {
   acceptInvitation,
 } from '@/lib/db/invitations'
 import { createNotification, notifyOrgAdmins } from '@/lib/db/notifications'
+import { getOrganization } from '@/lib/db/organizations'
 import { canInviteMembers } from '@/lib/permissions'
 import { isUuid } from '@/lib/validation'
+import { sendEmail } from '@/lib/email/send'
+import { inviteEmailSubject, inviteEmailHtml } from '@/lib/email/templates/invite'
 import type { OrgRole } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
@@ -40,7 +43,7 @@ async function getAuthenticatedMembership() {
 
 export async function createInviteAction(
   formData: FormData
-): Promise<{ ok: boolean; error?: string; inviteUrl?: string }> {
+): Promise<{ ok: boolean; error?: string; inviteUrl?: string; emailSent?: boolean }> {
   try {
     const auth = await getAuthenticatedMembership()
     if ('error' in auth) return { ok: false, error: auth.error }
@@ -54,6 +57,8 @@ export async function createInviteAction(
       return { ok: false, error: 'Invalid role' }
     }
 
+    const email = (formData.get('email') as string)?.trim() || null
+
     const invitation = await createInvitation(
       auth.supabase,
       auth.orgId,
@@ -64,8 +69,25 @@ export async function createInviteAction(
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const inviteUrl = `${baseUrl}/invite/${invitation.invite_code}`
 
+    // Send invite email if address provided
+    let emailSent = false
+    if (email) {
+      const org = await getOrganization(auth.supabase, auth.orgId)
+      const orgName = org?.name ?? 'your workspace'
+
+      // Get inviter name from auth user
+      const { data: { user } } = await auth.supabase.auth.getUser()
+      const inviterName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'A teammate'
+
+      emailSent = await sendEmail({
+        to: email,
+        subject: inviteEmailSubject({ orgName }),
+        html: inviteEmailHtml({ inviterName, orgName, role, inviteUrl }),
+      })
+    }
+
     revalidatePath('/settings/team')
-    return { ok: true, inviteUrl }
+    return { ok: true, inviteUrl, emailSent }
   } catch (err) {
     console.error('createInviteAction error:', err)
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to create invitation' }

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserPlus, Copy, Check, Link2 } from 'lucide-react'
+import { UserPlus, Copy, Check, Link2, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { toast } from '@/components/ui/sonner'
@@ -12,7 +12,9 @@ export function InviteDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [role, setRole] = useState<'admin' | 'contributor' | 'viewer'>('contributor')
+  const [email, setEmail] = useState('')
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
+  const [emailSent, setEmailSent] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -20,12 +22,17 @@ export function InviteDialog() {
     startTransition(async () => {
       const formData = new FormData()
       formData.set('role', role)
+      if (email.trim()) formData.set('email', email.trim())
       const result = await createInviteAction(formData)
       if (!result.ok) {
         toast.error(result.error ?? 'Failed to create invitation')
         return
       }
       setInviteUrl(result.inviteUrl ?? null)
+      setEmailSent(result.emailSent ?? false)
+      if (result.emailSent) {
+        toast.success(`Invitation sent to ${email.trim()}`)
+      }
       router.refresh()
     })
   }
@@ -42,8 +49,10 @@ export function InviteDialog() {
   function handleClose() {
     setOpen(false)
     setInviteUrl(null)
+    setEmailSent(false)
     setCopied(false)
     setRole('contributor')
+    setEmail('')
   }
 
   return (
@@ -91,18 +100,57 @@ export function InviteDialog() {
                 </div>
               </div>
 
+              {/* Email (optional) */}
+              <div>
+                <label className="text-xs text-gray-500 uppercase tracking-wider block mb-2">
+                  Email address <span className="normal-case text-gray-400">(optional)</span>
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="email"
+                    placeholder="teammate@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-kurobeni/20 focus:border-kurobeni"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">
+                  {email.trim() ? 'We\'ll send them an email with the invite link.' : 'Leave blank to just copy the link.'}
+                </p>
+              </div>
+
               {/* Generate button */}
               <Button
                 onClick={handleGenerate}
                 disabled={isPending}
                 className="w-full bg-kurobeni text-white hover:bg-blackberry rounded-md"
               >
-                <Link2 className="w-4 h-4 mr-1.5" />
-                {isPending ? 'Generating...' : 'Generate invite link'}
+                {email.trim() ? (
+                  <>
+                    <Mail className="w-4 h-4 mr-1.5" />
+                    {isPending ? 'Sending...' : 'Send invitation'}
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="w-4 h-4 mr-1.5" />
+                    {isPending ? 'Generating...' : 'Generate invite link'}
+                  </>
+                )}
               </Button>
             </>
           ) : (
             <>
+              {/* Email sent confirmation */}
+              {emailSent && (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 border border-green-200 rounded-lg">
+                  <Check className="w-4 h-4 text-green-600 shrink-0" />
+                  <p className="text-sm text-green-700">
+                    Invitation emailed to <strong>{email}</strong>
+                  </p>
+                </div>
+              )}
+
               {/* Generated link */}
               <div>
                 <label className="text-xs text-gray-500 uppercase tracking-wider block mb-2">
@@ -126,7 +174,7 @@ export function InviteDialog() {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">
-                  This link expires in 7 days. Share it with your teammate to invite them as {role === 'admin' ? 'an admin' : role === 'viewer' ? 'a viewer' : 'a contributor'}.
+                  This link expires in 7 days.{!emailSent && ` Share it with your teammate to invite them as ${role === 'admin' ? 'an admin' : role === 'viewer' ? 'a viewer' : 'a contributor'}.`}
                 </p>
               </div>
 
@@ -138,7 +186,9 @@ export function InviteDialog() {
                 <Button
                   onClick={() => {
                     setInviteUrl(null)
+                    setEmailSent(false)
                     setCopied(false)
+                    setEmail('')
                   }}
                   variant="ghost"
                   className="flex-1"

@@ -4,10 +4,12 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { tryCreateAdminClient } from '@/lib/supabase/admin'
 import { getUserMembership } from '@/lib/db/client'
-import { getOrganizationMembers, updateMemberRole, removeOrganizationMember } from '@/lib/db/organizations'
+import { getOrganization, getOrganizationMembers, getOrganizationMembersWithProfiles, updateMemberRole, removeOrganizationMember } from '@/lib/db/organizations'
 import { createNotification } from '@/lib/db/notifications'
 import { canChangeRole, canRemoveMember } from '@/lib/permissions'
 import { isUuid } from '@/lib/validation'
+import { sendEmail } from '@/lib/email/send'
+import { teamNotificationEmailSubject, teamNotificationEmailHtml } from '@/lib/email/templates/team-notification'
 import type { OrgRole } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
@@ -72,7 +74,7 @@ export async function updateMemberRoleAction(
 
     await updateMemberRole(auth.supabase, auth.orgId, targetUserId, newRole as OrgRole)
 
-    // Notify the target user
+    // Notify the target user (in-app + email)
     const admin = tryCreateAdminClient()
     if (admin) {
       await createNotification(admin, {
@@ -82,6 +84,28 @@ export async function updateMemberRoleAction(
         title: `Your role was changed to ${newRole}`,
         link: '/settings/team',
       })
+
+      // Send email notification
+      const [membersWithProfiles, org] = await Promise.all([
+        getOrganizationMembersWithProfiles(auth.supabase, auth.orgId),
+        getOrganization(auth.supabase, auth.orgId),
+      ])
+      const targetProfile = membersWithProfiles.find((m) => m.user_id === targetUserId)
+      if (targetProfile?.email) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const subject = `Your role in ${org?.name ?? 'your workspace'} was updated`
+        sendEmail({
+          to: targetProfile.email,
+          subject: teamNotificationEmailSubject({ subject }),
+          html: teamNotificationEmailHtml({
+            userName: targetProfile.name || targetProfile.email.split('@')[0],
+            subject,
+            body: `Your role in ${org?.name ?? 'your workspace'} has been changed to ${newRole}. Your permissions have been updated accordingly.`,
+            ctaUrl: `${baseUrl}/settings/team`,
+            ctaLabel: 'View team settings',
+          }),
+        }).catch(() => {}) // Non-critical
+      }
     }
 
     revalidatePath('/settings/team')
@@ -124,9 +148,16 @@ export async function removeMemberAction(
       return { ok: false, error: 'You do not have permission to remove this member' }
     }
 
+    // Fetch target's profile + org name before removal (join won't work after)
+    const [membersWithProfiles, org] = await Promise.all([
+      getOrganizationMembersWithProfiles(auth.supabase, auth.orgId),
+      getOrganization(auth.supabase, auth.orgId),
+    ])
+    const targetProfile = membersWithProfiles.find((m) => m.user_id === targetUserId)
+
     await removeOrganizationMember(auth.supabase, auth.orgId, targetUserId)
 
-    // Notify the removed user
+    // Notify the removed user (in-app + email)
     const admin = tryCreateAdminClient()
     if (admin) {
       await createNotification(admin, {
@@ -135,6 +166,21 @@ export async function removeMemberAction(
         type: 'member_removed',
         title: 'You were removed from the workspace',
       })
+
+      // Send email notification
+      if (targetProfile?.email) {
+        const orgName = org?.name ?? 'your workspace'
+        const subject = `You were removed from ${orgName}`
+        sendEmail({
+          to: targetProfile.email,
+          subject: teamNotificationEmailSubject({ subject }),
+          html: teamNotificationEmailHtml({
+            userName: targetProfile.name || targetProfile.email.split('@')[0],
+            subject,
+            body: `You have been removed from ${orgName}. You no longer have access to its events, partners, or deliverables. If you believe this was a mistake, please contact the workspace administrator.`,
+          }),
+        }).catch(() => {}) // Non-critical
+      }
     }
 
     revalidatePath('/settings/team')

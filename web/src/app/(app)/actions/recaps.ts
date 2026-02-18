@@ -14,7 +14,10 @@ import {
 } from '@/lib/db/recaps'
 import { tryCreateAdminClient } from '@/lib/supabase/admin'
 import { notifyOrgAdmins } from '@/lib/db/notifications'
+import { getOrganization } from '@/lib/db/organizations'
 import { isUuid } from '@/lib/validation'
+import { sendEmail } from '@/lib/email/send'
+import { recapSharedEmailSubject, recapSharedEmailHtml } from '@/lib/email/templates/recap-shared'
 import type { OrgRole } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
@@ -166,6 +169,29 @@ export async function publishRecapAction(
         type: 'recap_published',
         title: `Recap "${recap.title}" published`,
         link: shareUrl,
+      }).catch(() => {}) // Non-critical
+    }
+
+    // Email the partner contact if they have an email on file
+    if (recap.partner_id && recap.event_id) {
+      const supabase = await createClient()
+      Promise.all([
+        getPartnerById(recap.partner_id),
+        getEventById(recap.event_id),
+        getOrganization(supabase, auth.orgId),
+      ]).then(async ([partner, event, org]) => {
+        if (partner?.contact_email) {
+          await sendEmail({
+            to: partner.contact_email,
+            subject: recapSharedEmailSubject({ eventName: event?.name ?? 'your event', orgName: org?.name ?? 'your organization' }),
+            html: recapSharedEmailHtml({
+              partnerName: partner.contact_name || partner.name,
+              eventName: event?.name ?? 'your event',
+              orgName: org?.name ?? 'your organization',
+              shareUrl,
+            }),
+          })
+        }
       }).catch(() => {}) // Non-critical
     }
 
