@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ClipboardList, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { DeliverableCard } from './deliverable-card'
 import { AddDeliverableDialog } from './add-deliverable-dialog'
-import { EditDeliverableDialog } from './edit-deliverable-dialog'
 import { useOrg } from '@/hooks/use-org'
+import { SortControl } from '@/components/ui/sort-control'
+import { STATUS_FLOW } from '@/lib/constants'
 import type { Deliverable, Proof, Template } from '@/lib/types/database'
 
 interface DeliverableSectionProps {
@@ -19,6 +20,14 @@ interface DeliverableSectionProps {
   templates?: Template[]
 }
 
+type DeliverableSort = 'status' | 'due_date' | 'category' | 'name'
+const DELIVERABLE_SORT_OPTIONS = [
+  { value: 'status' as const, label: 'Status' },
+  { value: 'due_date' as const, label: 'Due date' },
+  { value: 'category' as const, label: 'Category' },
+  { value: 'name' as const, label: 'Name' },
+]
+
 export function DeliverableSection({
   deliverables,
   eventId,
@@ -29,12 +38,34 @@ export function DeliverableSection({
 }: DeliverableSectionProps) {
   const { canEdit } = useOrg()
   const [showAdd, setShowAdd] = useState(false)
-  const [editTarget, setEditTarget] = useState<Deliverable | null>(null)
+  const [sort, setSort] = useState<DeliverableSort>('status')
+
+  const sortedDeliverables = useMemo(() => {
+    const list = [...deliverables]
+    list.sort((a, b) => {
+      if (sort === 'name') return a.title.localeCompare(b.title)
+      if (sort === 'category') return a.category.localeCompare(b.category)
+      if (sort === 'due_date') {
+        if (!a.due_date && !b.due_date) return 0
+        if (!a.due_date) return 1
+        if (!b.due_date) return -1
+        return a.due_date.localeCompare(b.due_date)
+      }
+      // status: follow STATUS_FLOW order
+      return STATUS_FLOW.indexOf(a.status) - STATUS_FLOW.indexOf(b.status)
+    })
+    return list
+  }, [deliverables, sort])
 
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Deliverables</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold">Deliverables</h2>
+          {deliverables.length > 0 && (
+            <SortControl options={DELIVERABLE_SORT_OPTIONS} value={sort} onChange={setSort} />
+          )}
+        </div>
         {canEdit && deliverables.length > 0 && (
           <Button size="sm" onClick={() => setShowAdd(true)} className="bg-kurobeni text-white hover:bg-blackberry">
             <Plus className="w-4 h-4 mr-1" />
@@ -57,12 +88,11 @@ export function DeliverableSection({
         />
       ) : (
         <div className="divide-y divide-gray-100">
-          {deliverables.map((d) => (
+          {sortedDeliverables.map((d) => (
             <DeliverableCard
               key={d.id}
               deliverable={d}
               eventId={eventId}
-              onEdit={setEditTarget}
               proofCount={proofCounts[d.id] ?? 0}
               proofs={proofMap[d.id] ?? []}
             />
@@ -76,13 +106,6 @@ export function DeliverableSection({
         eventId={eventId}
         partnerId={partnerId}
         templates={templates}
-      />
-
-      <EditDeliverableDialog
-        deliverable={editTarget}
-        eventId={eventId}
-        onClose={() => setEditTarget(null)}
-        proofs={editTarget ? (proofMap[editTarget.id] ?? []) : []}
       />
     </div>
   )

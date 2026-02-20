@@ -7,7 +7,7 @@ import { CategoryBadge } from '@/components/ui/badges'
 import { toast } from '@/components/ui/sonner'
 import { ProofUploadButton } from '@/components/proof/proof-upload-button'
 import { ProofThumbnails } from '@/components/proof/proof-thumbnails'
-import { advanceDeliverableStatusAction } from '@/app/(app)/actions/deliverables'
+import { advanceDeliverableStatusAction, sendProofReminderAction } from '@/app/(app)/actions/deliverables'
 import { useOrg } from '@/hooks/use-org'
 import { canDeleteProof } from '@/lib/permissions'
 import { STATUS_FLOW, STATUS_CONFIG, isOverdue, formatShortDate } from '@/lib/constants'
@@ -17,12 +17,11 @@ import type { Deliverable, DeliverableStatus, Proof } from '@/lib/types/database
 interface DeliverableCardProps {
   deliverable: Deliverable
   eventId: string
-  onEdit: (deliverable: Deliverable) => void
   proofCount: number
   proofs: Proof[]
 }
 
-export function DeliverableCard({ deliverable, eventId, onEdit, proofCount, proofs }: DeliverableCardProps) {
+export function DeliverableCard({ deliverable, eventId, proofCount, proofs }: DeliverableCardProps) {
   const router = useRouter()
   const { role, canEdit } = useOrg()
   const [isPending, startTransition] = useTransition()
@@ -67,8 +66,8 @@ export function DeliverableCard({ deliverable, eventId, onEdit, proofCount, proo
 
   return (
     <div
-      className={cn('px-4 py-3 transition-colors', canEdit && 'hover:bg-gray-50 cursor-pointer')}
-      onClick={canEdit ? () => onEdit(deliverable) : undefined}
+      className="px-4 py-3 transition-colors hover:bg-gray-50 cursor-pointer"
+      onClick={() => router.push(`/events/${eventId}/partners/${deliverable.partner_id}/deliverables/${deliverable.id}`)}
     >
       <div className="flex items-center gap-4">
         {overdue && (
@@ -182,6 +181,21 @@ export function DeliverableCard({ deliverable, eventId, onEdit, proofCount, proo
               <p className="text-xs font-medium text-amber-700">Proof needed</p>
               <p className="text-[11px] text-amber-500">Upload proof to mark as complete</p>
             </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                startTransition(async () => {
+                  const result = await sendProofReminderAction(deliverable.id, eventId, deliverable.partner_id)
+                  if (result.ok) toast.success('Reminder sent')
+                  else toast.error(result.error ?? 'Failed to send')
+                })
+              }}
+              disabled={isPending}
+              className="text-[11px] text-amber-600 hover:text-amber-800 underline underline-offset-2 shrink-0"
+            >
+              Remind
+            </button>
             <ProofUploadButton
               deliverableId={deliverable.id}
               eventId={eventId}

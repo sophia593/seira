@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, CalendarDays, Layers, Settings, Plus } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Layers, Building2, BarChart3, Settings, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserMenu } from '@/components/layout/user-menu'
 import { NotificationBell } from '@/components/layout/notification-bell'
@@ -19,6 +19,8 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/events', label: 'Events', icon: CalendarDays },
   { href: '/seasons', label: 'Seasons', icon: Layers },
+  { href: '/partners', label: 'Partners', icon: Building2 },
+  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -41,7 +43,7 @@ function Sidebar({ recentEvents = [] }: { recentEvents?: RecentEvent[] }) {
   const { canEdit } = useOrg()
 
   return (
-    <aside className="hidden md:flex flex-col w-60 border-r border-white/10 bg-kurobeni text-white h-full overflow-hidden">
+    <aside className="hidden md:flex print:!hidden flex-col w-60 border-r border-white/10 bg-kurobeni text-white h-full overflow-hidden">
       {/* Workspace header */}
       <WorkspaceSwitcher />
 
@@ -125,7 +127,7 @@ function Sidebar({ recentEvents = [] }: { recentEvents?: RecentEvent[] }) {
 
 function TopBar() {
   return (
-    <header className="hidden md:flex h-14 items-center justify-end px-6 border-b bg-background">
+    <header className="hidden md:flex print:!hidden h-14 items-center justify-end px-6 border-b bg-background">
       <div className="flex items-center gap-2">
         <NotificationBell />
         <UserMenu />
@@ -148,7 +150,7 @@ function MobileHeader() {
   const pageLabel = currentItem?.label || 'seira'
 
   return (
-    <header className="md:hidden flex h-14 items-center justify-between px-4 border-b border-white/10 bg-kurobeni text-white">
+    <header className="md:hidden print:!hidden flex h-14 items-center justify-between px-4 border-b border-white/10 bg-kurobeni text-white">
       <div className="flex items-center gap-2">
         <LogoIcon size="sm" className="text-copper" />
         <span className="text-white/30">/</span>
@@ -170,7 +172,7 @@ function MobileBottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 border-t border-white/10 bg-kurobeni/95 backdrop-blur-sm z-50">
+    <nav className="md:hidden print:!hidden fixed bottom-0 left-0 right-0 h-16 border-t border-white/10 bg-kurobeni/95 backdrop-blur-sm z-50">
       <ul className="flex h-full">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -221,7 +223,7 @@ export function AppShell({ children, recentEvents }: AppShellProps) {
         <MobileHeader />
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0 print:pb-0 print:overflow-visible">
           {children}
         </main>
 

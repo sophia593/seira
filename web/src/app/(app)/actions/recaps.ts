@@ -8,16 +8,20 @@ import { getEventById } from '@/lib/db/events'
 import { getPartnerById } from '@/lib/db/partners'
 import {
   createRecap,
+  createSeasonRecap,
+  createCombinedRecap,
   updateRecap,
   publishRecap,
   deleteRecap,
 } from '@/lib/db/recaps'
+import { getSeasonById } from '@/lib/db/seasons'
 import { tryCreateAdminClient } from '@/lib/supabase/admin'
 import { notifyOrgAdmins } from '@/lib/db/notifications'
 import { getOrganization } from '@/lib/db/organizations'
 import { isUuid } from '@/lib/validation'
 import { sendEmail } from '@/lib/email/send'
 import { recapSharedEmailSubject, recapSharedEmailHtml } from '@/lib/email/templates/recap-shared'
+import { logActivity } from '@/lib/db/activity-log'
 import type { OrgRole } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
@@ -37,7 +41,7 @@ async function getAuthenticatedOrg() {
     return { error: 'No organization membership' as const }
   }
 
-  return { userId: user.id, orgId: membership.org_id, role: membership.role as OrgRole }
+  return { userId: user.id, userEmail: user.email ?? '', orgId: membership.org_id, role: membership.role as OrgRole }
 }
 
 function str(formData: FormData, key: string): string | undefined {
@@ -86,6 +90,8 @@ export async function createRecapAction(
       generated_by: auth.userId,
     })
 
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'created', targetType: 'recap', targetId: recap.id, eventId, details: { title, partner_id: partnerId, actor_email: auth.userEmail } })
+
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
 
     return { ok: true, id: recap.id, shareToken: recap.share_token }
@@ -98,6 +104,103 @@ export async function createRecapAction(
       hint: e?.hint,
     })
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to create recap' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Create (Season)
+// ---------------------------------------------------------------------------
+
+export async function createSeasonRecapAction(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string; id?: string; shareToken?: string }> {
+  try {
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageRecaps(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
+
+    const seasonId = str(formData, 'season_id')
+    if (!seasonId || !isUuid(seasonId)) return { ok: false, error: 'Invalid season ID' }
+
+    const partnerName = str(formData, 'partner_name')
+    if (!partnerName) return { ok: false, error: 'Partner name is required' }
+
+    // Build default title from partner + season names
+    let title = str(formData, 'title')
+    if (!title) {
+      const season = await getSeasonById(seasonId)
+      const seasonName = season?.name ?? 'Season'
+      title = `${partnerName} — ${seasonName} Season Recap`
+    }
+
+    const coverNote = str(formData, 'cover_note')
+
+    const recap = await createSeasonRecap(auth.orgId, {
+      season_id: seasonId,
+      partner_name: partnerName,
+      title,
+      cover_note: coverNote,
+      generated_by: auth.userId,
+    })
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'created', targetType: 'recap', targetId: recap.id, details: { title, season_id: seasonId, partner_name: partnerName, actor_email: auth.userEmail } })
+
+    revalidatePath(`/seasons/${seasonId}`)
+
+    return { ok: true, id: recap.id, shareToken: recap.share_token }
+  } catch (err: unknown) {
+    const e = err as Record<string, unknown>
+    console.error('createSeasonRecapAction error:', {
+      message: e?.message,
+      code: e?.code,
+      details: e?.details,
+    })
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to create season recap' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Create (Combined — relationship-level, all events)
+// ---------------------------------------------------------------------------
+
+export async function createCombinedRecapAction(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string; id?: string; shareToken?: string }> {
+  try {
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageRecaps(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
+
+    const partnerName = str(formData, 'partner_name')
+    if (!partnerName) return { ok: false, error: 'Partner name is required' }
+
+    let title = str(formData, 'title')
+    if (!title) {
+      title = `${partnerName} — Combined Recap`
+    }
+
+    const coverNote = str(formData, 'cover_note')
+
+    const recap = await createCombinedRecap(auth.orgId, {
+      partner_name: partnerName,
+      title,
+      cover_note: coverNote,
+      generated_by: auth.userId,
+    })
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'created', targetType: 'recap', targetId: recap.id, details: { title, partner_name: partnerName, is_combined: true, actor_email: auth.userEmail } })
+
+    revalidatePath(`/partners/${encodeURIComponent(partnerName)}`)
+
+    return { ok: true, id: recap.id, shareToken: recap.share_token }
+  } catch (err: unknown) {
+    const e = err as Record<string, unknown>
+    console.error('createCombinedRecapAction error:', {
+      message: e?.message,
+      code: e?.code,
+      details: e?.details,
+    })
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to create combined recap' }
   }
 }
 
@@ -127,6 +230,8 @@ export async function updateRecapAction(
       title,
       cover_note: coverNote?.trim() || undefined,
     })
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'updated', targetType: 'recap', targetId: recapId, eventId, details: { title, partner_id: partnerId, actor_email: auth.userEmail } })
 
     if (eventId && partnerId) {
       revalidatePath(`/events/${eventId}/partners/${partnerId}`)
@@ -158,6 +263,8 @@ export async function publishRecapAction(
     }
 
     const recap = await publishRecap(recapId)
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'published', targetType: 'recap', targetId: recapId, eventId: recap.event_id, details: { title: recap.title, partner_id: recap.partner_id, actor_email: auth.userEmail } })
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const shareUrl = `${baseUrl}/recap/${recap.share_token}`
@@ -223,6 +330,8 @@ export async function unpublishRecapAction(
 
     await updateRecap(recapId, { status: 'draft' })
 
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'unpublished', targetType: 'recap', targetId: recapId, eventId, details: { partner_id: partnerId, actor_email: auth.userEmail } })
+
     revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
@@ -257,6 +366,8 @@ export async function deleteRecapAction(
     }
 
     await deleteRecap(recapId)
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'deleted', targetType: 'recap', targetId: recapId, eventId, details: { partner_id: partnerId, actor_email: auth.userEmail } })
 
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)

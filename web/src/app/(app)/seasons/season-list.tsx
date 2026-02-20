@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Layers, MoreHorizontal } from 'lucide-react'
@@ -20,12 +20,20 @@ import {
 } from '@/components/ui/alert-dialog'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { toast } from '@/components/ui/sonner'
+import { SortControl } from '@/components/ui/sort-control'
 import { formatShortDate } from '@/lib/constants'
 import type { SeasonWithStats } from '@/lib/types/database'
 
 interface SeasonListProps {
   seasons: SeasonWithStats[]
 }
+
+type SeasonSort = 'date' | 'name' | 'completion'
+const SEASON_SORT_OPTIONS = [
+  { value: 'date' as const, label: 'Date' },
+  { value: 'name' as const, label: 'Name' },
+  { value: 'completion' as const, label: 'Completion' },
+]
 
 export function SeasonList({ seasons }: SeasonListProps) {
   const router = useRouter()
@@ -34,6 +42,7 @@ export function SeasonList({ seasons }: SeasonListProps) {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<SeasonWithStats | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [sort, setSort] = useState<SeasonSort>('date')
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -65,6 +74,20 @@ export function SeasonList({ seasons }: SeasonListProps) {
       setIsDeleting(false)
     }
   }
+
+  const sortedSeasons = useMemo(() => {
+    const list = [...seasons]
+    list.sort((a, b) => {
+      if (sort === 'name') return a.name.localeCompare(b.name)
+      if (sort === 'completion') return a.completion_pct - b.completion_pct
+      // date: soonest start_date first, nulls last
+      if (!a.start_date && !b.start_date) return 0
+      if (!a.start_date) return 1
+      if (!b.start_date) return -1
+      return a.start_date.localeCompare(b.start_date)
+    })
+    return list
+  }, [seasons, sort])
 
   return (
     <div>
@@ -108,13 +131,16 @@ export function SeasonList({ seasons }: SeasonListProps) {
         </div>
       ) : (
         <>
-          <h2 className="text-sm font-semibold mb-3">
-            All seasons
-            <span className="text-gray-300 font-normal ml-2">{seasons.length}</span>
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">
+              All seasons
+              <span className="text-gray-300 font-normal ml-2">{seasons.length}</span>
+            </h2>
+            <SortControl options={SEASON_SORT_OPTIONS} value={sort} onChange={setSort} />
+          </div>
 
           <div className="divide-y divide-gray-100">
-            {seasons.map((season) => (
+            {sortedSeasons.map((season) => (
               <div key={season.id} className="group relative">
                 <Link
                   href={`/seasons/${season.id}`}

@@ -186,6 +186,28 @@ export function AddPartnerDialog({ open, onOpenChange, eventId, templates }: Add
                 placeholder="e.g., dreyes@apexfg.com"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deal_value">Deal Value</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+                <Input
+                  id="deal_value"
+                  name="deal_value"
+                  type="number"
+                  min={0}
+                  placeholder="35000"
+                  className="pl-7"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="renewal_date">Renewal Date</Label>
+              <Input
+                id="renewal_date"
+                name="renewal_date"
+                type="date"
+              />
+            </div>
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { getUserMembership } from '@/lib/db/client'
 import { createPartner, updatePartner, deletePartner } from '@/lib/db/partners'
 import { isUuid } from '@/lib/validation'
 import { canManageContent } from '@/lib/permissions'
+import { logActivity } from '@/lib/db/activity-log'
 import type { OrgRole } from '@/lib/types/database'
 
 async function getAuthenticatedOrg() {
@@ -21,7 +22,7 @@ async function getAuthenticatedOrg() {
     return { error: 'No organization membership' }
   }
 
-  return { supabase, orgId: membership.org_id, role: membership.role as OrgRole }
+  return { supabase, orgId: membership.org_id, role: membership.role as OrgRole, userId: user.id, userEmail: user.email ?? '' }
 }
 
 function str(formData: FormData, key: string): string | undefined {
@@ -44,12 +45,18 @@ export async function createPartnerAction(
     const name = str(formData, 'name')
     if (!name) return { ok: false, error: 'Partner name is required' }
 
+    const dealValueStr = str(formData, 'deal_value')
+    const dealValueNum = dealValueStr ? parseInt(dealValueStr, 10) : undefined
+    const renewalDate = str(formData, 'renewal_date')
+
     const partner = await createPartner(auth.orgId, {
       event_id: eventId,
       name,
       contact_name: str(formData, 'contact_name'),
       contact_email: str(formData, 'contact_email'),
       contract_notes: str(formData, 'contract_notes'),
+      deal_value: dealValueNum != null && !isNaN(dealValueNum) ? dealValueNum : undefined,
+      renewal_date: renewalDate,
     })
 
     // Insert deliverables if provided (from template or manually added)
@@ -76,6 +83,8 @@ export async function createPartnerAction(
         // Non-fatal — partner was created, deliverables just weren't seeded
       }
     }
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'created', targetType: 'partner', targetId: partner.id, eventId, details: { name, actor_email: auth.userEmail } })
 
     revalidatePath('/events')
     revalidatePath('/dashboard')
@@ -105,12 +114,20 @@ export async function updatePartnerAction(
     const name = str(formData, 'name')
     if (!name) return { ok: false, error: 'Partner name is required' }
 
+    const dealValueStr = str(formData, 'deal_value')
+    const dealValueNum = dealValueStr ? parseInt(dealValueStr, 10) : undefined
+    const renewalDate = str(formData, 'renewal_date')
+
     await updatePartner(partnerId, {
       name,
       contact_name: str(formData, 'contact_name'),
       contact_email: str(formData, 'contact_email'),
       contract_notes: str(formData, 'contract_notes'),
+      deal_value: dealValueNum != null && !isNaN(dealValueNum) ? dealValueNum : undefined,
+      renewal_date: renewalDate,
     })
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'updated', targetType: 'partner', targetId: partnerId, eventId, details: { name, actor_email: auth.userEmail } })
 
     revalidatePath('/events')
     revalidatePath('/dashboard')
@@ -137,6 +154,8 @@ export async function deletePartnerAction(
     if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     await deletePartner(partnerId)
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'deleted', targetType: 'partner', targetId: partnerId, eventId, details: { actor_email: auth.userEmail } })
 
     revalidatePath('/events')
     revalidatePath('/dashboard')

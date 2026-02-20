@@ -8,6 +8,7 @@ import { listPartnersByEvent } from '@/lib/db/partners'
 import { listDeliverablesByEvent } from '@/lib/db/deliverables'
 import { isUuid } from '@/lib/validation'
 import { canManageContent } from '@/lib/permissions'
+import { logActivity } from '@/lib/db/activity-log'
 import type { EventStatus, OrgRole } from '@/lib/types/database'
 
 const VALID_STATUSES: EventStatus[] = ['upcoming', 'active', 'completed', 'archived']
@@ -25,7 +26,7 @@ async function getAuthenticatedOrg() {
     return { error: 'No organization membership' }
   }
 
-  return { orgId: membership.org_id, role: membership.role as OrgRole }
+  return { orgId: membership.org_id, role: membership.role as OrgRole, userId: user.id, userEmail: user.email ?? '' }
 }
 
 function str(formData: FormData, key: string): string | undefined {
@@ -54,6 +55,8 @@ export async function createEventAction(
       notes: str(formData, 'notes'),
       season_id: seasonId || null,
     })
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'created', targetType: 'event', targetId: event.id, details: { name, actor_email: auth.userEmail } })
 
     revalidatePath('/events')
     revalidatePath('/seasons')
@@ -97,6 +100,8 @@ export async function updateEventAction(
       season_id: seasonId ?? null,
     })
 
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'updated', targetType: 'event', targetId: eventId, eventId, details: { name, actor_email: auth.userEmail } })
+
     revalidatePath('/events')
     revalidatePath('/seasons')
     revalidatePath('/dashboard')
@@ -120,6 +125,8 @@ export async function deleteEventAction(
     if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     await deleteEvent(eventId)
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'deleted', targetType: 'event', targetId: eventId, details: { actor_email: auth.userEmail } })
 
     revalidatePath('/events')
     revalidatePath('/dashboard')
@@ -206,6 +213,8 @@ export async function duplicateEventAction(
     if (deliverableRows.length > 0) {
       await supabase.from('deliverables').insert(deliverableRows)
     }
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'duplicated', targetType: 'event', targetId: newEvent.id, details: { name, source_id: sourceEventId, actor_email: auth.userEmail } })
 
     revalidatePath('/events')
     revalidatePath('/dashboard')

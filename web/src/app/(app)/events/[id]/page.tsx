@@ -6,10 +6,15 @@ import { listPartnersByEvent } from '@/lib/db/partners'
 import { listDeliverablesByEvent } from '@/lib/db/deliverables'
 import { listTemplates } from '@/lib/db/templates'
 import { listSeasons } from '@/lib/db/seasons'
+import { getEventActivity } from '@/lib/db/activity-log'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { EventHeader, EventActions } from '@/components/event-detail'
+import { GameDayActions } from './game-day-actions'
 import { PartnerSection } from './partner-section'
+import { EventActivityFeed } from './event-activity-feed'
+import { Download } from 'lucide-react'
 import { completionPct, isOverdue } from '@/lib/constants'
+import { canEditContent } from '@/lib/permissions'
 import type { DeliverableStatus } from '@/lib/types/database'
 
 interface EventDetailPageProps {
@@ -29,7 +34,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const { data: { user } } = await supabase.auth.getUser()
   const membership = user ? await getUserMembership(supabase, user.id) : null
 
-  const [partners, deliverables, templates, seasons] = await Promise.all([
+  const [partners, deliverables, templates, seasons, activities] = await Promise.all([
     listPartnersByEvent(eventId),
     listDeliverablesByEvent(eventId),
     membership
@@ -38,6 +43,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     membership
       ? listSeasons(membership.org_id)
       : Promise.resolve([]),
+    getEventActivity(eventId),
   ])
 
   // Compute per-partner stats (plain object — serializable across server→client)
@@ -65,6 +71,17 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const totalDeliverables = deliverables.length
   const totalProved = deliverables.filter(d => d.status === 'proved').length
   const proofPct = totalDeliverables > 0 ? Math.round((totalProved / totalDeliverables) * 100) : 0
+
+  // Category counts for game day actions
+  const categoryCounts: Record<string, { total: number; incomplete: number }> = {}
+  for (const d of deliverables) {
+    const entry = categoryCounts[d.category] ?? { total: 0, incomplete: 0 }
+    entry.total++
+    if (d.status === 'not_started' || d.status === 'in_progress') entry.incomplete++
+    categoryCounts[d.category] = entry
+  }
+  const hasIncomplete = Object.values(categoryCounts).some((c) => c.incomplete > 0)
+  const userCanEdit = membership ? canEditContent(membership.role) : false
 
   // First 3 deliverables per partner for inline preview
   const deliverablePreviewMap: Record<string, { id: string; title: string; status: DeliverableStatus; due_date: string | null }[]> = {}
@@ -107,7 +124,30 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             </div>
           )}
         </div>
-        <EventActions event={event} seasons={seasons.map((s) => ({ id: s.id, name: s.name }))} />
+        <div className="flex items-center gap-2 flex-wrap shrink-0 print:hidden">
+          {totalDeliverables > 0 && (
+            <a
+              href={`/api/export/deliverables?event=${eventId}`}
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export</span>
+            </a>
+          )}
+          {partners.length > 0 && (
+            <a
+              href={`/api/export/partners?event=${eventId}`}
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Partners CSV</span>
+            </a>
+          )}
+          {userCanEdit && hasIncomplete && (event.status === 'active' || event.status === 'upcoming') && (
+            <GameDayActions eventId={eventId} categoryCounts={categoryCounts} />
+          )}
+          <EventActions event={event} seasons={seasons.map((s) => ({ id: s.id, name: s.name }))} />
+        </div>
       </div>
 
       <PartnerSection
@@ -123,6 +163,14 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           deliverables: t.deliverables.map((d) => ({ title: d.title, category: d.category, proof_required: d.proof_required, notes: d.notes })),
         }))}
       />
+
+      {/* Activity Feed */}
+      {activities.length > 0 && (
+        <section className="mt-10 border-t border-gray-100 pt-6">
+          <h2 className="text-sm font-semibold mb-4">Activity</h2>
+          <EventActivityFeed activities={activities} />
+        </section>
+      )}
     </div>
   )
 }

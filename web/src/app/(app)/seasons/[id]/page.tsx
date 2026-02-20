@@ -1,11 +1,13 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
-import { getSeasonById } from '@/lib/db/seasons'
+import { getSeasonById, getSeasonPartnerRollup } from '@/lib/db/seasons'
 import { listEventsWithCompletion } from '@/lib/db/events'
+import { listTemplates } from '@/lib/db/templates'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { SeasonHeader } from './season-header'
 import { SeasonEventsSection } from './season-events-section'
+import { SeasonPartnerRollupSection } from './season-partner-rollup'
 
 interface SeasonDetailPageProps {
   params: Promise<{ id: string }>
@@ -22,11 +24,18 @@ export default async function SeasonDetailPage({ params }: SeasonDetailPageProps
   const membership = user ? await getUserMembership(supabase, user.id) : null
   if (!membership) notFound()
 
-  const allEvents = await listEventsWithCompletion(membership.org_id)
+  const [allEvents, templates, partnerRollup] = await Promise.all([
+    listEventsWithCompletion(membership.org_id),
+    listTemplates(supabase, membership.org_id, { includeGlobal: true }),
+    getSeasonPartnerRollup(seasonId),
+  ])
   const seasonEvents = allEvents.filter((e) => e.season_id === seasonId)
 
   // Combined stats
   const totalEvents = seasonEvents.length
+  const eventsRemaining = seasonEvents.filter(
+    (e) => e.status === 'upcoming' || e.status === 'active'
+  ).length
   const totalDeliverables = seasonEvents.reduce((sum, e) => sum + e.total_deliverables, 0)
   const completedDeliverables = seasonEvents.reduce((sum, e) => sum + e.completed_deliverables, 0)
   const overdueCount = seasonEvents.reduce((sum, e) => sum + e.overdue_count, 0)
@@ -50,10 +59,11 @@ export default async function SeasonDetailPage({ params }: SeasonDetailPageProps
 
       {/* Combined stats strip */}
       {totalEvents > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
           <div className="border border-gray-200 rounded-lg px-4 py-3">
             <p className="text-[10px] uppercase tracking-widest text-gray-400">Events</p>
-            <p className="text-xl font-semibold mt-1">{totalEvents}</p>
+            <p className="text-xl font-semibold mt-1">{eventsRemaining}<span className="text-sm font-normal text-gray-400">/{totalEvents}</span></p>
+            <p className="text-[10px] text-gray-400 mt-0.5">remaining</p>
           </div>
           <div className="border border-gray-200 rounded-lg px-4 py-3">
             <p className="text-[10px] uppercase tracking-widest text-gray-400">Deliverables</p>
@@ -61,16 +71,36 @@ export default async function SeasonDetailPage({ params }: SeasonDetailPageProps
           </div>
           <div className="border border-gray-200 rounded-lg px-4 py-3">
             <p className="text-[10px] uppercase tracking-widest text-gray-400">Completion</p>
-            <p className="text-xl font-semibold mt-1">{completionPct}%</p>
+            <p className={`text-xl font-semibold mt-1 ${completionPct >= 80 ? 'text-copper' : ''}`}>{completionPct}%</p>
           </div>
           <div className="border border-gray-200 rounded-lg px-4 py-3">
             <p className="text-[10px] uppercase tracking-widest text-gray-400">Overdue</p>
             <p className={`text-xl font-semibold mt-1 ${overdueCount > 0 ? 'text-red-500' : ''}`}>{overdueCount}</p>
           </div>
+          <div className="border border-gray-200 rounded-lg px-4 py-3">
+            <p className="text-[10px] uppercase tracking-widest text-gray-400">Partners</p>
+            <p className="text-xl font-semibold mt-1">{partnerRollup.length}</p>
+          </div>
         </div>
       )}
 
-      <SeasonEventsSection events={seasonEvents} />
+      {/* Partner roll-up */}
+      {totalEvents > 0 && (
+        <div className="mb-8">
+          <SeasonPartnerRollupSection seasonId={seasonId} partners={partnerRollup} />
+        </div>
+      )}
+
+      <SeasonEventsSection
+        events={seasonEvents}
+        templates={templates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          deliverableCount: t.deliverables.length,
+          isGlobal: t.org_id === null,
+          deliverables: t.deliverables.map((d) => ({ title: d.title, category: d.category, proof_required: d.proof_required, notes: d.notes })),
+        }))}
+      />
     </div>
   )
 }

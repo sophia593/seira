@@ -6,6 +6,7 @@ import { getUserMembership } from '@/lib/db/client'
 import { createSeason, updateSeason, deleteSeason } from '@/lib/db/seasons'
 import { isUuid } from '@/lib/validation'
 import { canManageContent } from '@/lib/permissions'
+import { logActivity } from '@/lib/db/activity-log'
 import type { OrgRole } from '@/lib/types/database'
 
 async function getAuthenticatedOrg() {
@@ -21,7 +22,7 @@ async function getAuthenticatedOrg() {
     return { error: 'No organization membership' }
   }
 
-  return { orgId: membership.org_id, role: membership.role as OrgRole }
+  return { orgId: membership.org_id, role: membership.role as OrgRole, userId: user.id, userEmail: user.email ?? '' }
 }
 
 function str(formData: FormData, key: string): string | undefined {
@@ -46,6 +47,8 @@ export async function createSeasonAction(
       start_date: str(formData, 'start_date'),
       end_date: str(formData, 'end_date'),
     })
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'created', targetType: 'season', targetId: season.id, details: { name, actor_email: auth.userEmail } })
 
     revalidatePath('/seasons')
     revalidatePath('/dashboard')
@@ -77,6 +80,8 @@ export async function updateSeasonAction(
       end_date: str(formData, 'end_date'),
     })
 
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'updated', targetType: 'season', targetId: seasonId, details: { name, actor_email: auth.userEmail } })
+
     revalidatePath('/seasons')
     revalidatePath('/dashboard')
     revalidatePath(`/seasons/${seasonId}`)
@@ -99,6 +104,8 @@ export async function deleteSeasonAction(
     if (!canManageContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
 
     await deleteSeason(seasonId)
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'deleted', targetType: 'season', targetId: seasonId, details: { actor_email: auth.userEmail } })
 
     revalidatePath('/seasons')
     revalidatePath('/dashboard')

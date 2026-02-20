@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
-import type { Season, CreateSeasonInput, SeasonWithStats } from '@/lib/types/database'
+import type { Season, CreateSeasonInput, SeasonWithStats, SeasonPartnerRollup } from '@/lib/types/database'
 
 // =============================================================================
 // Read Operations
@@ -112,6 +112,107 @@ export async function listSeasonsWithStats(orgId: string): Promise<SeasonWithSta
       completion_pct: st.total > 0 ? Math.round((st.completed / st.total) * 100) : 0,
     }
   })
+}
+
+/** Aggregate partner fulfillment across all events in a season, grouped by partner name. */
+export async function getSeasonPartnerRollup(seasonId: string): Promise<SeasonPartnerRollup[]> {
+  const supabase = await createClient()
+
+  // 1. Events in this season
+  const { data: events, error: eventErr } = await supabase
+    .from('events')
+    .select('id, name')
+    .eq('season_id', seasonId)
+
+  if (eventErr) handleDbError(eventErr, 'Failed to fetch season events')
+  if (!events || events.length === 0) return []
+
+  const eventIds = events.map((e) => e.id)
+  const eventMap: Record<string, string> = Object.fromEntries(events.map((e) => [e.id, e.name]))
+
+  // 2. Partners for those events
+  const { data: partners, error: partnerErr } = await supabase
+    .from('partners')
+    .select('id, event_id, name')
+    .in('event_id', eventIds)
+
+  if (partnerErr) handleDbError(partnerErr, 'Failed to fetch partners')
+  if (!partners || partners.length === 0) return []
+
+  // 3. Deliverables for those events
+  const { data: deliverables, error: delErr } = await supabase
+    .from('deliverables')
+    .select('id, partner_id, status, due_date')
+    .in('event_id', eventIds)
+
+  if (delErr) handleDbError(delErr, 'Failed to fetch deliverables')
+
+  // 4. Group partners by normalized name
+  const groups = new Map<string, {
+    displayName: string
+    partnerIds: Set<string>
+    eventIds: Set<string>
+  }>()
+
+  for (const p of partners) {
+    const key = p.name.toLowerCase().trim()
+    const existing = groups.get(key)
+    if (existing) {
+      existing.partnerIds.add(p.id)
+      existing.eventIds.add(p.event_id)
+    } else {
+      groups.set(key, {
+        displayName: p.name,
+        partnerIds: new Set([p.id]),
+        eventIds: new Set([p.event_id]),
+      })
+    }
+  }
+
+  // 5. Index deliverables by partner_id
+  const delByPartner = new Map<string, { status: string; due_date: string | null }[]>()
+  for (const d of deliverables ?? []) {
+    const arr = delByPartner.get(d.partner_id) ?? []
+    arr.push(d)
+    delByPartner.set(d.partner_id, arr)
+  }
+
+  // 6. Aggregate per group
+  const today = new Date(new Date().toDateString())
+  const results: SeasonPartnerRollup[] = []
+
+  for (const [, group] of groups) {
+    let total = 0
+    let completed = 0
+    let proved = 0
+    let overdue = 0
+
+    for (const pid of group.partnerIds) {
+      for (const d of delByPartner.get(pid) ?? []) {
+        total++
+        if (d.status === 'done' || d.status === 'proved') {
+          completed++
+          if (d.status === 'proved') proved++
+        } else if (d.due_date && new Date(d.due_date) < today) {
+          overdue++
+        }
+      }
+    }
+
+    results.push({
+      name: group.displayName,
+      event_count: group.eventIds.size,
+      events: [...group.eventIds].map((eid) => ({ id: eid, name: eventMap[eid] })),
+      total_deliverables: total,
+      completed_deliverables: completed,
+      proved_deliverables: proved,
+      overdue_count: overdue,
+      completion_pct: total > 0 ? Math.round((completed / total) * 100) : 0,
+    })
+  }
+
+  results.sort((a, b) => a.name.localeCompare(b.name))
+  return results
 }
 
 // =============================================================================

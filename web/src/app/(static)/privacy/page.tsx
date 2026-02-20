@@ -17,8 +17,13 @@ import {
 } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'privacy policy | seira',
+  title: 'privacy policy',
   description: 'How Seira LLC collects, uses, and protects your personal information.',
+  openGraph: {
+    title: 'Privacy Policy — Seira',
+    description: 'How Seira LLC collects, uses, and protects your personal information.',
+  },
+  twitter: { card: 'summary_large_image' },
 }
 
 // =============================================================================
@@ -98,6 +103,7 @@ export default function PrivacyPage() {
             <li><span className="font-medium text-foreground">Account Information:</span> When you create an account, we collect your email address, name, and password. If you sign in via Google OAuth, we receive your name, email address, and profile picture from Google.</li>
             <li><span className="font-medium text-foreground">Organization Data:</span> Events, partners, deliverables, and associated metadata that you create within your workspace.</li>
             <li><span className="font-medium text-foreground">Uploaded Files:</span> Proof-of-performance files (photos, videos, PDFs) that you upload to your workspace.</li>
+            <li><span className="font-medium text-foreground">Payment Information:</span> When you subscribe, payment details are collected and processed by Stripe. We do not store your full credit card number.</li>
             <li><span className="font-medium text-foreground">Support Inquiries:</span> Information you provide when contacting us for customer support.</li>
           </ul>
 
@@ -140,6 +146,8 @@ export default function PrivacyPage() {
           <ul className="list-disc list-inside space-y-1.5 ml-2 mt-2">
             <li><span className="font-medium text-foreground">Supabase:</span> Database hosting, user authentication, and file storage services.</li>
             <li><span className="font-medium text-foreground">Vercel:</span> Website hosting and deployment.</li>
+            <li><span className="font-medium text-foreground">Stripe:</span> Payment processing and subscription billing.</li>
+            <li><span className="font-medium text-foreground">Vercel Analytics:</span> Anonymous, cookieless website analytics and performance monitoring.</li>
           </ul>
 
           <p className="font-medium text-foreground mt-4">Other Disclosures</p>

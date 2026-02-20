@@ -35,6 +35,7 @@ export {
 export {
   listPartnersByEvent,
   getPartnerById,
+  getOrgPartnerRollup,
   createPartner,
   updatePartner,
   deletePartner,

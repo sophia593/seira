@@ -3,11 +3,17 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getRecapDataPublic } from '@/lib/db/recaps'
+import { getRecapDataPublic, getSeasonRecapDataPublic, getCombinedRecapDataPublic } from '@/lib/db/recaps'
 import { RecapPDF } from '@/lib/pdf/recap-pdf'
-import type { RecapData, Proof } from '@/lib/types/database'
+import { SeasonRecapPDF } from '@/lib/pdf/season-recap-pdf'
+import { CombinedRecapPDF } from '@/lib/pdf/combined-recap-pdf'
+import type { RecapData, SeasonRecapData, CombinedRecapData, Proof } from '@/lib/types/database'
 
 type RecapProof = Proof & { uploader_name: string | null }
+type AuthData =
+  | { kind: 'event'; data: RecapData }
+  | { kind: 'season'; data: SeasonRecapData }
+  | { kind: 'combined'; data: CombinedRecapData }
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -50,7 +56,7 @@ async function authorizeRequest(
   request: NextRequest,
   recapId: string,
 ): Promise<
-  | { authorized: true; data: RecapData }
+  | { authorized: true; authData: AuthData }
   | { authorized: false; status: number; error: string }
 > {
   const token = new URL(request.url).searchParams.get('token')
@@ -60,7 +66,7 @@ async function authorizeRequest(
   if (token) {
     const { data: recap, error } = await admin
       .from('recap_reports')
-      .select('id, share_token, status')
+      .select('id, share_token, status, season_id, is_combined')
       .eq('id', recapId)
       .single()
 
@@ -74,11 +80,23 @@ async function authorizeRequest(
       return { authorized: false, status: 403, error: 'Invalid share token' }
     }
 
+    if (recap.is_combined) {
+      const data = await getCombinedRecapDataPublic(recapId)
+      if (!data) return { authorized: false, status: 404, error: 'Recap data not found' }
+      return { authorized: true, authData: { kind: 'combined', data } }
+    }
+
+    if (recap.season_id) {
+      const data = await getSeasonRecapDataPublic(recapId)
+      if (!data) return { authorized: false, status: 404, error: 'Recap data not found' }
+      return { authorized: true, authData: { kind: 'season', data } }
+    }
+
     const data = await getRecapDataPublic(recapId)
     if (!data) {
       return { authorized: false, status: 404, error: 'Recap data not found' }
     }
-    return { authorized: true, data }
+    return { authorized: true, authData: { kind: 'event', data } }
   }
 
   // ── Method B: internal portal access (session) ───────────────────────
@@ -94,7 +112,7 @@ async function authorizeRequest(
   // Fetch recap via admin (bypass RLS)
   const { data: recap, error: recapErr } = await admin
     .from('recap_reports')
-    .select('id, org_id, status')
+    .select('id, org_id, status, season_id, is_combined')
     .eq('id', recapId)
     .single()
 
@@ -115,11 +133,23 @@ async function authorizeRequest(
   }
 
   // Session users may access draft + published recaps
+  if (recap.is_combined) {
+    const data = await getCombinedRecapDataPublic(recapId)
+    if (!data) return { authorized: false, status: 404, error: 'Recap data not found' }
+    return { authorized: true, authData: { kind: 'combined', data } }
+  }
+
+  if (recap.season_id) {
+    const data = await getSeasonRecapDataPublic(recapId)
+    if (!data) return { authorized: false, status: 404, error: 'Recap data not found' }
+    return { authorized: true, authData: { kind: 'season', data } }
+  }
+
   const data = await getRecapDataPublic(recapId)
   if (!data) {
     return { authorized: false, status: 404, error: 'Recap data not found' }
   }
-  return { authorized: true, data }
+  return { authorized: true, authData: { kind: 'event', data } }
 }
 
 // ---------------------------------------------------------------------------
@@ -188,17 +218,93 @@ export async function GET(
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
-  // 2. Validate proof images (graceful degradation on failure)
-  let data: RecapData
-  try {
-    data = await validateProofImages(auth.data)
-  } catch (err) {
-    console.error('[PDF] Proof validation error:', err)
-    data = auth.data
+  const { authData } = auth
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+  // 2. Branch on recap kind
+  if (authData.kind === 'combined') {
+    const data = authData.data
+    const shareUrl =
+      data.recap.status === 'published'
+        ? `${baseUrl}/recap/${data.recap.share_token}`
+        : undefined
+
+    try {
+      const element = React.createElement(CombinedRecapPDF, { data, shareUrl })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const buffer = await renderToBuffer(element as any)
+
+      const filename = sanitizeFilename(
+        `${data.partner.name}_Combined_Recap`,
+      )
+
+      return new NextResponse(new Uint8Array(buffer), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}.pdf"`,
+          'Cache-Control': 'private, max-age=300',
+          'X-Robots-Tag': 'noindex',
+        },
+      })
+    } catch (err) {
+      console.error('[PDF] Combined recap generation failed:', err)
+      return NextResponse.json(
+        {
+          error: 'PDF generation failed',
+          detail: err instanceof Error ? err.message : String(err),
+        },
+        { status: 500 },
+      )
+    }
   }
 
-  // 3. Generate PDF
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  if (authData.kind === 'season') {
+    const data = authData.data
+    const shareUrl =
+      data.recap.status === 'published'
+        ? `${baseUrl}/recap/${data.recap.share_token}`
+        : undefined
+
+    try {
+      const element = React.createElement(SeasonRecapPDF, { data, shareUrl })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const buffer = await renderToBuffer(element as any)
+
+      const filename = sanitizeFilename(
+        `${data.partner.name}_${data.season.name}_Season_Recap`,
+      )
+
+      return new NextResponse(new Uint8Array(buffer), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}.pdf"`,
+          'Cache-Control': 'private, max-age=300',
+          'X-Robots-Tag': 'noindex',
+        },
+      })
+    } catch (err) {
+      console.error('[PDF] Season recap generation failed:', err)
+      return NextResponse.json(
+        {
+          error: 'PDF generation failed',
+          detail: err instanceof Error ? err.message : String(err),
+        },
+        { status: 500 },
+      )
+    }
+  }
+
+  // ── Event recap (original flow) ──────────────────────────────────────
+  // 3. Validate proof images (graceful degradation on failure)
+  let data: RecapData
+  try {
+    data = await validateProofImages(authData.data)
+  } catch (err) {
+    console.error('[PDF] Proof validation error:', err)
+    data = authData.data
+  }
+
+  // 4. Generate PDF
   const shareUrl =
     data.recap.status === 'published'
       ? `${baseUrl}/recap/${data.recap.share_token}`

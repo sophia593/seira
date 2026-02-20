@@ -22,6 +22,9 @@ import { AddPartnerDialog } from './add-partner-dialog'
 import { deletePartnerAction } from '@/app/(app)/actions/partners'
 import { useOrg } from '@/hooks/use-org'
 import { cn } from '@/lib/utils'
+import { SortControl } from '@/components/ui/sort-control'
+import { HealthIndicator } from '@/components/ui/health-indicator'
+import { computeHealth } from '@/lib/partner-health'
 import { STATUS_CONFIG, formatShortDate } from '@/lib/constants'
 import type { Partner, DeliverableStatus, DeliverableCategory, ProofRequired } from '@/lib/types/database'
 
@@ -56,6 +59,11 @@ interface PartnerSectionProps {
 
 type FilterMode = 'all' | 'has_overdue'
 type SortMode = 'name' | 'completion' | 'overdue'
+const PARTNER_SORT_OPTIONS = [
+  { value: 'name' as const, label: 'Name' },
+  { value: 'completion' as const, label: 'Completion' },
+  { value: 'overdue' as const, label: 'Overdue' },
+]
 
 // =============================================================================
 // Status bar colors
@@ -168,19 +176,14 @@ export function PartnerSection({ partners, eventId, completionMap, deliverablePr
       ) : (
         <>
           {/* Filter / sort controls */}
-          <div className="flex items-center justify-between px-4 mb-2">
+          <div className="flex items-center justify-between px-4 mb-2 print:hidden">
             <div className="flex items-center gap-1">
               <FilterBtn active={filter === 'all'} onClick={() => setFilter('all')}>All</FilterBtn>
               {hasOverduePartners && (
                 <FilterBtn active={filter === 'has_overdue'} onClick={() => setFilter('has_overdue')}>Has overdue</FilterBtn>
               )}
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-gray-500 mr-1">Sort:</span>
-              <FilterBtn active={sort === 'name'} onClick={() => setSort('name')}>Name</FilterBtn>
-              <FilterBtn active={sort === 'completion'} onClick={() => setSort('completion')}>Completion</FilterBtn>
-              <FilterBtn active={sort === 'overdue'} onClick={() => setSort('overdue')}>Overdue</FilterBtn>
-            </div>
+            <SortControl options={PARTNER_SORT_OPTIONS} value={sort} onChange={setSort} />
           </div>
 
           {/* Summary line — 4+ partners */}
@@ -248,6 +251,12 @@ export function PartnerSection({ partners, eventId, completionMap, deliverablePr
                         <span className="text-xs text-gray-400 w-8 text-right">{stats.pct}%</span>
                       </div>
                     )}
+
+                    {/* Health indicator */}
+                    {stats && stats.total > 0 && (() => {
+                      const health = computeHealth({ total: stats.total, completed: stats.completed, proved: stats.proved, overdue: stats.overdue })
+                      return health ? <HealthIndicator health={health} className="hidden md:flex shrink-0" /> : null
+                    })()}
 
                     {/* Spacer for hover actions */}
                     <div className="w-16 shrink-0" />

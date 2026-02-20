@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next"
 import { Space_Grotesk } from "next/font/google"
 import { ThemeProvider } from "next-themes"
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
@@ -23,17 +25,23 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://seira.global"),
   title: {
-    default: "seira",
+    default: "seira — commercial ops for live entertainment",
     template: "%s · seira",
   },
-  description: "sponsorship fulfillment and proof of performance",
+  description:
+    "Track sponsor deliverables, collect proof of performance, and send polished recap reports. The fulfillment platform for sponsorship teams.",
+  openGraph: {
+    siteName: "seira",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
-    apple: "/apple-touch-icon.png",
+    icon: "/icon.svg",
   },
   appleWebApp: {
     capable: true,
@@ -58,6 +66,8 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>

@@ -60,7 +60,8 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/plan") ||
       pathname.startsWith("/saved") ||
       pathname.startsWith("/events") ||
-      pathname.startsWith("/settings")
+      pathname.startsWith("/settings") ||
+      pathname.startsWith("/subscribe")
     ) {
       const loginUrl = new URL("/login", request.url)
       loginUrl.searchParams.set("redirect", pathname)

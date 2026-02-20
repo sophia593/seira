@@ -16,6 +16,7 @@ import {
   buildStoragePath,
   extractStoragePath,
 } from '@/lib/proof-utils'
+import { logActivity } from '@/lib/db/activity-log'
 import type { Proof } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
@@ -194,13 +195,17 @@ export async function uploadProofAction(
       }).catch(() => {}) // Non-critical
     }
 
-    // 10. Revalidate
+    // 10. Log activity
+    logActivity({ orgId, userId: user.id, action: 'uploaded_proof', targetType: 'proof', targetId: proof.id, eventId: deliverable.event_id, details: { file_name: fileName, deliverable_title: deliverable.title, partner_id: deliverable.partner_id, actor_email: user.email ?? '' } })
+
+    // 11. Revalidate
     const eventId = deliverable.event_id
     const partnerId = deliverable.partner_id
     revalidatePath('/events')
     revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`)
 
     return { ok: true, proof: proof as Proof }
   } catch (err) {
@@ -275,11 +280,15 @@ export async function deleteProofAction(
       }
     }
 
-    // 6. Revalidate
+    // 6. Log activity
+    logActivity({ orgId: auth.orgId, userId: auth.user.id, action: 'deleted_proof', targetType: 'proof', targetId: proofId, eventId, details: { partner_id: partnerId, actor_email: auth.user.email ?? '' } })
+
+    // 7. Revalidate
     revalidatePath('/events')
     revalidatePath('/dashboard')
     revalidatePath(`/events/${eventId}`)
     revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`)
 
     return { ok: true }
   } catch (err) {

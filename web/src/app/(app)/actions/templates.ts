@@ -15,6 +15,7 @@ import {
 } from '@/lib/db/templates'
 import { canManageTemplates } from '@/lib/permissions'
 import { isUuid } from '@/lib/validation'
+import { logActivity } from '@/lib/db/activity-log'
 import type { OrgRole, DeliverableCategory, ProofRequired } from '@/lib/types/database'
 
 async function getAuthenticatedOrg() {
@@ -30,7 +31,7 @@ async function getAuthenticatedOrg() {
     return { error: 'No organization membership' as const }
   }
 
-  return { supabase, orgId: membership.org_id, role: membership.role as OrgRole }
+  return { supabase, orgId: membership.org_id, role: membership.role as OrgRole, userId: user.id, userEmail: user.email ?? '' }
 }
 
 export async function applyTemplateAction(
@@ -128,6 +129,8 @@ export async function createTemplateAction(
       deliverables,
     })
 
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'created', targetType: 'template', targetId: template.id, details: { name, actor_email: auth.userEmail } })
+
     revalidatePath('/settings/templates')
     return { ok: true, id: template.id }
   } catch (err) {
@@ -179,6 +182,8 @@ export async function updateTemplateAction(
       ...(deliverables ? { deliverables } : {}),
     })
 
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'updated', targetType: 'template', targetId: templateId, details: { name, actor_email: auth.userEmail } })
+
     revalidatePath('/settings/templates')
     return { ok: true }
   } catch (err) {
@@ -208,6 +213,8 @@ export async function deleteTemplateAction(
     }
 
     await deleteTemplate(auth.supabase, templateId, auth.orgId)
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'deleted', targetType: 'template', targetId: templateId, details: { actor_email: auth.userEmail } })
 
     revalidatePath('/settings/templates')
     return { ok: true }
@@ -240,6 +247,8 @@ export async function duplicateTemplateAction(
     const newName = (formData.get('name') as string)?.trim() || undefined
 
     const template = await duplicateTemplate(auth.supabase, templateId, auth.orgId, newName)
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'duplicated', targetType: 'template', targetId: template.id, details: { name: newName ?? template.name, actor_email: auth.userEmail } })
 
     revalidatePath('/settings/templates')
     return { ok: true, id: template.id }

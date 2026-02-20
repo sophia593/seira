@@ -8,6 +8,7 @@ const TABS = [
   { href: '/settings', label: 'General' },
   { href: '/settings/team', label: 'Team' },
   { href: '/settings/templates', label: 'Templates' },
+  { href: '/settings/billing', label: 'Billing' },
 ]
 
 export function SettingsNav() {

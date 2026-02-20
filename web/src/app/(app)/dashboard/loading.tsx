@@ -9,6 +9,13 @@ export default function DashboardLoading() {
         <div className={`h-4 w-52 ${s} mt-2`} />
       </div>
 
+      {/* Filter bar */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {[140, 130, 130, 120, 120].map((w, i) => (
+          <div key={i} className={`h-8 ${s}`} style={{ width: `${w}px` }} />
+        ))}
+      </div>
+
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3 lg:flex lg:items-start lg:gap-0 lg:divide-x lg:divide-border mb-8">
         {[

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { toast } from '@/components/ui/sonner'
+import { SortControl } from '@/components/ui/sort-control'
 import { formatEventDate, formatShortDate, EVENT_DOT_COLOR } from '@/lib/constants'
 import type { EventStatus, EventWithCompletion } from '@/lib/types/database'
 
@@ -44,6 +45,13 @@ interface EventListProps {
 // Component
 // =============================================================================
 
+type EventSort = 'date' | 'name' | 'completion'
+const EVENT_SORT_OPTIONS = [
+  { value: 'date' as const, label: 'Date' },
+  { value: 'name' as const, label: 'Name' },
+  { value: 'completion' as const, label: 'Completion' },
+]
+
 export function EventList({ events, seasons = [] }: EventListProps) {
   const router = useRouter()
   const { isAdmin } = useOrg()
@@ -51,6 +59,7 @@ export function EventList({ events, seasons = [] }: EventListProps) {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<EventListItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [sort, setSort] = useState<EventSort>('date')
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Close menu on click outside
@@ -83,6 +92,20 @@ export function EventList({ events, seasons = [] }: EventListProps) {
       setIsDeleting(false)
     }
   }
+
+  const sortedEvents = useMemo(() => {
+    const list = [...events]
+    list.sort((a, b) => {
+      if (sort === 'name') return a.name.localeCompare(b.name)
+      if (sort === 'completion') return a.completion_pct - b.completion_pct
+      // date: soonest first, nulls last
+      if (!a.date && !b.date) return 0
+      if (!a.date) return 1
+      if (!b.date) return -1
+      return a.date.localeCompare(b.date)
+    })
+    return list
+  }, [events, sort])
 
   // Find the soonest upcoming/active event for the "Next Up" strip
   const nextUpEvent = events.find(e => e.status === 'upcoming' || e.status === 'active')
@@ -169,13 +192,16 @@ export function EventList({ events, seasons = [] }: EventListProps) {
           )}
 
           {/* ---------- All events section ---------- */}
-          <h2 className="text-sm font-semibold mb-3">
-            All events
-            <span className="text-gray-300 font-normal ml-2">{events.length}</span>
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">
+              All events
+              <span className="text-gray-300 font-normal ml-2">{events.length}</span>
+            </h2>
+            <SortControl options={EVENT_SORT_OPTIONS} value={sort} onChange={setSort} />
+          </div>
 
           <div className="divide-y divide-gray-100">
-            {events.map((event) => (
+            {sortedEvents.map((event) => (
               <div key={event.id} className="group relative">
                 <Link
                   href={`/events/${event.id}`}

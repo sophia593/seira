@@ -59,6 +59,48 @@ export interface SeasonWithStats extends Season {
   completion_pct: number;
 }
 
+export interface SeasonPartnerRollup {
+  name: string;
+  event_count: number;
+  events: { id: string; name: string }[];
+  total_deliverables: number;
+  completed_deliverables: number;
+  proved_deliverables: number;
+  overdue_count: number;
+  completion_pct: number;
+}
+
+export interface OrgPartnerRollup {
+  name: string;
+  event_count: number;
+  events: { id: string; name: string }[];
+  total_deliverables: number;
+  completed_deliverables: number;
+  proved_deliverables: number;
+  overdue_count: number;
+  completion_pct: number;
+  contact_name: string | null;
+  contact_email: string | null;
+  total_deal_value: number;
+  deal_summaries: { event_name: string; event_id: string; notes: string }[];
+  per_event_stats: {
+    event_id: string;
+    partner_id: string;
+    event_name: string;
+    total: number;
+    completed: number;
+    completion_pct: number;
+  }[];
+  next_renewal_date: string | null;
+  last_recap: {
+    id: string;
+    status: 'draft' | 'published';
+    date: string;
+    event_id: string;
+    share_token: string;
+  } | null;
+}
+
 export interface Partner {
   id: string;
   org_id: string;
@@ -67,6 +109,8 @@ export interface Partner {
   contact_name: string | null;
   contact_email: string | null;
   contract_notes: string | null;
+  deal_value: number | null;
+  renewal_date: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -157,6 +201,8 @@ export interface CreatePartnerInput {
   contact_name?: string;
   contact_email?: string;
   contract_notes?: string;
+  deal_value?: number;
+  renewal_date?: string;
 }
 
 export interface CreateDeliverableInput {
@@ -237,6 +283,9 @@ export interface RecapReport {
   cover_note: string | null;
   generated_by: string;
   published_at: string | null;
+  season_id: string | null;
+  partner_name: string | null;
+  is_combined: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -261,4 +310,65 @@ export interface RecapData {
     inProgress: number;
     byCategory: Record<string, { total: number; completed: number }>;
   };
+}
+
+export interface SeasonRecapData {
+  recap: RecapReport;
+  organization: { name: string };
+  season: { name: string; start_date: string | null; end_date: string | null };
+  partner: { name: string; contact_name: string | null; contact_email: string | null };
+  events: Array<{
+    id: string;
+    name: string;
+    date: string | null;
+    venue: string | null;
+    deliverables: Array<{
+      id: string;
+      title: string;
+      category: DeliverableCategory;
+      status: DeliverableStatus;
+      due_date: string | null;
+      proofs: (Proof & { uploader_name: string | null })[];
+    }>;
+  }>;
+  deliverables: RecapData['deliverables'];
+  stats: RecapData['stats'];
+}
+
+export interface CombinedRecapData {
+  recap: RecapReport;
+  organization: { name: string };
+  partner: { name: string; contact_name: string | null; contact_email: string | null };
+  eventCount: number;
+  totalDealValue: number;
+  dateRange: { earliest: string | null; latest: string | null };
+  events: SeasonRecapData['events'];
+  deliverables: RecapData['deliverables'];
+  stats: RecapData['stats'];
+}
+
+// === ACTIVITY LOG ===
+
+export type ActivityAction =
+  | 'created' | 'updated' | 'deleted' | 'duplicated'
+  | 'status_changed' | 'uploaded_proof' | 'deleted_proof'
+  | 'published' | 'unpublished'
+  | 'role_changed' | 'removed_member'
+  | 'invited' | 'revoked_invite' | 'accepted_invite'
+  | 'batch_created';
+
+export type ActivityTargetType =
+  | 'event' | 'partner' | 'deliverable' | 'proof'
+  | 'season' | 'template' | 'recap' | 'member' | 'invite';
+
+export interface ActivityLog {
+  id: string;
+  org_id: string;
+  event_id: string | null;
+  user_id: string;
+  action: ActivityAction;
+  target_type: ActivityTargetType;
+  target_id: string | null;
+  details_json: Record<string, unknown>;
+  created_at: string;
 }

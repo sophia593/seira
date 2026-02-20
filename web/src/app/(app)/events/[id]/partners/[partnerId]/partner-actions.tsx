@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, Mail } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from '@/components/ui/sonner'
 import { updatePartnerAction, deletePartnerAction } from '@/app/(app)/actions/partners'
+import { sendPartnerReminderAction } from '@/app/(app)/actions/deliverables'
 import { useOrg } from '@/hooks/use-org'
 import type { Partner } from '@/lib/types/database'
 
@@ -75,10 +76,25 @@ export function PartnerActions({ partner, eventId, deliverableCount = 0 }: Partn
   return (
     <>
       {canEdit && (
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap print:hidden">
           <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
             <Pencil className="w-4 h-4 sm:mr-1" />
             <span className="hidden sm:inline">Edit</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isPending}
+            onClick={() => {
+              startTransition(async () => {
+                const result = await sendPartnerReminderAction(eventId, partner.id)
+                if (result.ok) toast.success(`Reminder sent for ${result.count} item${result.count !== 1 ? 's' : ''}`)
+                else toast.error(result.error ?? 'Failed to send')
+              })
+            }}
+          >
+            <Mail className="w-4 h-4 sm:mr-1" />
+            <span className="hidden sm:inline">Remind All</span>
           </Button>
           {isAdmin && (
             <Button
@@ -159,6 +175,30 @@ export function PartnerActions({ partner, eventId, deliverableCount = 0 }: Partn
                   name="contact_email"
                   type="email"
                   defaultValue={partner.contact_email ?? ''}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-deal_value">Deal Value</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+                  <Input
+                    id="edit-deal_value"
+                    name="deal_value"
+                    type="number"
+                    min={0}
+                    defaultValue={partner.deal_value ?? ''}
+                    placeholder="35000"
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-renewal_date">Renewal Date</Label>
+                <Input
+                  id="edit-renewal_date"
+                  name="renewal_date"
+                  type="date"
+                  defaultValue={partner.renewal_date ?? ''}
                 />
               </div>
               <div className="space-y-1.5">

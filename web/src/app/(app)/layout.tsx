@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { tryCreateAdminClient } from "@/lib/supabase/admin"
 import { getUserMembership, getUserMembershipForOrg } from "@/lib/db/client"
 import { getOrganization } from "@/lib/db/organizations"
+import { getOrgSubscription } from "@/lib/db/billing"
 import { listEvents } from "@/lib/db/events"
 import { getUnreadCount } from "@/lib/db/notifications"
 import { AppShell } from "@/components/app-shell"
@@ -144,6 +145,20 @@ export default async function AppLayout({
         <CreateWorkspaceForm />
       </AppShellProvider>
     )
+  }
+
+  // ---------------------------------------------------------------------------
+  // Subscription gate: redirect to /subscribe if no active subscription
+  // ---------------------------------------------------------------------------
+  try {
+    const subscription = await getOrgSubscription(initialOrg.id)
+    const status = subscription?.subscription_status ?? 'none'
+    if (status === 'none' || status === 'unpaid' || status === 'canceled') {
+      redirect('/subscribe')
+    }
+  } catch (e) {
+    console.error('[Subscription check] Error:', e)
+    // Allow through on error to avoid blocking the app entirely
   }
 
   // Fetch recent events and unread count in parallel (best-effort)

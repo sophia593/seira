@@ -3,8 +3,13 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'terms of service | seira',
+  title: 'terms of service',
   description: 'Terms and conditions for using Seira.',
+  openGraph: {
+    title: 'Terms of Service — Seira',
+    description: 'Terms and conditions for using Seira.',
+  },
+  twitter: { card: 'summary_large_image' },
 }
 
 export default function TermsPage() {
@@ -52,7 +57,6 @@ export default function TermsPage() {
               <p>
                 <strong className="text-foreground">Important:</strong> Seira stores data you provide
                 (events, partners, deliverables, proof files) in your organization&apos;s workspace.
-                We do not process payments or manage contracts.
               </p>
             </div>
           </section>
@@ -105,14 +109,42 @@ export default function TermsPage() {
             </div>
           </section>
 
+          {/* Billing & Payments */}
+          <section>
+            <h2 className="text-lg font-medium mb-3 lowercase">billing & payments</h2>
+            <div className="space-y-3 text-muted-foreground">
+              <p>
+                Payments for Seira are processed by Stripe. By subscribing, you also agree
+                to{' '}
+                <a
+                  href="https://stripe.com/legal"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Stripe&apos;s terms of service
+                </a>
+                .
+              </p>
+              <ul className="list-disc list-inside space-y-2 ml-2">
+                <li>New accounts start with a 14-day free trial. Your payment method is collected at signup but not charged until the trial ends.</li>
+                <li>Subscriptions auto-renew at the end of each billing period (monthly or annual) until you cancel.</li>
+                <li>You may cancel at any time from your account settings. Access continues until the end of the current billing period.</li>
+                <li>We do not offer refunds for partial billing periods.</li>
+                <li>If we change our pricing, we will give at least 30 days&apos; notice before the new price takes effect.</li>
+              </ul>
+            </div>
+          </section>
+
           {/* Third-Party Services */}
           <section>
             <h2 className="text-lg font-medium mb-3 lowercase">third-party services</h2>
             <div className="space-y-3 text-muted-foreground">
               <p>
                 Seira relies on third-party infrastructure to operate, including Supabase for data
-                storage and authentication, Vercel for hosting, and cloud storage for proof files.
-                These services have their own terms and privacy policies.
+                storage and authentication, Vercel for hosting, Stripe for payment processing,
+                and cloud storage for proof files. These services have their own terms and privacy
+                policies.
               </p>
               <p>
                 We&apos;re not responsible for:

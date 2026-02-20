@@ -10,6 +10,7 @@ import { canChangeRole, canRemoveMember } from '@/lib/permissions'
 import { isUuid } from '@/lib/validation'
 import { sendEmail } from '@/lib/email/send'
 import { teamNotificationEmailSubject, teamNotificationEmailHtml } from '@/lib/email/templates/team-notification'
+import { logActivity } from '@/lib/db/activity-log'
 import type { OrgRole } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
@@ -29,7 +30,7 @@ async function getAuthenticatedMembership() {
     return { error: 'No organization membership' as const }
   }
 
-  return { supabase, userId: user.id, orgId: membership.org_id, role: membership.role as OrgRole }
+  return { supabase, userId: user.id, userEmail: user.email ?? '', orgId: membership.org_id, role: membership.role as OrgRole }
 }
 
 // ---------------------------------------------------------------------------
@@ -73,6 +74,8 @@ export async function updateMemberRoleAction(
     }
 
     await updateMemberRole(auth.supabase, auth.orgId, targetUserId, newRole as OrgRole)
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'role_changed', targetType: 'member', targetId: targetUserId, details: { from: target.role, to: newRole, actor_email: auth.userEmail } })
 
     // Notify the target user (in-app + email)
     const admin = tryCreateAdminClient()
@@ -156,6 +159,8 @@ export async function removeMemberAction(
     const targetProfile = membersWithProfiles.find((m) => m.user_id === targetUserId)
 
     await removeOrganizationMember(auth.supabase, auth.orgId, targetUserId)
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'removed_member', targetType: 'member', targetId: targetUserId, details: { actor_email: auth.userEmail } })
 
     // Notify the removed user (in-app + email)
     const admin = tryCreateAdminClient()

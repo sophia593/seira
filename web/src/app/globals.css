@@ -329,10 +329,14 @@
 
 @media print {
   /* Hide interactive chrome */
+  .print\:\!hidden,
   .print\:hidden,
+  aside,
   nav,
   button,
-  [role="dialog"] {
+  [role="dialog"],
+  [role="combobox"],
+  [data-print-hide] {
     display: none !important;
   }
 
@@ -343,9 +347,21 @@
   [class*="bg-gray"],
   [class*="bg-white"],
   [class*="bg-amber"],
-  [class*="bg-green"] {
+  [class*="bg-green"],
+  [class*="bg-kurobeni"] {
     background: white !important;
     color: black !important;
+  }
+
+  /* Main content takes full width without sidebar */
+  body, html {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  main {
+    overflow: visible !important;
+    padding-bottom: 0 !important;
   }
 
   /* Remove shadows and hover effects */

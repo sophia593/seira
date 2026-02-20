@@ -120,7 +120,12 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
         return
       }
       toast.success('Recap deleted')
-      router.push(`/events/${eventId}/partners/${partnerId}`)
+      const returnTo = recap.is_combined
+        ? `/partners/${encodeURIComponent(recap.partner_name ?? '')}`
+        : recap.season_id
+          ? `/seasons/${recap.season_id}`
+          : `/events/${eventId}/partners/${partnerId}`
+      router.push(returnTo)
     } catch {
       toast.error('Failed to delete')
       setIsDeleting(false)

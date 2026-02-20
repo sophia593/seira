@@ -15,6 +15,7 @@ import { canInviteMembers } from '@/lib/permissions'
 import { isUuid } from '@/lib/validation'
 import { sendEmail } from '@/lib/email/send'
 import { inviteEmailSubject, inviteEmailHtml } from '@/lib/email/templates/invite'
+import { logActivity } from '@/lib/db/activity-log'
 import type { OrgRole } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
@@ -34,7 +35,7 @@ async function getAuthenticatedMembership() {
     return { error: 'No organization membership' as const }
   }
 
-  return { supabase, userId: user.id, orgId: membership.org_id, role: membership.role as OrgRole }
+  return { supabase, userId: user.id, userEmail: user.email ?? '', orgId: membership.org_id, role: membership.role as OrgRole }
 }
 
 // ---------------------------------------------------------------------------
@@ -65,6 +66,8 @@ export async function createInviteAction(
       role as OrgRole,
       auth.userId
     )
+
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'invited', targetType: 'invite', targetId: invitation.id, details: { role, actor_email: auth.userEmail } })
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const inviteUrl = `${baseUrl}/invite/${invitation.invite_code}`
@@ -116,6 +119,8 @@ export async function revokeInviteAction(
 
     await revokeInvitation(auth.supabase, invitationId, auth.orgId)
 
+    logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'revoked_invite', targetType: 'invite', targetId: invitationId, details: { actor_email: auth.userEmail } })
+
     revalidatePath('/settings/team')
     return { ok: true }
   } catch (err) {
@@ -150,6 +155,8 @@ export async function acceptInviteAction(
     }
 
     const { orgId, orgName } = await acceptInvitation(admin, code, user.id)
+
+    logActivity({ orgId, userId: user.id, action: 'accepted_invite', targetType: 'invite', details: { actor_email: user.email ?? '' } })
 
     // Notify org admins that someone joined
     const userName =
