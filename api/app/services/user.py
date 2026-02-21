@@ -9,29 +9,7 @@ from typing import Any, Optional, Dict
 import anyio
 from fastapi import HTTPException, status
 
-from app.core.database import get_supabase
-
-
-# -----------------------------------------------------------------------------
-# Database helpers
-# -----------------------------------------------------------------------------
-
-
-def _sb_exec(query):
-    """Execute a supabase-py query and normalize errors."""
-    res = query.execute()
-    err = getattr(res, "error", None)
-    if err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {err}",
-        )
-    return getattr(res, "data", None)
-
-
-async def _exec(query):
-    """Async wrapper for supabase queries."""
-    return await anyio.to_thread.run_sync(_sb_exec, query)
+from app.core.database import get_supabase, execute as _exec
 
 
 # -----------------------------------------------------------------------------

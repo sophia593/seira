@@ -23,6 +23,7 @@ import { CATEGORIES, STATUS_FLOW } from '@/lib/constants'
 import type { DashboardStats, DashboardFilters as DashboardFiltersType, UpcomingRenewal } from '@/lib/db/dashboard'
 import type { Event, Season, EventWithCompletion, DeliverableWithPartner, DeliverableCategory, DeliverableStatus, ActivityLog } from '@/lib/types/database'
 import { ProgressBar } from '@/components/ui/progress-bar'
+import { AlertBadge, computeAlertSeverity } from '@/components/ui/alert-badge'
 import { SampleDataButton } from './sample-data-button'
 import { ActivityMiniWidget } from '@/components/activity-mini-widget'
 import { formatShortDate, CATEGORY_CONFIG, PROOF_REQUIRED_CONFIG, EVENT_DOT_COLOR } from '@/lib/constants'
@@ -307,11 +308,16 @@ export default async function DashboardPage({
                   href={`/events/${event.id}`}
                   className="flex items-center gap-4 py-3 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
                 >
-                  {/* Status dot + name */}
+                  {/* Status dot + name + alert badge */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`h-2 w-2 shrink-0 rounded-full ${EVENT_DOT_COLOR[event.status]}`} />
                       <p className="text-sm font-medium truncate">{event.name}</p>
+                      <AlertBadge
+                        severity={computeAlertSeverity(event.overdue_count, event.needs_proof_count ?? 0)}
+                        count={event.overdue_count + (event.needs_proof_count ?? 0)}
+                        pulse={event.overdue_count > 0}
+                      />
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 pl-4">
                       {formatShortDate(event.date)}

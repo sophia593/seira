@@ -11,6 +11,7 @@ import {
   Shield,
   UserMinus,
   Check,
+  AlertTriangle,
 } from 'lucide-react'
 import { useNotificationStore } from '@/stores/notification-store'
 import { useOrgStore } from '@/stores/org-store'
@@ -26,6 +27,9 @@ const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
   member_joined: <UserPlus className="w-4 h-4 text-purple-500" />,
   role_changed: <Shield className="w-4 h-4 text-amber-500" />,
   member_removed: <UserMinus className="w-4 h-4 text-red-400" />,
+  pre_event_scan: <AlertTriangle className="w-4 h-4 text-amber-500" />,
+  post_event_scan: <Camera className="w-4 h-4 text-amber-500" />,
+  partner_health: <AlertTriangle className="w-4 h-4 text-red-500" />,
 }
 
 function timeAgo(dateStr: string): string {

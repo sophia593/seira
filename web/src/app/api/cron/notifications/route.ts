@@ -9,6 +9,9 @@
  *   1. "Due in 48h" → email org owner
  *   2. "Done but no proof (24h+)" → email owner + admins
  *   3. "Weekly risk summary" → admins on Monday mornings
+ *   4. "Pre-event scan (72h)" → flag no-owner or not-started deliverables
+ *   5. "Post-event scan (24h)" → flag done-but-unproved deliverables
+ *   6. "Partner health (weekly)" → flag partners below 70% completion
  *
  * All emails are logged to `email_notification_log` for deduplication.
  */
@@ -19,6 +22,10 @@ import { sendEmail } from '@/lib/email/send'
 import { dueSoonEmailSubject, dueSoonEmailHtml } from '@/lib/email/templates/due-soon'
 import { needsProofEmailSubject, needsProofEmailHtml } from '@/lib/email/templates/needs-proof'
 import { weeklyRiskEmailSubject, weeklyRiskEmailHtml } from '@/lib/email/templates/weekly-risk-summary'
+import { preEventScanEmailSubject, preEventScanEmailHtml } from '@/lib/email/templates/pre-event-scan'
+import { postEventScanEmailSubject, postEventScanEmailHtml } from '@/lib/email/templates/post-event-scan'
+import { partnerHealthEmailSubject, partnerHealthEmailHtml } from '@/lib/email/templates/partner-health'
+import { relativeEventTime } from '@/lib/relative-time'
 
 // ---------------------------------------------------------------------------
 // Admin client (inline — can't use cookie-based createClient from server.ts)
@@ -124,6 +131,25 @@ async function isWeeklySentThisWeek(
     .select('*', { count: 'exact', head: true })
     .eq('trigger_type', 'weekly_risk')
     .eq('recipient_email', recipientEmail)
+    .gte('sent_at', sixDaysAgo.toISOString())
+
+  return (count ?? 0) > 0
+}
+
+async function isPartnerHealthSentThisWeek(
+  admin: ReturnType<typeof getAdminClient>,
+  orgId: string,
+  recipientEmail: string
+): Promise<boolean> {
+  const sixDaysAgo = new Date()
+  sixDaysAgo.setDate(sixDaysAgo.getDate() - 6)
+
+  const { count } = await admin
+    .from('email_notification_log')
+    .select('*', { count: 'exact', head: true })
+    .eq('trigger_type', 'partner_health')
+    .eq('recipient_email', recipientEmail)
+    .eq('org_id', orgId)
     .gte('sent_at', sixDaysAgo.toISOString())
 
   return (count ?? 0) > 0
@@ -415,6 +441,385 @@ async function triggerWeeklyRisk(admin: ReturnType<typeof getAdminClient>): Prom
 }
 
 // ---------------------------------------------------------------------------
+// Trigger 4: Pre-event scan (72h out)
+// Flag deliverables with no owner or still not_started
+// ---------------------------------------------------------------------------
+
+async function triggerPreEventScan(admin: ReturnType<typeof getAdminClient>): Promise<number> {
+  let emailsSent = 0
+
+  const now = new Date()
+  const in72h = new Date(now.getTime() + 72 * 60 * 60 * 1000)
+
+  // Events with a date in the next 72 hours
+  const { data: events } = await admin
+    .from('events')
+    .select('id, name, date, org_id')
+    .in('status', ['upcoming', 'active'])
+    .not('date', 'is', null)
+    .gte('date', now.toISOString().split('T')[0])
+    .lte('date', in72h.toISOString().split('T')[0])
+
+  if (!events || events.length === 0) return 0
+
+  for (const event of events) {
+    // Get deliverables that are no-owner OR not_started
+    const { data: deliverables } = await admin
+      .from('deliverables')
+      .select('id, title, partner_id, status, owner_id')
+      .eq('event_id', event.id)
+      .not('status', 'in', '("done","proved")')
+
+    if (!deliverables || deliverables.length === 0) continue
+
+    // Flag: no owner assigned OR still not_started
+    const flagged = deliverables.filter(
+      (d) => !d.owner_id || d.status === 'not_started'
+    )
+
+    if (flagged.length === 0) continue
+
+    // Get partner names
+    const partnerIds = [...new Set(flagged.map((d) => d.partner_id))]
+    const { data: partners } = await admin
+      .from('partners')
+      .select('id, name')
+      .in('id', partnerIds)
+
+    const partnerMap = new Map((partners ?? []).map((p) => [p.id, p.name]))
+
+    const flaggedItems = flagged.map((d) => ({
+      title: d.title,
+      partnerName: partnerMap.get(d.partner_id) ?? 'Unknown',
+      reason: (!d.owner_id ? 'no_owner' : 'not_started') as 'no_owner' | 'not_started',
+    }))
+
+    // Email owner + admins
+    const recipients = await getOrgMembersWithEmails(admin, event.org_id, ['owner', 'admin'])
+
+    for (const recipient of recipients) {
+      // Dedup key: pre_event_scan + event.id per recipient
+      if (await isAlreadySent(admin, 'pre_event_scan', event.id, recipient.email)) continue
+
+      const subject = preEventScanEmailSubject({ eventName: event.name })
+      const html = preEventScanEmailHtml({
+        recipientName: recipient.name || recipient.email.split('@')[0],
+        eventName: event.name,
+        eventDate: formatDate(event.date),
+        hoursUntil: 72,
+        flaggedItems,
+        eventUrl: `${BASE_URL}/events/${event.id}`,
+      })
+
+      const sent = await sendEmail({ to: recipient.email, subject, html })
+      if (sent) {
+        await logEmailSent(admin, event.org_id, 'pre_event_scan', event.id, recipient.email, subject)
+        emailsSent++
+      }
+    }
+
+    // Group flagged items by partner for context-rich notifications
+    const byPartner = new Map<string, typeof flaggedItems>()
+    for (const item of flaggedItems) {
+      const arr = byPartner.get(item.partnerName) ?? []
+      arr.push(item)
+      byPartner.set(item.partnerName, arr)
+    }
+
+    const partnerLines = [...byPartner.entries()].slice(0, 3).map(([name, items]) => {
+      const titles = items.map((i) => i.title).slice(0, 3).join(', ')
+      const more = items.length > 3 ? ` +${items.length - 3} more` : ''
+      return `${name}: ${titles}${more}`
+    })
+
+    const relTime = relativeEventTime(event.date ?? '')
+
+    // In-app notifications for all org members
+    const allMembers = await getOrgMembersWithEmails(admin, event.org_id)
+    for (const member of allMembers) {
+      await admin.from('notifications').insert({
+        user_id: member.user_id,
+        org_id: event.org_id,
+        type: 'pre_event_scan',
+        title: `${event.name}: ${flagged.length} deliverable${flagged.length !== 1 ? 's' : ''} need attention`,
+        body: `${relTime}. ${partnerLines.join('; ')}`,
+        link: `/events/${event.id}`,
+        metadata: {
+          event_id: event.id,
+          flagged_count: flagged.length,
+          severity: flagged.length > 5 ? 'red' : 'yellow',
+        },
+      })
+    }
+  }
+
+  return emailsSent
+}
+
+// ---------------------------------------------------------------------------
+// Trigger 5: Post-event scan (24h after)
+// Flag deliverables that are done but have no proof
+// ---------------------------------------------------------------------------
+
+async function triggerPostEventScan(admin: ReturnType<typeof getAdminClient>): Promise<number> {
+  let emailsSent = 0
+
+  const now = new Date()
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000)
+
+  // Events that ended 24-48h ago (date window to avoid repeat scans)
+  const { data: events } = await admin
+    .from('events')
+    .select('id, name, date, org_id')
+    .not('date', 'is', null)
+    .lte('date', twentyFourHoursAgo.toISOString().split('T')[0])
+    .gte('date', fortyEightHoursAgo.toISOString().split('T')[0])
+
+  if (!events || events.length === 0) return 0
+
+  for (const event of events) {
+    // Get "done" deliverables (not "proved")
+    const { data: doneDels } = await admin
+      .from('deliverables')
+      .select('id, title, partner_id')
+      .eq('event_id', event.id)
+      .eq('status', 'done')
+
+    if (!doneDels || doneDels.length === 0) continue
+
+    // Also fetch ALL deliverables for per-partner totals
+    const { data: allEventDels } = await admin
+      .from('deliverables')
+      .select('id, partner_id')
+      .eq('event_id', event.id)
+
+    const totalByPartner = new Map<string, number>()
+    for (const d of allEventDels ?? []) {
+      totalByPartner.set(d.partner_id, (totalByPartner.get(d.partner_id) ?? 0) + 1)
+    }
+
+    // Check which have zero proofs
+    const delIds = doneDels.map((d) => d.id)
+    const { data: proofRows } = await admin
+      .from('proofs')
+      .select('deliverable_id')
+      .in('deliverable_id', delIds)
+
+    const hasProof = new Set((proofRows ?? []).map((r) => r.deliverable_id))
+    const unproved = doneDels.filter((d) => !hasProof.has(d.id))
+
+    if (unproved.length === 0) continue
+
+    // Get partner names
+    const partnerIds = [...new Set(unproved.map((d) => d.partner_id))]
+    const { data: partners } = await admin
+      .from('partners')
+      .select('id, name')
+      .in('id', partnerIds)
+
+    const partnerMap = new Map((partners ?? []).map((p) => [p.id, p.name]))
+
+    // Group unproved by partner
+    const partnerGroups = new Map<string, { partnerName: string; total: number; items: { title: string }[] }>()
+    for (const d of unproved) {
+      const existing = partnerGroups.get(d.partner_id)
+      if (existing) {
+        existing.items.push({ title: d.title })
+      } else {
+        partnerGroups.set(d.partner_id, {
+          partnerName: partnerMap.get(d.partner_id) ?? 'Unknown',
+          total: totalByPartner.get(d.partner_id) ?? 0,
+          items: [{ title: d.title }],
+        })
+      }
+    }
+
+    const partnerAlerts = [...partnerGroups.entries()].map(([, group]) => ({
+      partnerName: group.partnerName,
+      totalDeliverables: group.total,
+      unprovedItems: group.items,
+    }))
+
+    const relTime = relativeEventTime(event.date ?? '')
+
+    // Email owner + admins
+    const recipients = await getOrgMembersWithEmails(admin, event.org_id, ['owner', 'admin'])
+
+    for (const recipient of recipients) {
+      if (await isAlreadySent(admin, 'post_event_scan', event.id, recipient.email)) continue
+
+      const subject = postEventScanEmailSubject({ eventName: event.name })
+      const html = postEventScanEmailHtml({
+        recipientName: recipient.name || recipient.email.split('@')[0],
+        eventName: event.name,
+        eventDate: formatDate(event.date),
+        partnerAlerts,
+        eventUrl: `${BASE_URL}/events/${event.id}`,
+      })
+
+      const sent = await sendEmail({ to: recipient.email, subject, html })
+      if (sent) {
+        await logEmailSent(admin, event.org_id, 'post_event_scan', event.id, recipient.email, subject)
+        emailsSent++
+      }
+    }
+
+    // Context-rich in-app notifications
+    const partnerSummaries = partnerAlerts
+      .slice(0, 3)
+      .map((pa) => {
+        const missing = pa.unprovedItems.map((i) => i.title).slice(0, 3).join(', ')
+        const more = pa.unprovedItems.length > 3 ? ` +${pa.unprovedItems.length - 3} more` : ''
+        return `${pa.partnerName}: ${pa.unprovedItems.length}/${pa.totalDeliverables} unproved. Missing: ${missing}${more}`
+      })
+
+    const allMembers = await getOrgMembersWithEmails(admin, event.org_id)
+    for (const member of allMembers) {
+      await admin.from('notifications').insert({
+        user_id: member.user_id,
+        org_id: event.org_id,
+        type: 'post_event_scan',
+        title: `${event.name}: ${unproved.length} deliverable${unproved.length !== 1 ? 's' : ''} need proof`,
+        body: `${partnerSummaries.join('\n')}\n${relTime}.`,
+        link: `/events/${event.id}`,
+        metadata: {
+          event_id: event.id,
+          unproved_count: unproved.length,
+          severity: unproved.length > 5 ? 'red' : 'yellow',
+        },
+      })
+    }
+  }
+
+  return emailsSent
+}
+
+// ---------------------------------------------------------------------------
+// Trigger 6: Partner health — flag partners below 70% completion (weekly)
+// ---------------------------------------------------------------------------
+
+async function triggerPartnerHealth(admin: ReturnType<typeof getAdminClient>): Promise<number> {
+  let emailsSent = 0
+
+  // Get all orgs
+  const { data: orgs } = await admin.from('organizations').select('id, name')
+  if (!orgs || orgs.length === 0) return 0
+
+  for (const org of orgs) {
+    // Get active/upcoming events
+    const { data: events } = await admin
+      .from('events')
+      .select('id')
+      .eq('org_id', org.id)
+      .in('status', ['upcoming', 'active'])
+
+    if (!events || events.length === 0) continue
+
+    const eventIds = events.map((e) => e.id)
+
+    // Get all partners for these events
+    const { data: partners } = await admin
+      .from('partners')
+      .select('id, name, deal_value')
+      .in('event_id', eventIds)
+
+    if (!partners || partners.length === 0) continue
+
+    const partnerIds = partners.map((p) => p.id)
+
+    // Get all deliverables for these partners (include title for context-rich alerts)
+    const { data: deliverables } = await admin
+      .from('deliverables')
+      .select('id, title, partner_id, status, due_date')
+      .in('partner_id', partnerIds)
+
+    if (!deliverables || deliverables.length === 0) continue
+
+    const today = new Date().toISOString().split('T')[0]
+
+    // Compute per-partner stats with deliverable names
+    const unhealthyPartners = partners
+      .map((p) => {
+        const pDels = deliverables.filter((d) => d.partner_id === p.id)
+        if (pDels.length === 0) return null
+
+        const completed = pDels.filter((d) => d.status === 'done' || d.status === 'proved').length
+        const pct = Math.round((completed / pDels.length) * 100)
+
+        if (pct >= 70) return null
+
+        const incompleteDels = pDels.filter(
+          (d) => d.status !== 'done' && d.status !== 'proved'
+        )
+        const overdueCount = incompleteDels.filter(
+          (d) => d.due_date && d.due_date < today
+        ).length
+
+        return {
+          name: p.name,
+          completionPct: pct,
+          overdueCount,
+          totalDeliverables: pDels.length,
+          completedDeliverables: completed,
+          dealValue: p.deal_value ?? 0,
+          missingTitles: incompleteDels.map((d) => d.title).slice(0, 5),
+        }
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null)
+      .sort((a, b) => a.completionPct - b.completionPct)
+
+    if (unhealthyPartners.length === 0) continue
+
+    // Email owner + admins (weekly dedup)
+    const recipients = await getOrgMembersWithEmails(admin, org.id, ['owner', 'admin'])
+
+    for (const recipient of recipients) {
+      if (await isPartnerHealthSentThisWeek(admin, org.id, recipient.email)) continue
+
+      const subject = partnerHealthEmailSubject({ count: unhealthyPartners.length })
+      const html = partnerHealthEmailHtml({
+        recipientName: recipient.name || recipient.email.split('@')[0],
+        orgName: org.name,
+        partners: unhealthyPartners,
+        dashboardUrl: `${BASE_URL}/partners`,
+      })
+
+      const sent = await sendEmail({ to: recipient.email, subject, html })
+      if (sent) {
+        await logEmailSent(admin, org.id, 'partner_health', null, recipient.email, subject)
+        emailsSent++
+      }
+    }
+
+    // Context-rich in-app notifications for all org members
+    const summaryBody = unhealthyPartners.slice(0, 3).map((p) => {
+      const missing = p.missingTitles.slice(0, 3).join(', ')
+      const more = p.missingTitles.length > 3 ? ` +${p.missingTitles.length - 3} more` : ''
+      return `${p.name}: ${p.completedDeliverables}/${p.totalDeliverables} complete. Missing: ${missing}${more}`
+    }).join('\n')
+
+    const allMembers = await getOrgMembersWithEmails(admin, org.id)
+    for (const member of allMembers) {
+      await admin.from('notifications').insert({
+        user_id: member.user_id,
+        org_id: org.id,
+        type: 'partner_health',
+        title: `${unhealthyPartners.length} partner${unhealthyPartners.length !== 1 ? 's' : ''} below 70% fulfillment`,
+        body: summaryBody,
+        link: '/partners',
+        metadata: {
+          partner_count: unhealthyPartners.length,
+          severity: unhealthyPartners.some((p) => p.completionPct < 40) ? 'red' : 'yellow',
+        },
+      })
+    }
+  }
+
+  return emailsSent
+}
+
+// ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
@@ -427,15 +832,19 @@ export async function GET(request: Request) {
     const admin = getAdminClient()
     const startTime = Date.now()
 
-    const [dueSoonCount, needsProofCount, weeklyRiskCount] = await Promise.all([
+    const [dueSoonCount, needsProofCount, weeklyRiskCount, preEventCount, postEventCount, partnerHealthCount] = await Promise.all([
       triggerDueSoon(admin),
       triggerNeedsProof(admin),
       triggerWeeklyRisk(admin),
+      triggerPreEventScan(admin),
+      triggerPostEventScan(admin),
+      triggerPartnerHealth(admin),
     ])
 
     const duration = Date.now() - startTime
+    const total = dueSoonCount + needsProofCount + weeklyRiskCount + preEventCount + postEventCount + partnerHealthCount
 
-    console.log(`[Cron] Notification run complete in ${duration}ms — due_soon: ${dueSoonCount}, needs_proof: ${needsProofCount}, weekly_risk: ${weeklyRiskCount}`)
+    console.log(`[Cron] Notification run complete in ${duration}ms — due_soon: ${dueSoonCount}, needs_proof: ${needsProofCount}, weekly_risk: ${weeklyRiskCount}, pre_event: ${preEventCount}, post_event: ${postEventCount}, partner_health: ${partnerHealthCount}`)
 
     return NextResponse.json({
       ok: true,
@@ -443,7 +852,10 @@ export async function GET(request: Request) {
         due_soon: dueSoonCount,
         needs_proof: needsProofCount,
         weekly_risk: weeklyRiskCount,
-        total: dueSoonCount + needsProofCount + weeklyRiskCount,
+        pre_event_scan: preEventCount,
+        post_event_scan: postEventCount,
+        partner_health: partnerHealthCount,
+        total,
       },
       duration_ms: duration,
     })

@@ -206,6 +206,8 @@ export async function getUpcomingEvents(orgId: string, filters?: DashboardFilter
   // 3. Compute per-event stats
   const today = new Date(new Date().toDateString())
   const stats: Record<string, { total: number; completed: number; overdue: number }> = {}
+  const doneIdsByEvent = new Map<string, string[]>()
+
   for (const d of deliverables ?? []) {
     const entry = stats[d.event_id] ?? { total: 0, completed: 0, overdue: 0 }
     entry.total++
@@ -214,16 +216,30 @@ export async function getUpcomingEvents(orgId: string, filters?: DashboardFilter
       entry.overdue++
     }
     stats[d.event_id] = entry
+
+    // Track "done" (not "proved") deliverables for needs-proof count
+    if (d.status === 'done') {
+      const arr = doneIdsByEvent.get(d.event_id) ?? []
+      arr.push(d.id)
+      doneIdsByEvent.set(d.event_id, arr)
+    }
   }
+
+  // 4. Count proofs for "done" deliverables to determine needs_proof_count
+  const allDoneIds = [...doneIdsByEvent.values()].flat()
+  const proofCounts = allDoneIds.length > 0 ? await countProofByDeliverable(allDoneIds) : {}
 
   return (events as Event[]).map((e) => {
     const s = stats[e.id] ?? { total: 0, completed: 0, overdue: 0 }
+    const doneIds = doneIdsByEvent.get(e.id) ?? []
+    const needsProofCount = doneIds.filter((id) => (proofCounts[id] ?? 0) === 0).length
     return {
       ...e,
       total_deliverables: s.total,
       completed_deliverables: s.completed,
       overdue_count: s.overdue,
       completion_pct: s.total > 0 ? Math.round((s.completed / s.total) * 100) : 0,
+      needs_proof_count: needsProofCount,
     }
   })
 }

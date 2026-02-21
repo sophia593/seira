@@ -60,6 +60,7 @@ async def me(user: User = Depends(get_current_user)):
 # Routers
 # -----------------------------------------------------------------------------
 
-from app.api.v1 import users
+from app.api.v1 import users, agents
 
 app.include_router(users.router, prefix="/api/v1", tags=["users"])
+app.include_router(agents.router, prefix="/api/v1", tags=["agents"])

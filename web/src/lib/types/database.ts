@@ -253,7 +253,10 @@ export type NotificationType =
   | 'deliverable_completed'
   | 'member_joined'
   | 'role_changed'
-  | 'member_removed';
+  | 'member_removed'
+  | 'pre_event_scan'
+  | 'post_event_scan'
+  | 'partner_health';
 
 export interface AppNotification {
   id: string;
