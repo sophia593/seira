@@ -385,7 +385,7 @@ async function fetchRecapData(
     client.from('organizations').select('name').eq('id', recap.org_id).single(),
     client.from('events').select('name, date, venue').eq('id', recap.event_id).single(),
     client.from('partners').select('name, contact_name, contact_email').eq('id', recap.partner_id).single(),
-    client.from('deliverables').select('id, title, category, status, due_date').eq('partner_id', recap.partner_id).eq('event_id', recap.event_id).order('created_at', { ascending: true }),
+    client.from('deliverables').select('id, title, category, status, due_date, usage_scope, usage_territory, usage_duration, usage_expiration_date, usage_scope_custom, usage_territory_custom').eq('partner_id', recap.partner_id).eq('event_id', recap.event_id).order('created_at', { ascending: true }),
   ])
 
   if (!orgResult.data || !eventResult.data || !partnerResult.data) return null
@@ -396,6 +396,12 @@ async function fetchRecapData(
     category: DeliverableCategory
     status: DeliverableStatus
     due_date: string | null
+    usage_scope: string | null
+    usage_territory: string | null
+    usage_duration: string | null
+    usage_expiration_date: string | null
+    usage_scope_custom: string | null
+    usage_territory_custom: string | null
   }>
 
   // 3. Fetch proofs for all deliverables
@@ -449,7 +455,7 @@ async function fetchRecapData(
   }
 
   // 6. Compute stats
-  const completedStatuses: DeliverableStatus[] = ['done', 'proved']
+  const completedStatuses: DeliverableStatus[] = ['done', 'pending_approval', 'proved']
   const total = deliverables.length
   const completed = deliverables.filter((d) => completedStatuses.includes(d.status)).length
   const proved = deliverables.filter((d) => d.status === 'proved').length
@@ -468,7 +474,17 @@ async function fetchRecapData(
     event: eventResult.data as { name: string; date: string | null; venue: string | null },
     partner: partnerResult.data as { name: string; contact_name: string | null; contact_email: string | null },
     deliverables: deliverables.map((d) => ({
-      ...d,
+      id: d.id,
+      title: d.title,
+      category: d.category,
+      status: d.status,
+      due_date: d.due_date,
+      usage_scope: d.usage_scope,
+      usage_territory: d.usage_territory,
+      usage_duration: d.usage_duration,
+      usage_expiration_date: d.usage_expiration_date,
+      usage_scope_custom: d.usage_scope_custom,
+      usage_territory_custom: d.usage_territory_custom,
       proofs: proofMap[d.id] ?? [],
     })),
     stats: { total, completed, proved, inProgress, byCategory },
@@ -549,7 +565,7 @@ async function fetchSeasonRecapData(
   // 5. Fetch all deliverables for those partners
   const { data: rawDeliverables } = await client
     .from('deliverables')
-    .select('id, title, category, status, due_date, partner_id, event_id')
+    .select('id, title, category, status, due_date, partner_id, event_id, usage_scope, usage_territory, usage_duration, usage_expiration_date, usage_scope_custom, usage_territory_custom')
     .in('partner_id', partnerIds)
     .order('created_at', { ascending: true })
 
@@ -561,6 +577,12 @@ async function fetchSeasonRecapData(
     due_date: string | null
     partner_id: string
     event_id: string
+    usage_scope: string | null
+    usage_territory: string | null
+    usage_duration: string | null
+    usage_expiration_date: string | null
+    usage_scope_custom: string | null
+    usage_territory_custom: string | null
   }>
 
   // 6. Fetch proofs for all deliverables
@@ -634,6 +656,12 @@ async function fetchSeasonRecapData(
         category: d.category,
         status: d.status,
         due_date: d.due_date,
+        usage_scope: d.usage_scope,
+        usage_territory: d.usage_territory,
+        usage_duration: d.usage_duration,
+        usage_expiration_date: d.usage_expiration_date,
+        usage_scope_custom: d.usage_scope_custom,
+        usage_territory_custom: d.usage_territory_custom,
         proofs: proofMap[d.id] ?? [],
       })),
     }))
@@ -645,10 +673,16 @@ async function fetchSeasonRecapData(
     category: d.category,
     status: d.status,
     due_date: d.due_date,
+    usage_scope: d.usage_scope,
+    usage_territory: d.usage_territory,
+    usage_duration: d.usage_duration,
+    usage_expiration_date: d.usage_expiration_date,
+    usage_scope_custom: d.usage_scope_custom,
+    usage_territory_custom: d.usage_territory_custom,
     proofs: proofMap[d.id] ?? [],
   }))
 
-  const completedStatuses: DeliverableStatus[] = ['done', 'proved']
+  const completedStatuses: DeliverableStatus[] = ['done', 'pending_approval', 'proved']
   const total = deliverables.length
   const completed = deliverables.filter((d) => completedStatuses.includes(d.status)).length
   const proved = deliverables.filter((d) => d.status === 'proved').length
@@ -757,7 +791,7 @@ async function fetchCombinedRecapData(
   // 5. Fetch all deliverables for those partners
   const { data: rawDeliverables } = await client
     .from('deliverables')
-    .select('id, title, category, status, due_date, partner_id, event_id')
+    .select('id, title, category, status, due_date, partner_id, event_id, usage_scope, usage_territory, usage_duration, usage_expiration_date, usage_scope_custom, usage_territory_custom')
     .in('partner_id', partnerIds)
     .order('created_at', { ascending: true })
 
@@ -769,6 +803,12 @@ async function fetchCombinedRecapData(
     due_date: string | null
     partner_id: string
     event_id: string
+    usage_scope: string | null
+    usage_territory: string | null
+    usage_duration: string | null
+    usage_expiration_date: string | null
+    usage_scope_custom: string | null
+    usage_territory_custom: string | null
   }>
 
   // 6. Fetch proofs for all deliverables
@@ -842,6 +882,12 @@ async function fetchCombinedRecapData(
         category: d.category,
         status: d.status,
         due_date: d.due_date,
+        usage_scope: d.usage_scope,
+        usage_territory: d.usage_territory,
+        usage_duration: d.usage_duration,
+        usage_expiration_date: d.usage_expiration_date,
+        usage_scope_custom: d.usage_scope_custom,
+        usage_territory_custom: d.usage_territory_custom,
         proofs: proofMap[d.id] ?? [],
       })),
     }))
@@ -853,10 +899,16 @@ async function fetchCombinedRecapData(
     category: d.category,
     status: d.status,
     due_date: d.due_date,
+    usage_scope: d.usage_scope,
+    usage_territory: d.usage_territory,
+    usage_duration: d.usage_duration,
+    usage_expiration_date: d.usage_expiration_date,
+    usage_scope_custom: d.usage_scope_custom,
+    usage_territory_custom: d.usage_territory_custom,
     proofs: proofMap[d.id] ?? [],
   }))
 
-  const completedStatuses: DeliverableStatus[] = ['done', 'proved']
+  const completedStatuses: DeliverableStatus[] = ['done', 'pending_approval', 'proved']
   const total = deliverables.length
   const completed = deliverables.filter((d) => completedStatuses.includes(d.status)).length
   const proved = deliverables.filter((d) => d.status === 'proved').length

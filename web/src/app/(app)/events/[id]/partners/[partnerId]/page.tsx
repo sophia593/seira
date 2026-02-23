@@ -6,6 +6,8 @@ import { listDeliverablesByPartner } from '@/lib/db/deliverables'
 import { countProofByDeliverable, listProofByPartner } from '@/lib/db/proof'
 import { listRecapsByPartner } from '@/lib/db/recaps'
 import { listTemplates } from '@/lib/db/templates'
+import { listTalent } from '@/lib/db/talent'
+import { listAssets } from '@/lib/db/assets'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { PartnerActions } from './partner-actions'
 import { DeliverableSection } from './deliverable-section'
@@ -32,11 +34,13 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
   // Fetch proof data + recaps + templates
   const supabase = await createClient()
   const deliverableIds = deliverables.map((d) => d.id)
-  const [proofCounts, allProofs, recaps, templates] = await Promise.all([
+  const [proofCounts, allProofs, recaps, templates, talents, assets] = await Promise.all([
     countProofByDeliverable(deliverableIds),
     listProofByPartner(partnerId),
     listRecapsByPartner(partnerId),
     listTemplates(supabase, event.org_id),
+    listTalent(event.org_id),
+    listAssets(event.org_id),
   ])
 
   // Build proof map: deliverable_id → Proof[]
@@ -45,6 +49,18 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
     const dId = p.deliverable_id
     if (!proofMap[dId]) proofMap[dId] = []
     proofMap[dId].push(p)
+  }
+
+  // Build talent map: talent_id → { id, name, photo_url, type }
+  const talentMap: Record<string, { id: string; name: string; photo_url: string | null; type: string }> = {}
+  for (const t of talents) {
+    talentMap[t.id] = { id: t.id, name: t.name, photo_url: t.photo_url, type: t.type }
+  }
+
+  // Build asset map: asset_id → { id, name, capacity }
+  const assetMap: Record<string, { id: string; name: string; capacity: number | null }> = {}
+  for (const a of assets) {
+    assetMap[a.id] = { id: a.id, name: a.name, capacity: a.capacity }
   }
 
   // Compute status counts for chips
@@ -181,6 +197,11 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
         proofCounts={proofCounts}
         proofMap={proofMap}
         templates={templates}
+        talentMap={talentMap}
+        talents={talents}
+        assets={assets}
+        assetMap={assetMap}
+        eventDate={event.date}
       />
 
       <RecapSection

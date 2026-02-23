@@ -25,6 +25,7 @@ import { weeklyRiskEmailSubject, weeklyRiskEmailHtml } from '@/lib/email/templat
 import { preEventScanEmailSubject, preEventScanEmailHtml } from '@/lib/email/templates/pre-event-scan'
 import { postEventScanEmailSubject, postEventScanEmailHtml } from '@/lib/email/templates/post-event-scan'
 import { partnerHealthEmailSubject, partnerHealthEmailHtml } from '@/lib/email/templates/partner-health'
+import { usageRightsExpiringEmailSubject, usageRightsExpiringEmailHtml } from '@/lib/email/templates/usage-rights-expiring'
 import { relativeEventTime } from '@/lib/relative-time'
 
 // ---------------------------------------------------------------------------
@@ -186,7 +187,7 @@ async function triggerDueSoon(admin: ReturnType<typeof getAdminClient>): Promise
   const { data: deliverables } = await admin
     .from('deliverables')
     .select('id, title, event_id, partner_id, due_date')
-    .not('status', 'in', '("done","proved")')
+    .not('status', 'in', '("done","pending_approval","proved")')
     .not('due_date', 'is', null)
     .gte('due_date', now.toISOString().split('T')[0])
     .lte('due_date', in48h.toISOString().split('T')[0])
@@ -387,7 +388,7 @@ async function triggerWeeklyRisk(admin: ReturnType<typeof getAdminClient>): Prom
 
       const overdueCount = eventDels.filter((d) =>
         d.due_date &&
-        d.status !== 'done' && d.status !== 'proved' &&
+        d.status !== 'done' && d.status !== 'pending_approval' && d.status !== 'proved' &&
         new Date(d.due_date) < today
       ).length
 
@@ -397,7 +398,7 @@ async function triggerWeeklyRisk(admin: ReturnType<typeof getAdminClient>): Prom
 
       const upcomingDueCount = eventDels.filter((d) =>
         d.due_date &&
-        d.status !== 'done' && d.status !== 'proved' &&
+        d.status !== 'done' && d.status !== 'pending_approval' && d.status !== 'proved' &&
         new Date(d.due_date) >= today &&
         new Date(d.due_date) <= in7Days
       ).length
@@ -468,7 +469,7 @@ async function triggerPreEventScan(admin: ReturnType<typeof getAdminClient>): Pr
       .from('deliverables')
       .select('id, title, partner_id, status, owner_id')
       .eq('event_id', event.id)
-      .not('status', 'in', '("done","proved")')
+      .not('status', 'in', '("done","pending_approval","proved")')
 
     if (!deliverables || deliverables.length === 0) continue
 
@@ -744,13 +745,13 @@ async function triggerPartnerHealth(admin: ReturnType<typeof getAdminClient>): P
         const pDels = deliverables.filter((d) => d.partner_id === p.id)
         if (pDels.length === 0) return null
 
-        const completed = pDels.filter((d) => d.status === 'done' || d.status === 'proved').length
+        const completed = pDels.filter((d) => d.status === 'done' || d.status === 'pending_approval' || d.status === 'proved').length
         const pct = Math.round((completed / pDels.length) * 100)
 
         if (pct >= 70) return null
 
         const incompleteDels = pDels.filter(
-          (d) => d.status !== 'done' && d.status !== 'proved'
+          (d) => d.status !== 'done' && d.status !== 'pending_approval' && d.status !== 'proved'
         )
         const overdueCount = incompleteDels.filter(
           (d) => d.due_date && d.due_date < today
@@ -820,6 +821,101 @@ async function triggerPartnerHealth(admin: ReturnType<typeof getAdminClient>): P
 }
 
 // ---------------------------------------------------------------------------
+// Trigger 7: Usage rights expiring in ~30 days
+// ---------------------------------------------------------------------------
+
+async function triggerUsageRightsExpiring(admin: ReturnType<typeof getAdminClient>): Promise<number> {
+  let emailsSent = 0
+
+  // 2-day window around 30 days out to handle hourly cron runs without duplicating
+  const in29Days = new Date(Date.now() + 29 * 86_400_000).toISOString().split('T')[0]
+  const in31Days = new Date(Date.now() + 31 * 86_400_000).toISOString().split('T')[0]
+
+  const { data: deliverables } = await admin
+    .from('deliverables')
+    .select('id, title, event_id, partner_id, usage_expiration_date, talent_id, owner_id')
+    .eq('category', 'talent')
+    .not('usage_expiration_date', 'is', null)
+    .gte('usage_expiration_date', in29Days)
+    .lt('usage_expiration_date', in31Days)
+
+  if (!deliverables || deliverables.length === 0) return 0
+
+  // Fetch context
+  const eventIds = [...new Set(deliverables.map((d: { event_id: string }) => d.event_id))]
+  const partnerIds = [...new Set(deliverables.map((d: { partner_id: string }) => d.partner_id))]
+  const talentIds = deliverables.map((d: { talent_id: string | null }) => d.talent_id).filter(Boolean) as string[]
+
+  const [{ data: events }, { data: partners }, talentResult] = await Promise.all([
+    admin.from('events').select('id, name, org_id').in('id', eventIds),
+    admin.from('partners').select('id, name').in('id', partnerIds),
+    talentIds.length > 0
+      ? admin.from('talent').select('id, name').in('id', [...new Set(talentIds)])
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+  ])
+
+  const eventMap = new Map((events ?? []).map((e: { id: string; name: string; org_id: string }) => [e.id, e]))
+  const partnerMap = new Map((partners ?? []).map((p: { id: string; name: string }) => [p.id, p]))
+  const talentMap = new Map((talentResult.data ?? []).map((t: { id: string; name: string }) => [t.id, t.name]))
+
+  for (const del of deliverables as Array<{ id: string; title: string; event_id: string; partner_id: string; usage_expiration_date: string; talent_id: string | null; owner_id: string | null }>) {
+    const event = eventMap.get(del.event_id)
+    const partner = partnerMap.get(del.partner_id)
+    if (!event || !partner) continue
+
+    const talentName = del.talent_id ? (talentMap.get(del.talent_id) ?? null) : null
+    const daysRemaining = Math.ceil((new Date(del.usage_expiration_date).getTime() - Date.now()) / 86_400_000)
+
+    // Email admins/owners
+    const recipients = await getOrgMembersWithEmails(admin, event.org_id, ['owner', 'admin'])
+
+    for (const recipient of recipients) {
+      if (await isAlreadySent(admin, 'usage_rights_expiring', del.id, recipient.email)) continue
+
+      const subject = usageRightsExpiringEmailSubject({ deliverableTitle: del.title })
+      const html = usageRightsExpiringEmailHtml({
+        recipientName: recipient.name || recipient.email.split('@')[0],
+        deliverableTitle: del.title,
+        talentName,
+        partnerName: partner.name,
+        eventName: event.name,
+        expirationDate: formatDate(del.usage_expiration_date),
+        daysRemaining,
+        directUrl: `${BASE_URL}/events/${del.event_id}/partners/${del.partner_id}/deliverables/${del.id}`,
+      })
+
+      const sent = await sendEmail({ to: recipient.email, subject, html })
+      if (sent) {
+        await logEmailSent(admin, event.org_id, 'usage_rights_expiring', del.id, recipient.email, subject)
+        emailsSent++
+      }
+    }
+
+    // In-app notifications for all org members
+    const allMembers = await getOrgMembersWithEmails(admin, event.org_id)
+    for (const member of allMembers) {
+      await admin.from('notifications').insert({
+        user_id: member.user_id,
+        org_id: event.org_id,
+        type: 'usage_rights_expiring',
+        title: `Usage rights expiring in ${daysRemaining} days: ${del.title}`,
+        body: talentName
+          ? `${talentName} \u00b7 ${partner.name} \u00b7 Expires ${formatDate(del.usage_expiration_date)}`
+          : `${partner.name} \u00b7 Expires ${formatDate(del.usage_expiration_date)}`,
+        link: `/events/${del.event_id}/partners/${del.partner_id}/deliverables/${del.id}`,
+        metadata: {
+          deliverable_id: del.id,
+          expiration_date: del.usage_expiration_date,
+          severity: 'amber',
+        },
+      })
+    }
+  }
+
+  return emailsSent
+}
+
+// ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
@@ -832,19 +928,20 @@ export async function GET(request: Request) {
     const admin = getAdminClient()
     const startTime = Date.now()
 
-    const [dueSoonCount, needsProofCount, weeklyRiskCount, preEventCount, postEventCount, partnerHealthCount] = await Promise.all([
+    const [dueSoonCount, needsProofCount, weeklyRiskCount, preEventCount, postEventCount, partnerHealthCount, usageRightsCount] = await Promise.all([
       triggerDueSoon(admin),
       triggerNeedsProof(admin),
       triggerWeeklyRisk(admin),
       triggerPreEventScan(admin),
       triggerPostEventScan(admin),
       triggerPartnerHealth(admin),
+      triggerUsageRightsExpiring(admin),
     ])
 
     const duration = Date.now() - startTime
-    const total = dueSoonCount + needsProofCount + weeklyRiskCount + preEventCount + postEventCount + partnerHealthCount
+    const total = dueSoonCount + needsProofCount + weeklyRiskCount + preEventCount + postEventCount + partnerHealthCount + usageRightsCount
 
-    console.log(`[Cron] Notification run complete in ${duration}ms — due_soon: ${dueSoonCount}, needs_proof: ${needsProofCount}, weekly_risk: ${weeklyRiskCount}, pre_event: ${preEventCount}, post_event: ${postEventCount}, partner_health: ${partnerHealthCount}`)
+    console.log(`[Cron] Notification run complete in ${duration}ms — due_soon: ${dueSoonCount}, needs_proof: ${needsProofCount}, weekly_risk: ${weeklyRiskCount}, pre_event: ${preEventCount}, post_event: ${postEventCount}, partner_health: ${partnerHealthCount}, usage_rights_expiring: ${usageRightsCount}`)
 
     return NextResponse.json({
       ok: true,
@@ -855,6 +952,7 @@ export async function GET(request: Request) {
         pre_event_scan: preEventCount,
         post_event_scan: postEventCount,
         partner_health: partnerHealthCount,
+        usage_rights_expiring: usageRightsCount,
         total,
       },
       duration_ms: duration,

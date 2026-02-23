@@ -186,6 +186,21 @@ function isVideoMime(type: string): boolean {
   return type.startsWith('video/')
 }
 
+function buildUsageRightsSentence(d: RecapData['deliverables'][number]): string | null {
+  if (d.category !== 'talent' || !d.usage_scope) return null
+  const scopeLabels: Record<string, string> = { social: 'social media', broadcast: 'broadcast', all: 'all media' }
+  const territoryLabels: Record<string, string> = { us: 'US', global: 'Global' }
+  const parts: string[] = ['Content may be used']
+  parts.push(`for ${d.usage_scope === 'custom' ? (d.usage_scope_custom || 'custom usage') : (scopeLabels[d.usage_scope] ?? d.usage_scope)}`)
+  if (d.usage_territory) {
+    const tLabel = d.usage_territory === 'custom' ? (d.usage_territory_custom || 'custom territory') : (territoryLabels[d.usage_territory] ?? d.usage_territory)
+    parts.push(`${tLabel} only`)
+  }
+  if (d.usage_expiration_date) parts.push(`through ${formatDate(d.usage_expiration_date)}`)
+  else if (d.usage_duration === 'perpetual') parts.push('in perpetuity')
+  return parts.join(', ') + '.'
+}
+
 // ---------------------------------------------------------------------------
 // PDF Document
 // ---------------------------------------------------------------------------
@@ -284,7 +299,7 @@ export function RecapPDF({ data, shareUrl }: RecapPDFProps) {
         <Text style={s.sectionTitle}>Deliverables &amp; Proof of Performance</Text>
 
         {deliverables.map((d) => {
-          const isCompleted = d.status === 'done' || d.status === 'proved'
+          const isCompleted = d.status === 'done' || d.status === 'pending_approval' || d.status === 'proved'
           const imageProofs = d.proofs.filter((p) => isImageMime(p.file_type))
           const nonImageProofs = d.proofs.filter((p) => !isImageMime(p.file_type))
           const shownImages = imageProofs.slice(0, MAX_PROOF_IMAGES)
@@ -308,6 +323,15 @@ export function RecapPDF({ data, shareUrl }: RecapPDFProps) {
                   {STATUS_LABELS[d.status] ?? d.status}
                 </Text>
               </View>
+
+              {(() => {
+                const usage = buildUsageRightsSentence(d)
+                return usage ? (
+                  <Text style={{ fontSize: 8, color: GRAY_500, marginTop: 4, fontStyle: 'italic' }}>
+                    Usage Rights: {usage}
+                  </Text>
+                ) : null
+              })()}
 
               {d.proofs.length > 0 ? (
                 <View style={s.proofGrid}>

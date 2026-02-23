@@ -4,6 +4,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
 import { countProofByDeliverable } from './proof'
+import { isDeliverableCompleted } from '@/lib/constants'
 import type {
   Event,
   EventWithCompletion,
@@ -133,8 +134,8 @@ export async function getDashboardStats(orgId: string, filters?: DashboardFilter
 
   for (const d of deliverables ?? []) {
     totalDeliverables++
-    if (d.status === 'done' || d.status === 'proved') completedDeliverables++
-    if (d.due_date && d.status !== 'done' && d.status !== 'proved' && new Date(d.due_date) < today) {
+    if (isDeliverableCompleted(d.status)) completedDeliverables++
+    if (d.due_date && !isDeliverableCompleted(d.status) && new Date(d.due_date) < today) {
       overdueCount++
     }
   }
@@ -211,8 +212,8 @@ export async function getUpcomingEvents(orgId: string, filters?: DashboardFilter
   for (const d of deliverables ?? []) {
     const entry = stats[d.event_id] ?? { total: 0, completed: 0, overdue: 0 }
     entry.total++
-    if (d.status === 'done' || d.status === 'proved') entry.completed++
-    if (d.due_date && d.status !== 'done' && d.status !== 'proved' && new Date(d.due_date) < today) {
+    if (isDeliverableCompleted(d.status)) entry.completed++
+    if (d.due_date && !isDeliverableCompleted(d.status) && new Date(d.due_date) < today) {
       entry.overdue++
     }
     stats[d.event_id] = entry
@@ -251,7 +252,7 @@ export async function getUpcomingEvents(orgId: string, filters?: DashboardFilter
 /** Up to 10 overdue deliverables with partner name, across all org events. */
 export async function getOverdueDeliverables(orgId: string, filters?: DashboardFilters): Promise<DeliverableWithPartner[]> {
   // Overdue only applies to incomplete statuses
-  if (filters?.status === 'done' || filters?.status === 'proved') return []
+  if (filters?.status && isDeliverableCompleted(filters.status)) return []
 
   const supabase = await createClient()
 
@@ -371,6 +372,60 @@ export async function getNeedsProofDeliverables(orgId: string, filters?: Dashboa
 }
 
 // =============================================================================
+// Pending-approval deliverables list
+// =============================================================================
+
+/** Deliverables with status 'pending_approval', with partner name. */
+export async function getPendingApprovalDeliverables(orgId: string, filters?: DashboardFilters): Promise<DeliverableWithPartner[]> {
+  if (filters?.status && filters.status !== 'pending_approval') return []
+
+  const supabase = await createClient()
+
+  const filteredEventIds = filters ? await resolveFilteredEventIds(supabase, orgId, filters) : null
+
+  let eventIds: string[]
+  if (filteredEventIds) {
+    if (filteredEventIds.length === 0) return []
+    eventIds = filteredEventIds
+  } else {
+    const { data: events, error: eventsError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('org_id', orgId)
+      .neq('status', 'archived')
+
+    if (eventsError) handleDbError(eventsError, 'Failed to load org events for pending approval')
+    if (!events || events.length === 0) return []
+    eventIds = events.map((e) => e.id)
+  }
+
+  let delQuery = supabase
+    .from('deliverables')
+    .select('*, partners!inner(id, name)')
+    .in('event_id', eventIds)
+    .eq('status', 'pending_approval')
+    .order('updated_at', { ascending: true })
+    .limit(20)
+
+  if (filters?.category) delQuery = delQuery.eq('category', filters.category)
+
+  if (filters?.partnerName) {
+    const partnerIds = await resolvePartnerIds(supabase, orgId, filters.partnerName, eventIds)
+    if (partnerIds.length === 0) return []
+    delQuery = delQuery.in('partner_id', partnerIds)
+  }
+
+  const { data, error } = await delQuery
+
+  if (error) handleDbError(error, 'Failed to load pending approval deliverables')
+
+  return (data ?? []).map((row) => {
+    const { partners, ...deliverable } = row as Deliverable & { partners: { id: string; name: string } }
+    return { ...deliverable, partner: partners } as DeliverableWithPartner
+  })
+}
+
+// =============================================================================
 // Deliverables by category
 // =============================================================================
 
@@ -407,7 +462,7 @@ export async function getDeliverablesByCategory(orgId: string): Promise<Category
   for (const d of deliverables ?? []) {
     const entry = buckets[d.category] ?? { total: 0, completed: 0 }
     entry.total++
-    if (d.status === 'done' || d.status === 'proved') entry.completed++
+    if (isDeliverableCompleted(d.status)) entry.completed++
     buckets[d.category] = entry
   }
 
@@ -485,4 +540,122 @@ export async function getUpcomingRenewals(
     }
   }
   return [...seen.values()]
+}
+
+// =============================================================================
+// Expiring Usage Rights
+// =============================================================================
+
+export interface ExpiringUsageRight {
+  deliverable_id: string
+  deliverable_title: string
+  partner_name: string
+  event_name: string
+  event_id: string
+  partner_id: string
+  expiration_date: string
+  talent_name: string | null
+}
+
+/** Talent deliverables with usage_expiration_date in the next N days. */
+export async function getExpiringUsageRights(
+  orgId: string,
+  daysAhead: number = 60,
+  filters?: DashboardFilters,
+): Promise<ExpiringUsageRight[]> {
+  const supabase = await createClient()
+
+  const today = new Date().toISOString().slice(0, 10)
+  const futureDate = new Date(Date.now() + daysAhead * 86_400_000).toISOString().slice(0, 10)
+
+  const filteredEventIds = filters ? await resolveFilteredEventIds(supabase, orgId, filters) : null
+
+  let eventIds: string[]
+  if (filteredEventIds) {
+    if (filteredEventIds.length === 0) return []
+    eventIds = filteredEventIds
+  } else {
+    const { data: events } = await supabase
+      .from('events')
+      .select('id')
+      .eq('org_id', orgId)
+
+    if (!events || events.length === 0) return []
+    eventIds = events.map((e: { id: string }) => e.id)
+  }
+
+  let query = supabase
+    .from('deliverables')
+    .select('id, title, event_id, partner_id, usage_expiration_date, talent_id')
+    .in('event_id', eventIds)
+    .eq('category', 'talent')
+    .not('usage_expiration_date', 'is', null)
+    .lte('usage_expiration_date', futureDate)
+    .order('usage_expiration_date', { ascending: true })
+    .limit(30)
+
+  if (filters?.partnerName) {
+    const { data: matchingPartners } = await supabase
+      .from('partners')
+      .select('id')
+      .in('event_id', eventIds)
+      .ilike('name', filters.partnerName)
+
+    if (!matchingPartners || matchingPartners.length === 0) return []
+    query = query.in('partner_id', matchingPartners.map((p: { id: string }) => p.id))
+  }
+
+  const { data, error } = await query
+  if (error) handleDbError(error, 'Failed to load expiring usage rights')
+
+  const rows = (data ?? []) as Array<{
+    id: string
+    title: string
+    event_id: string
+    partner_id: string
+    usage_expiration_date: string
+    talent_id: string | null
+  }>
+
+  if (rows.length === 0) return []
+
+  // Fetch partner names
+  const partnerIds = [...new Set(rows.map((d) => d.partner_id))]
+  const { data: partners } = await supabase
+    .from('partners')
+    .select('id, name')
+    .in('id', partnerIds)
+  const partnerMap = new Map((partners ?? []).map((p: { id: string; name: string }) => [p.id, p.name]))
+
+  // Fetch event names
+  const rowEventIds = [...new Set(rows.map((d) => d.event_id))]
+  const { data: events } = await supabase
+    .from('events')
+    .select('id, name')
+    .in('id', rowEventIds)
+  const eventMap = new Map((events ?? []).map((e: { id: string; name: string }) => [e.id, e.name]))
+
+  // Fetch talent names
+  const talentIds = rows.map((d) => d.talent_id).filter(Boolean) as string[]
+  const talentMap = new Map<string, string>()
+  if (talentIds.length > 0) {
+    const { data: talents } = await supabase
+      .from('talent')
+      .select('id, name')
+      .in('id', [...new Set(talentIds)])
+    for (const t of (talents ?? []) as { id: string; name: string }[]) {
+      talentMap.set(t.id, t.name)
+    }
+  }
+
+  return rows.map((row) => ({
+    deliverable_id: row.id,
+    deliverable_title: row.title,
+    partner_name: partnerMap.get(row.partner_id) ?? '',
+    event_name: eventMap.get(row.event_id) ?? '',
+    event_id: row.event_id,
+    partner_id: row.partner_id,
+    expiration_date: row.usage_expiration_date,
+    talent_name: row.talent_id ? (talentMap.get(row.talent_id) ?? null) : null,
+  }))
 }

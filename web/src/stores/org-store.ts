@@ -1,30 +1,34 @@
 import { create } from 'zustand'
-import type { OrgRole } from '@/lib/types/database'
+import type { OrgRole, DeliverableCategory } from '@/lib/types/database'
 
 interface OrgState {
   orgId: string | null
   orgName: string | null
   role: OrgRole | null
+  approvalCategories: DeliverableCategory[]
   isHydrated: boolean
 
   // Actions
-  setOrg: (org: { id: string; name: string; role: OrgRole }) => void
+  setOrg: (org: { id: string; name: string; role: OrgRole; approvalCategories?: DeliverableCategory[] }) => void
   setHydrated: (hydrated: boolean) => void
   clear: () => void
 }
+
+const DEFAULT_APPROVAL_CATEGORIES: DeliverableCategory[] = ['talent']
 
 const initialState = {
   orgId: null,
   orgName: null,
   role: null,
+  approvalCategories: DEFAULT_APPROVAL_CATEGORIES,
   isHydrated: false,
 }
 
 export const useOrgStore = create<OrgState>((set) => ({
   ...initialState,
 
-  setOrg: ({ id, name, role }) =>
-    set({ orgId: id, orgName: name, role, isHydrated: true }),
+  setOrg: ({ id, name, role, approvalCategories }) =>
+    set({ orgId: id, orgName: name, role, approvalCategories: approvalCategories ?? DEFAULT_APPROVAL_CATEGORIES, isHydrated: true }),
 
   setHydrated: (isHydrated) => set({ isHydrated }),
 

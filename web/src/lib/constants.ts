@@ -7,6 +7,10 @@ import type {
   EventStatus,
   ProofRequired,
   ProofType,
+  TalentType,
+  UsageScope,
+  UsageTerritory,
+  UsageDuration,
 } from './types/database';
 
 // ============================================
@@ -86,6 +90,101 @@ export const CATEGORIES = (Object.keys(CATEGORY_CONFIG) as DeliverableCategory[]
 );
 
 // ============================================
+// TALENT TYPES
+// ============================================
+
+export const TALENT_TYPE_CONFIG: Record<
+  TalentType,
+  { label: string; icon: string; color: string; bgColor: string; borderColor: string }
+> = {
+  player:     { label: 'Player',     icon: '🏀', color: 'text-blue-700',   bgColor: 'bg-blue-50',   borderColor: 'border-blue-200' },
+  artist:     { label: 'Artist',     icon: '🎤', color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
+  influencer: { label: 'Influencer', icon: '📱', color: 'text-pink-700',   bgColor: 'bg-pink-50',   borderColor: 'border-pink-200' },
+  speaker:    { label: 'Speaker',    icon: '🎙️', color: 'text-amber-700',  bgColor: 'bg-amber-50',  borderColor: 'border-amber-200' },
+};
+
+export const TALENT_TYPES = Object.keys(TALENT_TYPE_CONFIG) as TalentType[];
+
+// ============================================
+// USAGE RIGHTS
+// ============================================
+
+export const USAGE_SCOPE_OPTIONS: { value: UsageScope; label: string }[] = [
+  { value: 'social', label: 'Social Media' },
+  { value: 'broadcast', label: 'Broadcast' },
+  { value: 'all', label: 'All Media' },
+  { value: 'custom', label: 'Custom' },
+];
+
+export const USAGE_TERRITORY_OPTIONS: { value: UsageTerritory; label: string }[] = [
+  { value: 'us', label: 'United States' },
+  { value: 'global', label: 'Global' },
+  { value: 'custom', label: 'Custom' },
+];
+
+export const USAGE_DURATION_OPTIONS: { value: UsageDuration; label: string }[] = [
+  { value: '30d', label: '30 Days' },
+  { value: '90d', label: '90 Days' },
+  { value: '1yr', label: '1 Year' },
+  { value: 'perpetual', label: 'Perpetual' },
+  { value: 'custom', label: 'Custom' },
+];
+
+export const USAGE_SCOPES = USAGE_SCOPE_OPTIONS.map((o) => o.value) as UsageScope[];
+export const USAGE_TERRITORIES = USAGE_TERRITORY_OPTIONS.map((o) => o.value) as UsageTerritory[];
+export const USAGE_DURATIONS = USAGE_DURATION_OPTIONS.map((o) => o.value) as UsageDuration[];
+
+/** Compute expiration date from event date + duration preset. */
+export function computeExpirationDate(eventDate: string, duration: UsageDuration): string | null {
+  if (duration === 'perpetual' || duration === 'custom') return null;
+  const d = new Date(eventDate);
+  if (duration === '30d') d.setDate(d.getDate() + 30);
+  else if (duration === '90d') d.setDate(d.getDate() + 90);
+  else if (duration === '1yr') d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Build a natural-language usage rights sentence for recap display. */
+export function buildUsageRightsSentence(
+  scope: string | null,
+  territory: string | null,
+  duration: string | null,
+  expirationDate: string | null,
+  scopeCustom: string | null,
+  territoryCustom: string | null,
+): string | null {
+  if (!scope) return null;
+  const parts: string[] = ['Content may be used'];
+  // scope
+  const scopeLabel =
+    scope === 'custom'
+      ? scopeCustom || 'custom usage'
+      : USAGE_SCOPE_OPTIONS.find((o) => o.value === scope)?.label.toLowerCase() ?? scope;
+  parts.push(`for ${scopeLabel}`);
+  // territory
+  if (territory) {
+    const tLabel =
+      territory === 'custom'
+        ? territoryCustom || 'custom territory'
+        : territory === 'us'
+          ? 'US'
+          : USAGE_TERRITORY_OPTIONS.find((o) => o.value === territory)?.label ?? territory;
+    parts.push(`${tLabel} only`);
+  }
+  // expiration
+  if (expirationDate) {
+    const expLabel = new Date(expirationDate).toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
+    parts.push(`through ${expLabel}`);
+  } else if (duration === 'perpetual') {
+    parts.push('in perpetuity');
+  }
+  return parts.join(', ') + '.';
+}
+
+// ============================================
 // DELIVERABLE STATUSES
 // ============================================
 
@@ -132,6 +231,16 @@ export const STATUS_CONFIG: Record<
     borderColor: 'border-green-200',
     sortOrder: 3,
   },
+  pending_approval: {
+    label: 'Pending Approval',
+    description: 'Proof uploaded — awaiting admin approval',
+    icon: '👁️',
+    color: 'text-orange-700',
+    bgColor: 'bg-orange-100',
+    dotColor: 'bg-orange-400',
+    borderColor: 'border-orange-200',
+    sortOrder: 4,
+  },
   proved: {
     label: 'Proved',
     description: 'Completed with proof attached — ready for recap',
@@ -140,11 +249,11 @@ export const STATUS_CONFIG: Record<
     bgColor: 'bg-yellow-100',
     dotColor: 'bg-yellow-500',
     borderColor: 'border-yellow-200',
-    sortOrder: 4,
+    sortOrder: 5,
   },
 };
 
-export const STATUS_FLOW: DeliverableStatus[] = ['not_started', 'in_progress', 'done', 'proved'];
+export const STATUS_FLOW: DeliverableStatus[] = ['not_started', 'in_progress', 'done', 'pending_approval', 'proved'];
 
 // ============================================
 // EVENT STATUSES
@@ -265,13 +374,18 @@ export function getNextEventStatus(current: EventStatus): EventStatus | null {
 /** Check if a deliverable is overdue */
 export function isOverdue(status: DeliverableStatus, dueDate: string | null): boolean {
   if (!dueDate) return false;
-  if (status === 'done' || status === 'proved') return false;
+  if (status === 'done' || status === 'pending_approval' || status === 'proved') return false;
   return new Date(dueDate) < new Date(new Date().toDateString()); // compare date only
 }
 
 /** Check if a deliverable needs proof (done but not yet proved, and proof is required) */
 export function needsProof(status: DeliverableStatus, proofRequired: ProofRequired | null): boolean {
   return status === 'done' && proofRequired !== null;
+}
+
+/** Check if a deliverable is in a completed state (done, pending approval, or proved) */
+export function isDeliverableCompleted(status: DeliverableStatus): boolean {
+  return status === 'done' || status === 'pending_approval' || status === 'proved';
 }
 
 /** Format a date for display — "Sat, Mar 15, 2026" */
@@ -309,3 +423,15 @@ export const APP_DESCRIPTION = 'Partner deliverables & fulfillment management';
 export const DEFAULT_EVENT_STATUS: EventStatus = 'upcoming';
 export const DEFAULT_DELIVERABLE_STATUS: DeliverableStatus = 'not_started';
 export const DEFAULT_PROOF_REQUIRED: ProofRequired = 'photo';
+
+// ============================================
+// DEFAULT ASSETS
+// ============================================
+
+export const DEFAULT_ASSETS: { name: string; capacity: number | null }[] = [
+  { name: 'LED Ribbon',      capacity: 4 },
+  { name: 'PA Announcement', capacity: 6 },
+  { name: 'Suite',           capacity: 2 },
+  { name: 'Banner',          capacity: 1 },
+  { name: 'Social Post',     capacity: null },
+];

@@ -35,8 +35,23 @@ function makeProof(
     uploaded_by: 'sample-user-001',
     created_at: date.toISOString(),
     uploader_name: 'Alex Rivera',
+    validation_status: 'valid' as const,
+    validation_result: { valid: true, confidence: 'high' as const, reason: 'Proof matches deliverable', issues: [] },
   }
 }
+
+// ---------------------------------------------------------------------------
+// Usage rights defaults (non-talent)
+// ---------------------------------------------------------------------------
+
+const noUsage = {
+  usage_scope: null,
+  usage_territory: null,
+  usage_duration: null,
+  usage_expiration_date: null,
+  usage_scope_custom: null,
+  usage_territory_custom: null,
+} as const
 
 // ---------------------------------------------------------------------------
 // Deliverables
@@ -50,6 +65,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'in-venue',
     status: 'proved',
     due_date: '2025-06-14',
+    ...noUsage,
     proofs: [
       makeProof('sample-del-001', 'LED Board — Game Day', '#6d28d9', '#a78bfa', 0),
       makeProof('sample-del-001', 'LED Board — Close-Up', '#7c3aed', '#c4b5fd', 0),
@@ -61,6 +77,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'in-venue',
     status: 'proved',
     due_date: '2025-06-10',
+    ...noUsage,
     proofs: [
       makeProof('sample-del-002', 'Concourse Banner', '#6d28d9', '#8b5cf6', 4),
     ],
@@ -71,6 +88,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'in-venue',
     status: 'done',
     due_date: '2025-06-14',
+    ...noUsage,
     proofs: [],
   },
   {
@@ -79,6 +97,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'in-venue',
     status: 'proved',
     due_date: '2025-06-14',
+    ...noUsage,
     proofs: [
       makeProof('sample-del-004', 'Scoreboard Logo', '#7c3aed', '#a78bfa', 0),
     ],
@@ -89,6 +108,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'in-venue',
     status: 'in_progress',
     due_date: '2025-06-14',
+    ...noUsage,
     proofs: [],
   },
 
@@ -99,6 +119,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'digital',
     status: 'proved',
     due_date: '2025-06-07',
+    ...noUsage,
     proofs: [
       makeProof('sample-del-006', 'Instagram Post', '#2563eb', '#60a5fa', 7),
     ],
@@ -109,6 +130,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'digital',
     status: 'proved',
     due_date: '2025-06-15',
+    ...noUsage,
     proofs: [
       makeProof('sample-del-007', 'Game Day Story', '#2563eb', '#93c5fd', 0),
       makeProof('sample-del-007', 'Carousel Post', '#1d4ed8', '#60a5fa', 0),
@@ -120,6 +142,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'digital',
     status: 'done',
     due_date: '2025-06-10',
+    ...noUsage,
     proofs: [],
   },
   {
@@ -128,6 +151,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'digital',
     status: 'proved',
     due_date: '2025-06-01',
+    ...noUsage,
     proofs: [
       makeProof('sample-del-009', 'Website Banner', '#1d4ed8', '#3b82f6', 13),
     ],
@@ -140,6 +164,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'hospitality',
     status: 'proved',
     due_date: '2025-06-14',
+    ...noUsage,
     proofs: [
       makeProof('sample-del-010', 'Suite Setup', '#d97706', '#fbbf24', 0),
       makeProof('sample-del-010', 'Guests in Suite', '#b45309', '#f59e0b', 0),
@@ -151,6 +176,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'hospitality',
     status: 'done',
     due_date: '2025-06-14',
+    ...noUsage,
     proofs: [],
   },
   {
@@ -159,6 +185,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'hospitality',
     status: 'in_progress',
     due_date: '2025-06-14',
+    ...noUsage,
     proofs: [],
   },
 
@@ -169,6 +196,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'signage',
     status: 'proved',
     due_date: '2025-06-12',
+    ...noUsage,
     proofs: [
       makeProof('sample-del-013', 'Main Gate Sign', '#059669', '#34d399', 2),
     ],
@@ -179,6 +207,7 @@ const deliverables: RecapData['deliverables'] = [
     category: 'signage',
     status: 'proved',
     due_date: '2025-06-12',
+    ...noUsage,
     proofs: [
       makeProof('sample-del-014', 'Outfield Wall', '#047857', '#6ee7b7', 2),
     ],
@@ -189,44 +218,173 @@ const deliverables: RecapData['deliverables'] = [
     category: 'signage',
     status: 'done',
     due_date: '2025-06-10',
+    ...noUsage,
     proofs: [],
   },
 
-  // ── Talent (2) ──
+  // ── Talent (8) ──
+  // Player autograph session — social only, US, 30 days
   {
     id: 'sample-del-016',
-    title: 'Player Meet & Greet (Post-Game, 30 min)',
-    category: 'talent',
-    status: 'done',
-    due_date: '2025-06-14',
-    proofs: [],
-  },
-  {
-    id: 'sample-del-017',
-    title: 'Mascot Appearance at Partner Booth (3rd–5th Innings)',
+    title: 'Marcus Rivera (#24) — Autograph Signing Session',
     category: 'talent',
     status: 'proved',
     due_date: '2025-06-14',
+    usage_scope: 'social',
+    usage_territory: 'us',
+    usage_duration: '30d',
+    usage_expiration_date: '2025-07-14',
+    usage_scope_custom: null,
+    usage_territory_custom: null,
     proofs: [
-      makeProof('sample-del-017', 'Mascot at Booth', '#e11d48', '#fb7185', 0),
+      makeProof('sample-del-016', 'Autograph Session — Wide', '#e11d48', '#fb7185', 0),
+      makeProof('sample-del-016', 'Fan with Signed Ball', '#be123c', '#f43f5e', 0),
     ],
   },
-
-  // ── Content (2) ──
+  // Player meet & greet — all media, global, 1 year
+  {
+    id: 'sample-del-017',
+    title: 'Marcus Rivera (#24) — Post-Game Meet & Greet (30 min)',
+    category: 'talent',
+    status: 'proved',
+    due_date: '2025-06-14',
+    usage_scope: 'all',
+    usage_territory: 'global',
+    usage_duration: '1yr',
+    usage_expiration_date: '2026-06-14',
+    usage_scope_custom: null,
+    usage_territory_custom: null,
+    proofs: [
+      makeProof('sample-del-017', 'Meet & Greet — Group', '#e11d48', '#fb7185', 0),
+    ],
+  },
+  // Player social media takeover — social only, US, 90 days
   {
     id: 'sample-del-018',
+    title: 'Marcus Rivera (#24) — Instagram Takeover (Game Day)',
+    category: 'talent',
+    status: 'proved',
+    due_date: '2025-06-14',
+    usage_scope: 'social',
+    usage_territory: 'us',
+    usage_duration: '90d',
+    usage_expiration_date: '2025-09-12',
+    usage_scope_custom: null,
+    usage_territory_custom: null,
+    proofs: [
+      makeProof('sample-del-018', 'IG Takeover — BTS', '#9f1239', '#e11d48', 0),
+      makeProof('sample-del-018', 'IG Takeover — Tunnel Walk', '#881337', '#be123c', 0),
+    ],
+  },
+  // Player video testimonial — broadcast, US, perpetual
+  {
+    id: 'sample-del-019',
+    title: 'Marcus Rivera (#24) — 60-Second Video Testimonial',
+    category: 'talent',
+    status: 'done',
+    due_date: '2025-06-21',
+    usage_scope: 'broadcast',
+    usage_territory: 'us',
+    usage_duration: 'perpetual',
+    usage_expiration_date: null,
+    usage_scope_custom: null,
+    usage_territory_custom: null,
+    proofs: [],
+  },
+  // Mascot appearance — all media, global, perpetual
+  {
+    id: 'sample-del-020',
+    title: 'Blaze the Bear — Partner Booth Appearance (3rd–5th Innings)',
+    category: 'talent',
+    status: 'proved',
+    due_date: '2025-06-14',
+    usage_scope: 'all',
+    usage_territory: 'global',
+    usage_duration: 'perpetual',
+    usage_expiration_date: null,
+    usage_scope_custom: null,
+    usage_territory_custom: null,
+    proofs: [
+      makeProof('sample-del-020', 'Mascot at Booth', '#e11d48', '#fb7185', 0),
+      makeProof('sample-del-020', 'Mascot with Fans', '#be123c', '#f43f5e', 0),
+    ],
+  },
+  // Player branded photo shoot — custom scope/territory
+  {
+    id: 'sample-del-021',
+    title: 'Elena Torres (#7) — Branded Photo Shoot (Pre-Game)',
+    category: 'talent',
+    status: 'proved',
+    due_date: '2025-06-14',
+    usage_scope: 'custom',
+    usage_territory: 'custom',
+    usage_duration: '1yr',
+    usage_expiration_date: '2026-06-14',
+    usage_scope_custom: 'Social, Web, Print (excl. OOH)',
+    usage_territory_custom: 'North America (US, CA, MX)',
+    proofs: [
+      makeProof('sample-del-021', 'Photo Shoot — Dugout', '#7c2d12', '#ea580c', 0),
+      makeProof('sample-del-021', 'Photo Shoot — Hero Shot', '#9a3412', '#f97316', 0),
+      makeProof('sample-del-021', 'Photo Shoot — With Product', '#c2410c', '#fb923c', 0),
+    ],
+  },
+  // Coach halftime interview — broadcast, US, 90 days
+  {
+    id: 'sample-del-022',
+    title: 'Coach Williams — Halftime Interview Mention',
+    category: 'talent',
+    status: 'done',
+    due_date: '2025-06-14',
+    usage_scope: 'broadcast',
+    usage_territory: 'us',
+    usage_duration: '90d',
+    usage_expiration_date: '2025-09-12',
+    usage_scope_custom: null,
+    usage_territory_custom: null,
+    proofs: [],
+  },
+  // Player gifting unboxing — social, global, 30 days
+  {
+    id: 'sample-del-023',
+    title: 'Marcus Rivera (#24) — Product Unboxing Video (TikTok)',
+    category: 'talent',
+    status: 'in_progress',
+    due_date: '2025-06-21',
+    usage_scope: 'social',
+    usage_territory: 'global',
+    usage_duration: '30d',
+    usage_expiration_date: '2025-07-14',
+    usage_scope_custom: null,
+    usage_territory_custom: null,
+    proofs: [],
+  },
+
+  // ── Content (3) ──
+  {
+    id: 'sample-del-024',
     title: 'Branded Highlight Video (90-second cut)',
     category: 'content',
     status: 'in_progress',
     due_date: '2025-06-21',
+    ...noUsage,
     proofs: [],
   },
   {
-    id: 'sample-del-019',
+    id: 'sample-del-025',
     title: 'Post-Event Photo Gallery (delivered via shared album)',
     category: 'content',
     status: 'not_started',
     due_date: '2025-06-28',
+    ...noUsage,
+    proofs: [],
+  },
+  {
+    id: 'sample-del-026',
+    title: 'Sponsor Sizzle Reel (2-min recap for partner)',
+    category: 'content',
+    status: 'not_started',
+    due_date: '2025-07-05',
+    ...noUsage,
     proofs: [],
   },
 ]
@@ -236,17 +394,17 @@ const deliverables: RecapData['deliverables'] = [
 // ---------------------------------------------------------------------------
 
 const stats: RecapData['stats'] = {
-  total: 19,
-  completed: 15, // done(6) + proved(9)
-  proved: 9,
-  inProgress: 3,
+  total: 26,
+  completed: 20, // done(6) + proved(14)
+  proved: 14,
+  inProgress: 4,
   byCategory: {
     'in-venue': { total: 5, completed: 4 },
     digital: { total: 4, completed: 4 },
     hospitality: { total: 3, completed: 2 },
     signage: { total: 3, completed: 3 },
-    talent: { total: 2, completed: 2 },
-    content: { total: 2, completed: 0 },
+    talent: { total: 8, completed: 7 },
+    content: { total: 3, completed: 0 },
   },
 }
 

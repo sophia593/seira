@@ -181,7 +181,16 @@ export async function createDeliverable(input: CreateDeliverableInput): Promise<
       owner_id: input.owner_id ?? null,
       status: input.status ?? DEFAULT_DELIVERABLE_STATUS,
       proof_required: input.proof_required ?? DEFAULT_PROOF_REQUIRED,
+      talent_sub_type: input.talent_sub_type ?? null,
+      talent_id: input.talent_id ?? null,
+      asset_id: input.asset_id ?? null,
       notes: input.notes ?? null,
+      usage_scope: input.usage_scope ?? null,
+      usage_territory: input.usage_territory ?? null,
+      usage_duration: input.usage_duration ?? null,
+      usage_expiration_date: input.usage_expiration_date ?? null,
+      usage_scope_custom: input.usage_scope_custom ?? null,
+      usage_territory_custom: input.usage_territory_custom ?? null,
     })
     .select()
     .single()
@@ -216,6 +225,36 @@ export async function updateDeliverableStatus(
   status: DeliverableStatus
 ): Promise<Deliverable> {
   return updateDeliverable(deliverableId, { status })
+}
+
+/** Reject a deliverable: revert to done and attach rejection note. */
+export async function rejectDeliverable(
+  deliverableId: string,
+  rejectionNote: string,
+): Promise<Deliverable> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('deliverables')
+    .update({ status: 'done', rejection_note: rejectionNote })
+    .eq('id', deliverableId)
+    .select()
+    .single()
+
+  if (error) handleDbError(error, 'Failed to reject deliverable')
+  return data as Deliverable
+}
+
+/** Clear rejection note (called on approval). */
+export async function clearRejectionNote(deliverableId: string): Promise<void> {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('deliverables')
+    .update({ rejection_note: null })
+    .eq('id', deliverableId)
+
+  if (error) handleDbError(error, 'Failed to clear rejection note')
 }
 
 /** Delete a deliverable. */

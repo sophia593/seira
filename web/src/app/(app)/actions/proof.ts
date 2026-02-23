@@ -6,7 +6,7 @@ import { createAdminClient, tryCreateAdminClient } from '@/lib/supabase/admin'
 import { getUserMembership } from '@/lib/db/client'
 import { getDeliverableById, updateDeliverableStatus } from '@/lib/db/deliverables'
 import { notifyOrgAdmins } from '@/lib/db/notifications'
-import { canEditContent, canDeleteProof } from '@/lib/permissions'
+import { canEditContent, canDeleteProof, canManageContent } from '@/lib/permissions'
 import { isUuid } from '@/lib/validation'
 import type { OrgRole } from '@/lib/types/database'
 import {
@@ -17,7 +17,9 @@ import {
   extractStoragePath,
 } from '@/lib/proof-utils'
 import { logActivity } from '@/lib/db/activity-log'
-import type { Proof } from '@/lib/types/database'
+import { requiresApproval } from '@/lib/approval'
+import { CATEGORY_CONFIG } from '@/lib/constants'
+import type { Proof, OrgSettings } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
 // Auth helper — validates user session via regular client
@@ -161,6 +163,7 @@ export async function uploadProofAction(
         file_type: fileType,
         file_size: fileSize,
         uploaded_by: user.id,
+        validation_status: 'pending',
       })
       .select()
       .single()
@@ -179,13 +182,33 @@ export async function uploadProofAction(
       return { ok: false, error: 'Failed to save proof record' }
     }
 
-    // 8. Auto-advance status: done → proved
-    if (deliverable.status === 'done') {
-      await updateDeliverableStatus(deliverableId, 'proved')
+    // 8. Auto-advance status: done → proved (or pending_approval if category requires approval)
+    const notifyAdmin = tryCreateAdminClient()
+    let orgSettings: OrgSettings | null = null
+    if (notifyAdmin) {
+      const { data: orgRow } = await notifyAdmin.from('organizations').select('settings').eq('id', orgId).single()
+      orgSettings = (orgRow?.settings ?? {}) as OrgSettings
     }
 
-    // 9. Notify org admins
-    const notifyAdmin = tryCreateAdminClient()
+    if (deliverable.status === 'done') {
+      const needsApproval = requiresApproval(deliverable.category, orgSettings)
+      await updateDeliverableStatus(
+        deliverableId,
+        needsApproval ? 'pending_approval' : 'proved',
+      )
+
+      // Notify admins that a deliverable needs their approval
+      if (needsApproval && notifyAdmin) {
+        notifyOrgAdmins(notifyAdmin, orgId, user.id, {
+          type: 'pending_approval',
+          title: `${CATEGORY_CONFIG[deliverable.category].label} deliverable pending your approval`,
+          body: `"${deliverable.title}" — admin review required`,
+          link: `/events/${deliverable.event_id}/partners/${deliverable.partner_id}/deliverables/${deliverableId}`,
+        }).catch(() => {})
+      }
+    }
+
+    // 9. Notify org admins of proof upload
     if (notifyAdmin) {
       notifyOrgAdmins(notifyAdmin, orgId, user.id, {
         type: 'proof_uploaded',
@@ -267,9 +290,9 @@ export async function deleteProofAction(
       return { ok: false, error: 'Failed to delete proof record' }
     }
 
-    // 5. Revert proved → done if no remaining proofs
+    // 5. Revert proved/pending_approval → done if no remaining proofs
     const deliverable = await getDeliverableById(deliverableId)
-    if (deliverable && deliverable.status === 'proved') {
+    if (deliverable && (deliverable.status === 'proved' || deliverable.status === 'pending_approval')) {
       const { data: remaining } = await admin
         .from('proofs')
         .select('id')
@@ -294,5 +317,242 @@ export async function deleteProofAction(
   } catch (err) {
     console.error('deleteProofAction error:', err)
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to delete proof' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Link proof (URL submission)
+// ---------------------------------------------------------------------------
+
+export async function submitLinkProofAction(
+  deliverableId: string,
+  url: string,
+): Promise<{ ok: boolean; error?: string; proof?: Proof }> {
+  try {
+    // 1. Auth
+    const auth = await getAuthenticatedContext()
+    if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canEditContent(auth.role)) return { ok: false, error: 'You do not have permission to perform this action' }
+    const { user, orgId } = auth
+
+    // 2. Validate inputs
+    if (!deliverableId || !isUuid(deliverableId)) {
+      return { ok: false, error: 'Invalid deliverable ID' }
+    }
+
+    const trimmedUrl = url.trim()
+    if (!trimmedUrl) {
+      return { ok: false, error: 'URL is required' }
+    }
+
+    try {
+      const parsed = new URL(trimmedUrl)
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return { ok: false, error: 'URL must start with http:// or https://' }
+      }
+    } catch {
+      return { ok: false, error: 'Invalid URL format' }
+    }
+
+    // 3. Verify deliverable exists
+    const deliverable = await getDeliverableById(deliverableId)
+    if (!deliverable) {
+      return { ok: false, error: 'Deliverable not found' }
+    }
+
+    // 4. Create DB record
+    const admin = createAdminClient()
+    let hostname = 'link'
+    try { hostname = new URL(trimmedUrl).hostname } catch { /* use default */ }
+
+    const { data: proof, error: dbError } = await admin
+      .from('proofs')
+      .insert({
+        deliverable_id: deliverableId,
+        org_id: orgId,
+        file_url: trimmedUrl,
+        file_name: hostname,
+        file_type: 'text/uri-list',
+        file_size: 0,
+        uploaded_by: user.id,
+        validation_status: 'pending',
+      })
+      .select()
+      .single()
+
+    if (dbError) {
+      console.error('[Proof] Link proof DB insert error:', dbError)
+      if (isTableMissingError(dbError)) {
+        return {
+          ok: false,
+          error: 'Proof storage is not fully set up. Run the proofs table migration.',
+        }
+      }
+      return { ok: false, error: 'Failed to save link proof' }
+    }
+
+    // 5. Auto-advance status: done → proved (or pending_approval if category requires approval)
+    const notifyAdmin = tryCreateAdminClient()
+    let orgSettings: OrgSettings | null = null
+    if (notifyAdmin) {
+      const { data: orgRow } = await notifyAdmin.from('organizations').select('settings').eq('id', orgId).single()
+      orgSettings = (orgRow?.settings ?? {}) as OrgSettings
+    }
+
+    if (deliverable.status === 'done') {
+      const needsApproval = requiresApproval(deliverable.category, orgSettings)
+      await updateDeliverableStatus(
+        deliverableId,
+        needsApproval ? 'pending_approval' : 'proved',
+      )
+
+      if (needsApproval && notifyAdmin) {
+        notifyOrgAdmins(notifyAdmin, orgId, user.id, {
+          type: 'pending_approval',
+          title: `${CATEGORY_CONFIG[deliverable.category].label} deliverable pending your approval`,
+          body: `"${deliverable.title}" — admin review required`,
+          link: `/events/${deliverable.event_id}/partners/${deliverable.partner_id}/deliverables/${deliverableId}`,
+        }).catch(() => {})
+      }
+    }
+
+    // 6. Notify org admins
+    if (notifyAdmin) {
+      notifyOrgAdmins(notifyAdmin, orgId, user.id, {
+        type: 'proof_uploaded',
+        title: `Link proof added for "${deliverable.title}"`,
+        body: trimmedUrl,
+        link: `/events/${deliverable.event_id}/partners/${deliverable.partner_id}`,
+      }).catch(() => {})
+    }
+
+    // 7. Log activity
+    logActivity({ orgId, userId: user.id, action: 'uploaded_proof', targetType: 'proof', targetId: proof.id, eventId: deliverable.event_id, details: { file_name: hostname, deliverable_title: deliverable.title, partner_id: deliverable.partner_id, actor_email: user.email ?? '' } })
+
+    // 8. Revalidate
+    const eventId = deliverable.event_id
+    const partnerId = deliverable.partner_id
+    revalidatePath('/events')
+    revalidatePath('/dashboard')
+    revalidatePath(`/events/${eventId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`)
+
+    return { ok: true, proof: proof as Proof }
+  } catch (err) {
+    console.error('submitLinkProofAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to submit link proof' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Admin override — approve or request re-upload
+// ---------------------------------------------------------------------------
+
+export async function approveProofAction(
+  proofId: string,
+  eventId: string,
+  partnerId: string,
+  deliverableId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!isUuid(proofId)) return { ok: false, error: 'Invalid proof ID' }
+
+    const auth = await getAuthenticatedContext()
+    if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'Only admins can approve proofs' }
+
+    const admin = createAdminClient()
+    const { error } = await admin
+      .from('proofs')
+      .update({
+        validation_status: 'approved',
+        validation_result: JSON.stringify({
+          valid: true,
+          confidence: 'high',
+          reason: 'Manually approved by admin',
+          issues: [],
+        }),
+      })
+      .eq('id', proofId)
+
+    if (error) {
+      console.error('[Proof] Approve error:', error)
+      return { ok: false, error: 'Failed to approve proof' }
+    }
+
+    logActivity({ orgId: auth.orgId, userId: auth.user.id, action: 'approved_proof', targetType: 'proof', targetId: proofId, eventId, details: { partner_id: partnerId, deliverable_id: deliverableId, actor_email: auth.user.email ?? '' } })
+
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`)
+
+    return { ok: true }
+  } catch (err) {
+    console.error('approveProofAction error:', err)
+    return { ok: false, error: 'Failed to approve proof' }
+  }
+}
+
+export async function requestProofReuploadAction(
+  proofId: string,
+  eventId: string,
+  partnerId: string,
+  deliverableId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!isUuid(proofId)) return { ok: false, error: 'Invalid proof ID' }
+
+    const auth = await getAuthenticatedContext()
+    if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'Only admins can request re-uploads' }
+
+    const admin = createAdminClient()
+
+    // Fetch proof to find uploader
+    const { data: proof } = await admin
+      .from('proofs')
+      .select('uploaded_by, file_name')
+      .eq('id', proofId)
+      .single()
+
+    const { error } = await admin
+      .from('proofs')
+      .update({
+        validation_status: 'reupload_requested',
+        validation_result: JSON.stringify({
+          valid: false,
+          confidence: 'high',
+          reason: 'Admin requested a new upload',
+          issues: ['Re-upload required'],
+        }),
+      })
+      .eq('id', proofId)
+
+    if (error) {
+      console.error('[Proof] Reupload request error:', error)
+      return { ok: false, error: 'Failed to request re-upload' }
+    }
+
+    // Notify the uploader
+    const notifyAdmin = tryCreateAdminClient()
+    if (notifyAdmin && proof?.uploaded_by) {
+      const deliverable = await getDeliverableById(deliverableId)
+      notifyOrgAdmins(notifyAdmin, auth.orgId, auth.user.id, {
+        type: 'reupload_requested',
+        title: `Re-upload requested for "${deliverable?.title ?? 'deliverable'}"`,
+        body: `Admin flagged the proof "${proof.file_name}" for re-upload`,
+        link: `/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`,
+      }).catch(() => {})
+    }
+
+    logActivity({ orgId: auth.orgId, userId: auth.user.id, action: 'requested_proof_reupload', targetType: 'proof', targetId: proofId, eventId, details: { partner_id: partnerId, deliverable_id: deliverableId, actor_email: auth.user.email ?? '' } })
+
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`)
+
+    return { ok: true }
+  } catch (err) {
+    console.error('requestProofReuploadAction error:', err)
+    return { ok: false, error: 'Failed to request re-upload' }
   }
 }

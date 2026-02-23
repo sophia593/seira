@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
 import { countProofByDeliverable } from './proof'
 import type { Event, CreateEventInput } from '@/lib/types/database'
-import { DEFAULT_EVENT_STATUS } from '@/lib/constants'
+import { DEFAULT_EVENT_STATUS, isDeliverableCompleted } from '@/lib/constants'
 
 // =============================================================================
 // Read Operations
@@ -84,8 +84,8 @@ export async function listEventsWithCompletion(orgId: string) {
   for (const d of deliverables ?? []) {
     const entry = delStats[d.event_id] ?? { total: 0, completed: 0, overdue: 0 }
     entry.total++
-    if (d.status === 'done' || d.status === 'proved') entry.completed++
-    if (d.due_date && d.status !== 'done' && d.status !== 'proved' && new Date(d.due_date) < today) {
+    if (isDeliverableCompleted(d.status)) entry.completed++
+    if (d.due_date && !isDeliverableCompleted(d.status) && new Date(d.due_date) < today) {
       entry.overdue++
     }
     if (d.status === 'done') {

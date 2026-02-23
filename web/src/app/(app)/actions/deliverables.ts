@@ -10,6 +10,8 @@ import {
   deleteDeliverable,
   listDeliverablesByPartner,
   bulkUpdateDeliverableStatus,
+  rejectDeliverable,
+  clearRejectionNote,
 } from '@/lib/db/deliverables'
 import { getDeliverableById } from '@/lib/db/deliverables'
 import { getPartnerById } from '@/lib/db/partners'
@@ -22,9 +24,12 @@ import { partnerReminderEmailSubject, partnerReminderEmailHtml } from '@/lib/ema
 import type { PartnerReminderItem } from '@/lib/email/templates/partner-reminder'
 import { isUuid } from '@/lib/validation'
 import { canEditContent, canManageContent } from '@/lib/permissions'
-import type { DeliverableCategory, DeliverableStatus, OrgRole, ProofRequired } from '@/lib/types/database'
+import type { DeliverableCategory, DeliverableStatus, OrgRole, OrgSettings, ProofRequired, TalentType, UsageScope, UsageTerritory, UsageDuration } from '@/lib/types/database'
 import { logActivity } from '@/lib/db/activity-log'
-import { CATEGORIES, CATEGORY_CONFIG, STATUS_FLOW, PROOF_REQUIRED_OPTIONS, isOverdue } from '@/lib/constants'
+import { tryCreateAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/db/notifications'
+import { requiresApproval } from '@/lib/approval'
+import { CATEGORIES, CATEGORY_CONFIG, TALENT_TYPES, STATUS_FLOW, PROOF_REQUIRED_OPTIONS, isOverdue, USAGE_SCOPES, USAGE_TERRITORIES, USAGE_DURATIONS, computeExpirationDate } from '@/lib/constants'
 
 async function getAuthenticatedOrg() {
   const supabase = await createClient()
@@ -75,6 +80,51 @@ export async function createDeliverableAction(
       return { ok: false, error: 'Invalid proof required type' }
     }
 
+    const talentSubType = str(formData, 'talent_sub_type') as TalentType | undefined
+    if (talentSubType && !TALENT_TYPES.includes(talentSubType)) {
+      return { ok: false, error: 'Invalid talent sub-type' }
+    }
+
+    const talentId = str(formData, 'talent_id')
+    if (talentId && !isUuid(talentId)) {
+      return { ok: false, error: 'Invalid talent ID' }
+    }
+
+    const assetId = str(formData, 'asset_id')
+    if (assetId && !isUuid(assetId)) {
+      return { ok: false, error: 'Invalid asset' }
+    }
+
+    // Usage rights fields (talent only)
+    let usageScope: UsageScope | undefined
+    let usageTerritory: UsageTerritory | undefined
+    let usageDuration: UsageDuration | undefined
+    let usageExpirationDate: string | undefined
+    let usageScopeCustom: string | undefined
+    let usageTerritoryCustom: string | undefined
+
+    if (category === 'talent') {
+      const rawScope = str(formData, 'usage_scope') as UsageScope | undefined
+      if (rawScope && USAGE_SCOPES.includes(rawScope)) usageScope = rawScope
+      const rawTerritory = str(formData, 'usage_territory') as UsageTerritory | undefined
+      if (rawTerritory && USAGE_TERRITORIES.includes(rawTerritory)) usageTerritory = rawTerritory
+      const rawDuration = str(formData, 'usage_duration') as UsageDuration | undefined
+      if (rawDuration && USAGE_DURATIONS.includes(rawDuration)) usageDuration = rawDuration
+
+      usageScopeCustom = usageScope === 'custom' ? str(formData, 'usage_scope_custom') : undefined
+      usageTerritoryCustom = usageTerritory === 'custom' ? str(formData, 'usage_territory_custom') : undefined
+
+      // Auto-calc expiration date from event date + duration
+      if (usageDuration && usageDuration !== 'custom' && usageDuration !== 'perpetual') {
+        const event = await getEventById(eventId)
+        if (event?.date) {
+          usageExpirationDate = computeExpirationDate(event.date, usageDuration) ?? undefined
+        }
+      } else if (usageDuration === 'custom') {
+        usageExpirationDate = str(formData, 'usage_expiration_date')
+      }
+    }
+
     const deliverable = await createDeliverable({
       partner_id: partnerId,
       event_id: eventId,
@@ -82,7 +132,16 @@ export async function createDeliverableAction(
       category,
       due_date: str(formData, 'due_date'),
       proof_required: proofRequired,
+      talent_sub_type: category === 'talent' ? talentSubType : undefined,
+      talent_id: category === 'talent' ? (talentId || undefined) : undefined,
+      asset_id: assetId || undefined,
       notes: str(formData, 'notes'),
+      usage_scope: usageScope,
+      usage_territory: usageTerritory,
+      usage_duration: usageDuration,
+      usage_expiration_date: usageExpirationDate,
+      usage_scope_custom: usageScopeCustom,
+      usage_territory_custom: usageTerritoryCustom,
     })
 
     logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'created', targetType: 'deliverable', targetId: deliverable.id, eventId, details: { title, partner_id: partnerId, actor_email: auth.userEmail } })
@@ -128,12 +187,62 @@ export async function updateDeliverableAction(
       return { ok: false, error: 'Invalid proof required type' }
     }
 
+    const talentSubType = str(formData, 'talent_sub_type') as TalentType | undefined
+
+    const talentId = str(formData, 'talent_id')
+    if (talentId && !isUuid(talentId)) {
+      return { ok: false, error: 'Invalid talent ID' }
+    }
+
+    const assetId = str(formData, 'asset_id')
+    if (assetId && !isUuid(assetId)) {
+      return { ok: false, error: 'Invalid asset' }
+    }
+
+    // Usage rights fields (talent only)
+    let usageScope: UsageScope | undefined
+    let usageTerritory: UsageTerritory | undefined
+    let usageDuration: UsageDuration | undefined
+    let usageExpirationDate: string | undefined
+    let usageScopeCustom: string | undefined
+    let usageTerritoryCustom: string | undefined
+
+    if (category === 'talent') {
+      const rawScope = str(formData, 'usage_scope') as UsageScope | undefined
+      if (rawScope && USAGE_SCOPES.includes(rawScope)) usageScope = rawScope
+      const rawTerritory = str(formData, 'usage_territory') as UsageTerritory | undefined
+      if (rawTerritory && USAGE_TERRITORIES.includes(rawTerritory)) usageTerritory = rawTerritory
+      const rawDuration = str(formData, 'usage_duration') as UsageDuration | undefined
+      if (rawDuration && USAGE_DURATIONS.includes(rawDuration)) usageDuration = rawDuration
+
+      usageScopeCustom = usageScope === 'custom' ? str(formData, 'usage_scope_custom') : undefined
+      usageTerritoryCustom = usageTerritory === 'custom' ? str(formData, 'usage_territory_custom') : undefined
+
+      if (usageDuration && usageDuration !== 'custom' && usageDuration !== 'perpetual') {
+        const event = await getEventById(eventId)
+        if (event?.date) {
+          usageExpirationDate = computeExpirationDate(event.date, usageDuration) ?? undefined
+        }
+      } else if (usageDuration === 'custom') {
+        usageExpirationDate = str(formData, 'usage_expiration_date')
+      }
+    }
+
     await updateDeliverable(deliverableId, {
       title,
       category,
       due_date: str(formData, 'due_date'),
       proof_required: proofRequired,
+      talent_sub_type: category === 'talent' ? talentSubType : undefined,
+      talent_id: category === 'talent' ? (talentId || undefined) : undefined,
+      asset_id: assetId || undefined,
       notes: str(formData, 'notes'),
+      usage_scope: category === 'talent' ? usageScope : undefined,
+      usage_territory: category === 'talent' ? usageTerritory : undefined,
+      usage_duration: category === 'talent' ? usageDuration : undefined,
+      usage_expiration_date: category === 'talent' ? usageExpirationDate : undefined,
+      usage_scope_custom: category === 'talent' ? usageScopeCustom : undefined,
+      usage_territory_custom: category === 'talent' ? usageTerritoryCustom : undefined,
     })
 
     logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'updated', targetType: 'deliverable', targetId: deliverableId, eventId, details: { title, partner_id: partnerId, actor_email: auth.userEmail } })
@@ -168,6 +277,22 @@ export async function advanceDeliverableStatusAction(
 
     if (!STATUS_FLOW.includes(newStatus)) {
       return { ok: false, error: 'Invalid status' }
+    }
+
+    // Guard: only admins can approve deliverables that require approval (pending_approval → proved)
+    if (newStatus === 'proved') {
+      const deliverable = await getDeliverableById(deliverableId)
+      if (deliverable?.status === 'pending_approval') {
+        const adminClient = tryCreateAdminClient()
+        let orgSettings: OrgSettings | null = null
+        if (adminClient) {
+          const { data: orgRow } = await adminClient.from('organizations').select('settings').eq('id', auth.orgId).single()
+          orgSettings = (orgRow?.settings ?? {}) as OrgSettings
+        }
+        if (requiresApproval(deliverable.category, orgSettings) && !canManageContent(auth.role)) {
+          return { ok: false, error: 'Only admins can approve deliverables that require approval' }
+        }
+      }
     }
 
     await updateDeliverableStatus(deliverableId, newStatus)
@@ -349,6 +474,220 @@ export async function sendPartnerReminderAction(
   } catch (err) {
     console.error('sendPartnerReminderAction error:', err)
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to send reminders' }
+  }
+}
+
+export async function approveDeliverableAction(
+  deliverableId: string,
+  eventId: string,
+  partnerId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!isUuid(deliverableId)) return { ok: false, error: 'Invalid deliverable ID' }
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+    if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'Only admins can approve deliverables' }
+
+    const deliverable = await getDeliverableById(deliverableId)
+    if (!deliverable) return { ok: false, error: 'Deliverable not found' }
+    if (deliverable.status !== 'pending_approval') return { ok: false, error: 'Deliverable is not pending approval' }
+
+    // Verify this category actually requires approval
+    const adminClient = tryCreateAdminClient()
+    let orgSettings: OrgSettings | null = null
+    if (adminClient) {
+      const { data: orgRow } = await adminClient.from('organizations').select('settings').eq('id', auth.orgId).single()
+      orgSettings = (orgRow?.settings ?? {}) as OrgSettings
+    }
+    if (!requiresApproval(deliverable.category, orgSettings)) {
+      return { ok: false, error: 'This category does not require approval' }
+    }
+
+    await updateDeliverableStatus(deliverableId, 'proved')
+
+    // Clear any previous rejection note
+    if (deliverable.rejection_note) {
+      await clearRejectionNote(deliverableId)
+    }
+
+    logActivity({
+      orgId: auth.orgId,
+      userId: auth.userId,
+      action: 'approved_deliverable',
+      targetType: 'deliverable',
+      targetId: deliverableId,
+      eventId,
+      details: { title: deliverable.title, partner_id: partnerId, actor_email: auth.userEmail },
+    })
+
+    revalidatePath('/events')
+    revalidatePath('/dashboard')
+    revalidatePath(`/events/${eventId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`)
+
+    return { ok: true }
+  } catch (err) {
+    console.error('approveDeliverableAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to approve deliverable' }
+  }
+}
+
+/** Backward-compatible alias */
+export const approveTalentDeliverableAction = approveDeliverableAction
+
+export async function rejectDeliverableAction(
+  deliverableId: string,
+  eventId: string,
+  partnerId: string,
+  rejectionNote: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!isUuid(deliverableId)) return { ok: false, error: 'Invalid deliverable ID' }
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+    if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+    if (!rejectionNote.trim()) return { ok: false, error: 'Rejection note is required' }
+
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'Only admins can reject deliverables' }
+
+    const deliverable = await getDeliverableById(deliverableId)
+    if (!deliverable) return { ok: false, error: 'Deliverable not found' }
+    if (deliverable.status !== 'pending_approval') return { ok: false, error: 'Deliverable is not pending approval' }
+
+    await rejectDeliverable(deliverableId, rejectionNote.trim())
+
+    logActivity({
+      orgId: auth.orgId,
+      userId: auth.userId,
+      action: 'rejected_deliverable',
+      targetType: 'deliverable',
+      targetId: deliverableId,
+      eventId,
+      details: {
+        title: deliverable.title,
+        partner_id: partnerId,
+        rejection_note: rejectionNote.trim(),
+        actor_email: auth.userEmail,
+      },
+    })
+
+    // Notify the deliverable owner (or proof uploader as fallback)
+    const notifyAdmin = tryCreateAdminClient()
+    if (notifyAdmin) {
+      let notifyUserId = deliverable.owner_id
+      if (!notifyUserId) {
+        const { data: recentProof } = await notifyAdmin
+          .from('proofs')
+          .select('uploaded_by')
+          .eq('deliverable_id', deliverableId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+        notifyUserId = recentProof?.uploaded_by ?? null
+      }
+      if (notifyUserId && notifyUserId !== auth.userId) {
+        createNotification(notifyAdmin, {
+          userId: notifyUserId,
+          orgId: auth.orgId,
+          type: 'deliverable_rejected',
+          title: `"${deliverable.title}" was rejected`,
+          body: rejectionNote.trim(),
+          link: `/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`,
+        }).catch(() => {})
+      }
+    }
+
+    revalidatePath('/events')
+    revalidatePath('/dashboard')
+    revalidatePath(`/events/${eventId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`)
+
+    return { ok: true }
+  } catch (err) {
+    console.error('rejectDeliverableAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to reject deliverable' }
+  }
+}
+
+export async function extendUsageRightsAction(
+  deliverableId: string,
+  eventId: string,
+  partnerId: string,
+  duration: UsageDuration,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!isUuid(deliverableId)) return { ok: false, error: 'Invalid deliverable ID' }
+    if (!isUuid(eventId)) return { ok: false, error: 'Invalid event ID' }
+    if (!isUuid(partnerId)) return { ok: false, error: 'Invalid partner ID' }
+    if (!USAGE_DURATIONS.includes(duration)) return { ok: false, error: 'Invalid duration' }
+
+    const auth = await getAuthenticatedOrg()
+    if ('error' in auth) return { ok: false, error: auth.error }
+    if (!canManageContent(auth.role)) return { ok: false, error: 'Only admins can extend usage rights' }
+
+    const deliverable = await getDeliverableById(deliverableId)
+    if (!deliverable) return { ok: false, error: 'Deliverable not found' }
+    if (deliverable.category !== 'talent') return { ok: false, error: 'Only talent deliverables have usage rights' }
+
+    let newExpirationDate: string | null = null
+
+    if (duration === 'perpetual') {
+      // Perpetual = no expiration
+      newExpirationDate = null
+    } else if (duration === 'custom') {
+      return { ok: false, error: 'Custom duration is not supported for extensions' }
+    } else {
+      // Extend from current expiration date (renewal), or from today if no current expiration
+      const baseDate = deliverable.usage_expiration_date ?? new Date().toISOString().split('T')[0]
+      newExpirationDate = computeExpirationDate(baseDate, duration) ?? null
+    }
+
+    await updateDeliverable(deliverableId, {
+      usage_duration: duration,
+      usage_expiration_date: newExpirationDate ?? undefined,
+    })
+
+    // If perpetual, explicitly clear the expiration date
+    if (duration === 'perpetual') {
+      const supabase = await createClient()
+      await supabase
+        .from('deliverables')
+        .update({ usage_expiration_date: null })
+        .eq('id', deliverableId)
+    }
+
+    logActivity({
+      orgId: auth.orgId,
+      userId: auth.userId,
+      action: 'updated',
+      targetType: 'deliverable',
+      targetId: deliverableId,
+      eventId,
+      details: {
+        field: 'usage_rights_extended',
+        new_duration: duration,
+        new_expiration: newExpirationDate,
+        partner_id: partnerId,
+        actor_email: auth.userEmail,
+      },
+    })
+
+    revalidatePath('/events')
+    revalidatePath('/dashboard')
+    revalidatePath(`/events/${eventId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}`)
+    revalidatePath(`/events/${eventId}/partners/${partnerId}/deliverables/${deliverableId}`)
+
+    return { ok: true }
+  } catch (err) {
+    console.error('extendUsageRightsAction error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to extend usage rights' }
   }
 }
 

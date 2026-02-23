@@ -34,7 +34,7 @@ import type { Partner, DeliverableStatus, DeliverableCategory, ProofRequired } f
 
 interface PartnerStats {
   total: number; completed: number; pct: number; overdue: number
-  not_started: number; in_progress: number; done: number; proved: number
+  not_started: number; in_progress: number; done: number; pending_approval: number; proved: number
 }
 
 interface DeliverablePreview {
@@ -71,6 +71,7 @@ const PARTNER_SORT_OPTIONS = [
 
 const BAR_COLORS = {
   proved: 'bg-copper',
+  pending_approval: 'bg-orange-400',
   done: 'bg-green-400',
   in_progress: 'bg-blue-400',
   not_started: 'bg-gray-300',
@@ -360,6 +361,7 @@ function FilterBtn({ active, onClick, children }: { active: boolean; onClick: ()
 function StatusBar({ stats, className }: { stats: PartnerStats; className?: string }) {
   const segments = [
     { count: stats.proved, color: BAR_COLORS.proved },
+    { count: stats.pending_approval, color: BAR_COLORS.pending_approval },
     { count: stats.done, color: BAR_COLORS.done },
     { count: stats.in_progress, color: BAR_COLORS.in_progress },
     { count: stats.not_started, color: BAR_COLORS.not_started },

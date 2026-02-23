@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Camera, FileText, Play, ExternalLink } from 'lucide-react'
-import { CATEGORY_CONFIG, STATUS_CONFIG, formatShortDate } from '@/lib/constants'
+import { CATEGORY_CONFIG, STATUS_CONFIG, formatShortDate, isDeliverableCompleted, buildUsageRightsSentence } from '@/lib/constants'
 import { isImageType, isVideoType, isPdfType, formatFileSize } from '@/lib/proof-utils'
 import { useInView } from '@/hooks/use-in-view'
 import { ProofLightbox } from '@/components/proof/proof-lightbox'
@@ -16,6 +16,12 @@ interface DeliverableItem {
   category: DeliverableCategory
   status: DeliverableStatus
   due_date: string | null
+  usage_scope: string | null
+  usage_territory: string | null
+  usage_duration: string | null
+  usage_expiration_date: string | null
+  usage_scope_custom: string | null
+  usage_territory_custom: string | null
   proofs: RecapProof[]
 }
 
@@ -73,7 +79,7 @@ export function DeliverablesSection({ deliverables }: DeliverablesSectionProps) 
       {grouped.map(([cat, items]) => {
         const config = CATEGORY_CONFIG[cat as DeliverableCategory]
         const completedCount = items.filter(
-          (d) => d.status === 'done' || d.status === 'proved'
+          (d) => isDeliverableCompleted(d.status)
         ).length
 
         return (
@@ -161,6 +167,24 @@ function DeliverableCard({
           {statusCfg.label}
         </span>
       </div>
+
+      {/* Usage rights (talent deliverables) */}
+      {deliverable.category === 'talent' && (() => {
+        const sentence = buildUsageRightsSentence(
+          deliverable.usage_scope,
+          deliverable.usage_territory,
+          deliverable.usage_duration,
+          deliverable.usage_expiration_date,
+          deliverable.usage_scope_custom,
+          deliverable.usage_territory_custom,
+        )
+        return sentence ? (
+          <div className="px-6 pb-3">
+            <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">Usage Rights</p>
+            <p className="text-sm text-gray-600 italic">{sentence}</p>
+          </div>
+        ) : null
+      })()}
 
       {/* Proof gallery or pending placeholder */}
       {hasProofs ? (

@@ -4,6 +4,8 @@ import { getPartnerById } from '@/lib/db/partners'
 import { getDeliverableById } from '@/lib/db/deliverables'
 import { listProofByDeliverable } from '@/lib/db/proof'
 import { getDeliverableActivity } from '@/lib/db/activity-log'
+import { getTalentById, listTalent } from '@/lib/db/talent'
+import { getAssetById, listAssets } from '@/lib/db/assets'
 import { tryCreateAdminClient } from '@/lib/supabase/admin'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { DeliverableDetailContent } from './deliverable-detail-content'
@@ -31,8 +33,14 @@ export default async function DeliverableDetailPage({ params }: DeliverableDetai
   if (!deliverable || !partner || !event) notFound()
   if (deliverable.event_id !== eventId || deliverable.partner_id !== partnerId) notFound()
 
-  // Fetch proofs, then activity (needs proof IDs)
-  const proofs = await listProofByDeliverable(deliverableId)
+  // Fetch proofs, talent, and activity
+  const [proofs, talent, talents, asset, assets] = await Promise.all([
+    listProofByDeliverable(deliverableId),
+    deliverable.talent_id ? getTalentById(deliverable.talent_id) : Promise.resolve(null),
+    listTalent(event.org_id),
+    deliverable.asset_id ? getAssetById(deliverable.asset_id) : Promise.resolve(null),
+    listAssets(event.org_id),
+  ])
   const proofIds = proofs.map((p) => p.id)
   const activities = await getDeliverableActivity(deliverableId, proofIds)
 
@@ -93,6 +101,11 @@ export default async function DeliverableDetailPage({ params }: DeliverableDetai
         activities={activities}
         statusHistory={statusHistory}
         ownerName={ownerName}
+        talent={talent}
+        talents={talents}
+        asset={asset}
+        assets={assets}
+        eventDate={event.date}
       />
     </div>
   )

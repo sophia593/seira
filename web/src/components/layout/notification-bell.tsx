@@ -12,6 +12,10 @@ import {
   UserMinus,
   Check,
   AlertTriangle,
+  RotateCcw,
+  ShieldCheck,
+  XCircle,
+  Clock,
 } from 'lucide-react'
 import { useNotificationStore } from '@/stores/notification-store'
 import { useOrgStore } from '@/stores/org-store'
@@ -20,16 +24,20 @@ import { toast } from '@/components/ui/sonner'
 import type { AppNotification, NotificationType } from '@/lib/types/database'
 
 const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
-  invite_accepted: <UserPlus className="w-4 h-4 text-green-500" />,
-  proof_uploaded: <Camera className="w-4 h-4 text-blue-500" />,
-  recap_published: <FileText className="w-4 h-4 text-copper" />,
-  deliverable_completed: <CheckCircle className="w-4 h-4 text-emerald-500" />,
-  member_joined: <UserPlus className="w-4 h-4 text-purple-500" />,
-  role_changed: <Shield className="w-4 h-4 text-amber-500" />,
-  member_removed: <UserMinus className="w-4 h-4 text-red-400" />,
-  pre_event_scan: <AlertTriangle className="w-4 h-4 text-amber-500" />,
-  post_event_scan: <Camera className="w-4 h-4 text-amber-500" />,
-  partner_health: <AlertTriangle className="w-4 h-4 text-red-500" />,
+  invite_accepted:        <UserPlus className="w-4 h-4 text-green-500" />,
+  proof_uploaded:         <Camera className="w-4 h-4 text-blue-500" />,
+  reupload_requested:     <RotateCcw className="w-4 h-4 text-orange-500" />,
+  recap_published:        <FileText className="w-4 h-4 text-copper" />,
+  deliverable_completed:  <CheckCircle className="w-4 h-4 text-emerald-500" />,
+  member_joined:          <UserPlus className="w-4 h-4 text-purple-500" />,
+  role_changed:           <Shield className="w-4 h-4 text-amber-500" />,
+  member_removed:         <UserMinus className="w-4 h-4 text-red-400" />,
+  pre_event_scan:         <AlertTriangle className="w-4 h-4 text-amber-500" />,
+  post_event_scan:        <Camera className="w-4 h-4 text-amber-500" />,
+  partner_health:         <AlertTriangle className="w-4 h-4 text-red-500" />,
+  pending_approval:       <ShieldCheck className="w-4 h-4 text-orange-500" />,
+  deliverable_rejected:   <XCircle className="w-4 h-4 text-red-500" />,
+  usage_rights_expiring:  <Clock className="w-4 h-4 text-amber-500" />,
 }
 
 function timeAgo(dateStr: string): string {

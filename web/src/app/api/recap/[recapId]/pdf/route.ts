@@ -192,6 +192,8 @@ async function validateProofImages(data: RecapData): Promise<RecapData> {
           uploaded_by: '',
           created_at: new Date().toISOString(),
           uploader_name: null,
+          validation_status: null,
+          validation_result: null,
         })
       }
 

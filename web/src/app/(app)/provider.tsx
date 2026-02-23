@@ -8,7 +8,7 @@ import { useNotificationStore } from "@/stores/notification-store"
 import { createClient } from "@/lib/supabase/client"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { toast } from "@/components/ui/sonner"
-import type { OrgRole } from "@/lib/types/database"
+import type { OrgRole, DeliverableCategory } from "@/lib/types/database"
 
 // =============================================================================
 // Types
@@ -25,6 +25,7 @@ interface InitialOrg {
   id: string
   name: string
   role: OrgRole
+  approvalCategories?: DeliverableCategory[]
 }
 
 interface AppShellProviderProps {
@@ -134,7 +135,7 @@ export function AppShellProvider({
 
     // Hydrate org store
     if (initialOrg) {
-      setOrg(initialOrg)
+      setOrg({ id: initialOrg.id, name: initialOrg.name, role: initialOrg.role, approvalCategories: initialOrg.approvalCategories })
     }
 
     // Hydrate notification store

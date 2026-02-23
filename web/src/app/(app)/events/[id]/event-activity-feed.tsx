@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   Plus, Pencil, Trash2, Copy, ArrowRight, Camera, Globe,
-  Shield, UserPlus, UserMinus, Layers, Clock,
+  Shield, UserPlus, UserMinus, Layers, Clock, ShieldCheck, RotateCcw, CircleCheckBig, XCircle,
 } from 'lucide-react'
 import type { ActivityLog, ActivityAction } from '@/lib/types/database'
 
@@ -19,6 +19,10 @@ const ACTION_ICON: Record<ActivityAction, React.ReactNode> = {
   status_changed: <ArrowRight className="w-3.5 h-3.5 text-amber-500" />,
   uploaded_proof: <Camera className="w-3.5 h-3.5 text-blue-500" />,
   deleted_proof: <Trash2 className="w-3.5 h-3.5 text-red-400" />,
+  approved_proof: <ShieldCheck className="w-3.5 h-3.5 text-green-600" />,
+  approved_deliverable: <CircleCheckBig className="w-3.5 h-3.5 text-green-500" />,
+  rejected_deliverable: <XCircle className="w-3.5 h-3.5 text-red-500" />,
+  requested_proof_reupload: <RotateCcw className="w-3.5 h-3.5 text-orange-500" />,
   published: <Globe className="w-3.5 h-3.5 text-copper" />,
   unpublished: <Globe className="w-3.5 h-3.5 text-gray-400" />,
   role_changed: <Shield className="w-3.5 h-3.5 text-amber-500" />,
@@ -37,6 +41,10 @@ const ACTION_LABEL: Record<ActivityAction, string> = {
   status_changed: 'changed status of',
   uploaded_proof: 'uploaded proof for',
   deleted_proof: 'deleted proof from',
+  approved_proof: 'approved proof for',
+  approved_deliverable: 'approved',
+  rejected_deliverable: 'rejected',
+  requested_proof_reupload: 'requested re-upload for',
   published: 'published',
   unpublished: 'unpublished',
   role_changed: 'changed role of',
@@ -146,6 +154,8 @@ function resolveLink(a: ActivityLog): string | null {
     case 'member':
     case 'invite':
       return '/settings/team'
+    case 'talent':
+      return '/talent'
     default:
       return null
   }

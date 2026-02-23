@@ -9,7 +9,7 @@ import { AddDeliverableDialog } from './add-deliverable-dialog'
 import { useOrg } from '@/hooks/use-org'
 import { SortControl } from '@/components/ui/sort-control'
 import { STATUS_FLOW } from '@/lib/constants'
-import type { Deliverable, Proof, Template } from '@/lib/types/database'
+import type { Deliverable, Proof, Template, Talent, Asset } from '@/lib/types/database'
 
 interface DeliverableSectionProps {
   deliverables: Deliverable[]
@@ -18,6 +18,11 @@ interface DeliverableSectionProps {
   proofCounts: Record<string, number>
   proofMap: Record<string, Proof[]>
   templates?: Template[]
+  talentMap?: Record<string, { id: string; name: string; photo_url: string | null; type: string }>
+  talents?: Talent[]
+  assets?: Asset[]
+  assetMap?: Record<string, { id: string; name: string; capacity: number | null }>
+  eventDate?: string | null
 }
 
 type DeliverableSort = 'status' | 'due_date' | 'category' | 'name'
@@ -35,6 +40,11 @@ export function DeliverableSection({
   proofCounts,
   proofMap,
   templates,
+  talentMap,
+  talents,
+  assets,
+  assetMap,
+  eventDate,
 }: DeliverableSectionProps) {
   const { canEdit } = useOrg()
   const [showAdd, setShowAdd] = useState(false)
@@ -95,6 +105,8 @@ export function DeliverableSection({
               eventId={eventId}
               proofCount={proofCounts[d.id] ?? 0}
               proofs={proofMap[d.id] ?? []}
+              talent={d.talent_id && talentMap?.[d.talent_id] ? talentMap[d.talent_id] : null}
+              asset={d.asset_id && assetMap?.[d.asset_id] ? assetMap[d.asset_id] : null}
             />
           ))}
         </div>
@@ -106,6 +118,9 @@ export function DeliverableSection({
         eventId={eventId}
         partnerId={partnerId}
         templates={templates}
+        talents={talents}
+        assets={assets}
+        eventDate={eventDate}
       />
     </div>
   )

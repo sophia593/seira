@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText, Play, X } from 'lucide-react'
+import { FileText, Play, X, Link } from 'lucide-react'
 import { deleteProofAction } from '@/app/(app)/actions/proof'
 import { toast } from '@/components/ui/sonner'
 import { ProofLightbox } from './proof-lightbox'
+import { ProofValidationBadge } from './proof-validation-badge'
 import { isImageType, isVideoType, isPdfType } from '@/lib/proof-utils'
 import { cn } from '@/lib/utils'
 import type { Proof } from '@/lib/types/database'
@@ -112,6 +113,10 @@ export function ProofThumbnails({
                   alt={proof.file_name}
                   className="h-full w-full object-cover"
                 />
+              ) : proof.file_type === 'text/uri-list' ? (
+                <div className="h-full w-full bg-indigo-50 flex items-center justify-center">
+                  <Link className="w-5 h-5 text-indigo-400" />
+                </div>
               ) : isPdfType(proof.file_type) ? (
                 <div className="h-full w-full bg-red-50 flex items-center justify-center">
                   <FileText className="w-5 h-5 text-red-400" />
@@ -126,6 +131,13 @@ export function ProofThumbnails({
                 </div>
               )}
             </button>
+
+            {/* Validation badge */}
+            <ProofValidationBadge
+              status={proof.validation_status}
+              result={proof.validation_result}
+              variant="overlay"
+            />
 
             {/* Hover delete button (owner/admin only) */}
             {canDelete && (

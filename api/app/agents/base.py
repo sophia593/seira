@@ -56,8 +56,12 @@ class BaseAgent:
             raise RuntimeError("ANTHROPIC_API_KEY is not configured")
         self.client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
-    async def run(self, user_message: str) -> str:
-        """Run the agent to completion, return final text."""
+    async def run(self, user_message: str | list) -> str:
+        """Run the agent to completion, return final text.
+
+        user_message can be a plain string or a list of content blocks
+        (e.g. for multimodal / vision inputs).
+        """
         messages: list[dict] = [{"role": "user", "content": user_message}]
 
         for _ in range(MAX_TURNS):
@@ -92,7 +96,7 @@ class BaseAgent:
 
         return "Analysis could not be completed within the allowed number of steps."
 
-    async def run_stream(self, user_message: str) -> AsyncIterator[str]:
+    async def run_stream(self, user_message: str | list) -> AsyncIterator[str]:
         """Run the agent with streaming. Yields text chunks."""
         messages: list[dict] = [{"role": "user", "content": user_message}]
 

@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CategoryBadge } from '@/components/ui/badges'
-import { formatShortDate } from '@/lib/constants'
+import { formatShortDate, TALENT_TYPE_CONFIG } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 import type { DeliverableWithPartner } from '@/lib/types/database'
 
 interface OverdueDeliverable extends DeliverableWithPartner {
@@ -67,7 +68,33 @@ export function OverdueDeliverablesCard({ deliverables }: OverdueDeliverablesCar
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <CategoryBadge category={deliverable.category} showIcon={false} />
+                    <CategoryBadge
+                      category={deliverable.category}
+                      talentSubType={deliverable.talent_sub_type}
+                      showIcon={false}
+                    />
+
+                    {/* Talent sub-type chip for overdue talent deliverables */}
+                    {deliverable.category === 'talent' && deliverable.talent_sub_type && (() => {
+                      const talentCfg = TALENT_TYPE_CONFIG[deliverable.talent_sub_type]
+                      return (
+                        <span
+                          role="note"
+                          aria-label={`Talent type: ${talentCfg.label}`}
+                          className={cn(
+                            'inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0 text-[10px] font-medium',
+                            'shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]',
+                            talentCfg.bgColor,
+                            talentCfg.color,
+                            talentCfg.borderColor,
+                          )}
+                        >
+                          <span aria-hidden="true" className="text-[10px] leading-none">{talentCfg.icon}</span>
+                          <span>{talentCfg.label}</span>
+                        </span>
+                      )
+                    })()}
+
                     <span className="font-medium truncate">{deliverable.title}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
@@ -75,7 +102,10 @@ export function OverdueDeliverablesCard({ deliverables }: OverdueDeliverablesCar
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-medium text-amber-600">
+                  <p
+                    role="alert"
+                    className="text-sm font-medium text-amber-600"
+                  >
                     {daysOverdue}d overdue
                   </p>
                   <p className="text-xs text-muted-foreground">

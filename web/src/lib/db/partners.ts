@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
-import { isOverdue, completionPct } from '@/lib/constants'
+import { isOverdue, completionPct, isDeliverableCompleted } from '@/lib/constants'
 import type { Partner, CreatePartnerInput, DeliverableStatus, OrgPartnerRollup } from '@/lib/types/database'
 
 // =============================================================================
@@ -237,7 +237,7 @@ export async function getOrgPartnerRollup(orgId: string): Promise<OrgPartnerRoll
       for (const d of delByPartner.get(pid) ?? []) {
         total++
         eventStats.total++
-        if (d.status === 'done' || d.status === 'proved') {
+        if (isDeliverableCompleted(d.status as DeliverableStatus)) {
           completed++
           eventStats.completed++
           if (d.status === 'proved') proved++
@@ -350,7 +350,7 @@ export async function listPartnersForExport(
     const entry = stats[d.partner_id] ?? { total: 0, completed: 0, proved: 0, overdue: 0 }
     entry.total++
     const status = d.status as DeliverableStatus
-    if (status === 'done' || status === 'proved') entry.completed++
+    if (isDeliverableCompleted(status)) entry.completed++
     if (status === 'proved') entry.proved++
     if (isOverdue(status, d.due_date)) entry.overdue++
     stats[d.partner_id] = entry

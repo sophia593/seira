@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
-import type { Season, CreateSeasonInput, SeasonWithStats, SeasonPartnerRollup } from '@/lib/types/database'
+import { isDeliverableCompleted } from '@/lib/constants'
+import type { Season, CreateSeasonInput, SeasonWithStats, SeasonPartnerRollup, DeliverableStatus } from '@/lib/types/database'
 
 // =============================================================================
 // Read Operations
@@ -96,7 +97,7 @@ export async function listSeasonsWithStats(orgId: string): Promise<SeasonWithSta
     const seasonId = eventSeasonMap[d.event_id]
     if (seasonId && stats[seasonId]) {
       stats[seasonId].total++
-      if (d.status === 'done' || d.status === 'proved') {
+      if (isDeliverableCompleted(d.status as DeliverableStatus)) {
         stats[seasonId].completed++
       }
     }
@@ -190,7 +191,7 @@ export async function getSeasonPartnerRollup(seasonId: string): Promise<SeasonPa
     for (const pid of group.partnerIds) {
       for (const d of delByPartner.get(pid) ?? []) {
         total++
-        if (d.status === 'done' || d.status === 'proved') {
+        if (isDeliverableCompleted(d.status as DeliverableStatus)) {
           completed++
           if (d.status === 'proved') proved++
         } else if (d.due_date && new Date(d.due_date) < today) {

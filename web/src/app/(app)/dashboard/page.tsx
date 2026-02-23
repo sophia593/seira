@@ -15,17 +15,21 @@ import {
   getOverdueDeliverables,
   getNeedsProofDeliverables,
   getUpcomingRenewals,
+  getPendingApprovalDeliverables,
+  getExpiringUsageRights,
 } from '@/lib/db/dashboard'
 import { getRecentActivity } from '@/lib/db/activity-log'
+import { getAssetUtilizationSummary } from '@/lib/db/assets'
 import { DashboardFilters } from './dashboard-filters'
 import { isUuid } from '@/lib/validation'
 import { CATEGORIES, STATUS_FLOW } from '@/lib/constants'
-import type { DashboardStats, DashboardFilters as DashboardFiltersType, UpcomingRenewal } from '@/lib/db/dashboard'
-import type { Event, Season, EventWithCompletion, DeliverableWithPartner, DeliverableCategory, DeliverableStatus, ActivityLog } from '@/lib/types/database'
+import type { DashboardStats, DashboardFilters as DashboardFiltersType, UpcomingRenewal, ExpiringUsageRight } from '@/lib/db/dashboard'
+import type { Event, Season, EventWithCompletion, DeliverableWithPartner, DeliverableCategory, DeliverableStatus, ActivityLog, AssetUtilizationSummary } from '@/lib/types/database'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { AlertBadge, computeAlertSeverity } from '@/components/ui/alert-badge'
 import { SampleDataButton } from './sample-data-button'
 import { ActivityMiniWidget } from '@/components/activity-mini-widget'
+import { AssetUtilizationWidget } from '@/components/dashboard/asset-utilization-widget'
 import { formatShortDate, CATEGORY_CONFIG, PROOF_REQUIRED_CONFIG, EVENT_DOT_COLOR } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
@@ -134,7 +138,8 @@ export default async function DashboardPage({
   // ---------------------------------------------------------------------------
   const [
     orgResult, statsResult, eventsResult, overdueResult, needsProofResult, activityResult,
-    allEventsResult, seasonsResult, partnerNamesResult, renewalsResult,
+    allEventsResult, seasonsResult, partnerNamesResult, renewalsResult, pendingApprovalResult,
+    expiringRightsResult, assetUtilResult,
   ] = await Promise.allSettled([
     getOrganization(supabase, orgId),
     getDashboardStats(orgId, hasFilters ? filters : undefined),
@@ -147,6 +152,9 @@ export default async function DashboardPage({
     listSeasons(orgId),
     listDistinctPartnerNames(orgId),
     getUpcomingRenewals(orgId, 90, hasFilters ? filters : undefined),
+    getPendingApprovalDeliverables(orgId, hasFilters ? filters : undefined),
+    getExpiringUsageRights(orgId, 60, hasFilters ? filters : undefined),
+    getAssetUtilizationSummary(orgId),
   ])
 
   const org = settle(orgResult, null, 'getOrganization')
@@ -159,6 +167,9 @@ export default async function DashboardPage({
   const allSeasons = settle(seasonsResult, [] as Season[], 'listSeasons')
   const partnerNames = settle(partnerNamesResult, [] as string[], 'listDistinctPartnerNames')
   const upcomingRenewals = settle(renewalsResult, [] as UpcomingRenewal[], 'getUpcomingRenewals')
+  const pendingApprovalItems = settle(pendingApprovalResult, [] as DeliverableWithPartner[], 'getPendingApprovalDeliverables')
+  const expiringUsageRights = settle(expiringRightsResult, [] as ExpiringUsageRight[], 'getExpiringUsageRights')
+  const assetUtilSummary = settle(assetUtilResult, { total_assets: 0, avg_utilization_pct: 0, at_capacity_count: 0, underutilized_count: 0, underutilized_assets: [] } as AssetUtilizationSummary, 'getAssetUtilizationSummary')
 
   const isViewer = membership.role === 'viewer'
   const isEmpty = !hasFilters && stats.activeEvents === 0 && stats.totalDeliverables === 0
@@ -218,7 +229,8 @@ export default async function DashboardPage({
   // Populated state
   // ---------------------------------------------------------------------------
   const orgName = org?.name ?? 'Your workspace'
-  const totalAttentionCount = overdueItems.length + needsProofItems.length
+  const isAdminOrOwner = membership.role === 'owner' || membership.role === 'admin'
+  const totalAttentionCount = overdueItems.length + needsProofItems.length + (isAdminOrOwner ? pendingApprovalItems.length : 0)
   const sortedOverdue = [...overdueItems].sort((a, b) => attentionPriority(b) - attentionPriority(a))
   const sortedNeedsProof = [...needsProofItems].sort((a, b) => attentionPriority(b) - attentionPriority(a))
   const displayedOverdue = sortedOverdue.slice(0, 8)
@@ -265,6 +277,14 @@ export default async function DashboardPage({
           valueClassName={stats.overdueCount > 0 ? 'text-destructive' : undefined}
           showPulse={stats.overdueCount > 0}
         />
+        {isAdminOrOwner && (
+          <StatItem
+            label="Awaiting Approval"
+            value={pendingApprovalItems.length}
+            sub="need review"
+            valueClassName={pendingApprovalItems.length > 0 ? 'text-orange-500' : undefined}
+          />
+        )}
         <StatItem
           label="Completion"
           value={`${stats.completionPct}%`}
@@ -400,9 +420,46 @@ export default async function DashboardPage({
                 </div>
               )}
 
+              {/* Awaiting Approval section (admins only) */}
+              {isAdminOrOwner && pendingApprovalItems.length > 0 && (
+                <div className={displayedOverdue.length > 0 ? 'mt-3' : ''}>
+                  <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1 mt-1">
+                    Awaiting Approval &middot; {pendingApprovalItems.length}
+                  </p>
+                  <div className="divide-y divide-border">
+                    {pendingApprovalItems.slice(0, 5).map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/events/${item.event_id}/partners/${item.partner_id}/deliverables/${item.id}`}
+                        className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
+                      >
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-orange-400" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{item.title}</p>
+                          <span className="text-xs text-muted-foreground truncate">{item.partner.name}</span>
+                          <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                            {CATEGORY_CONFIG[item.category].label}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                  {pendingApprovalItems.length > 5 && (
+                    <div className="pt-1.5">
+                      <Link
+                        href="/events"
+                        className="text-xs text-orange-500 hover:text-orange-600 transition-colors duration-150"
+                      >
+                        and {pendingApprovalItems.length - 5} more &rarr;
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Needs proof section */}
               {displayedNeedsProof.length > 0 && (
-                <div className={displayedOverdue.length > 0 ? 'mt-3' : ''}>
+                <div className={(displayedOverdue.length > 0 || (isAdminOrOwner && pendingApprovalItems.length > 0)) ? 'mt-3' : ''}>
                   <p className="text-[10px] uppercase tracking-widest text-yellow-500 font-medium mb-1 mt-1">
                     Needs Proof
                   </p>
@@ -478,6 +535,66 @@ export default async function DashboardPage({
           )}
         </div>
       </div>
+
+      {/* Expiring Usage Rights */}
+      {expiringUsageRights.length > 0 && (
+        <div className="mt-6">
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="text-sm font-semibold">Expiring Usage Rights</h2>
+            <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+              {expiringUsageRights.length}
+            </span>
+          </div>
+          <div className="divide-y divide-border">
+            {expiringUsageRights.map((r) => {
+              const daysUntil = Math.ceil(
+                (new Date(r.expiration_date).getTime() - Date.now()) / 86_400_000,
+              )
+              const isExpired = daysUntil < 0
+              const isExpiringSoon = !isExpired && daysUntil < 30
+              const dotColor = isExpired
+                ? 'bg-red-500'
+                : isExpiringSoon
+                  ? 'bg-amber-500'
+                  : 'bg-blue-400'
+              const textColor = isExpired
+                ? 'text-red-500'
+                : isExpiringSoon
+                  ? 'text-amber-600'
+                  : 'text-blue-500'
+
+              return (
+                <Link
+                  key={r.deliverable_id}
+                  href={`/events/${r.event_id}/partners/${r.partner_id}/deliverables/${r.deliverable_id}`}
+                  className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
+                >
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dotColor}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{r.deliverable_title}</p>
+                    {r.talent_name && (
+                      <p className="text-xs text-muted-foreground/60">{r.talent_name}</p>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs text-muted-foreground truncate">
+                        {r.partner_name}
+                      </span>
+                      <span className={`text-xs shrink-0 ${textColor}`}>
+                        &middot;{' '}
+                        {isExpired ? 'Expired' : `Expires ${formatShortDate(r.expiration_date)}`}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground/60 mt-0.5">{r.event_name}</p>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Asset Utilization */}
+      <AssetUtilizationWidget summary={assetUtilSummary} />
 
       {/* Recent Activity */}
       {recentActivity.length > 0 && (

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { getOrganization, getOrganizationMembersWithProfiles } from '@/lib/db/organizations'
 import { WorkspaceForm } from './workspace-form'
+import { ApprovalCategoryForm } from './approval-category-form'
 import { DangerZone } from './danger-zone'
 import { SignOutButton } from './sign-out-button'
 
@@ -54,6 +55,17 @@ export default async function SettingsPage() {
         <p className="text-sm text-gray-500 mb-4">Manage your workspace settings.</p>
         <WorkspaceForm orgName={org.name} canRename={canRename} />
       </section>
+
+      {/* Section — Deliverable Approvals */}
+      {canRename && (
+        <section className="py-6 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1">Deliverable Approvals</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Choose which deliverable categories require admin approval before being marked as proved.
+          </p>
+          <ApprovalCategoryForm currentCategories={org.settings?.approval_required_categories} />
+        </section>
+      )}
 
       {/* Section 2 — Profile */}
       <section className="py-6 border-b border-gray-100">

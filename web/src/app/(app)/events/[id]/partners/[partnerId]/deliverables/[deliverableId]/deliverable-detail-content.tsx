@@ -4,7 +4,8 @@ import { useRef, useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  AlertTriangle, ArrowLeft, Pencil, Trash2, FileText, Play, User, Clock,
+  AlertTriangle, ArrowLeft, Pencil, Trash2, FileText, Play, User, Clock, Link as LinkIcon,
+  ShieldCheck, RotateCcw, Package,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CategoryBadge } from '@/components/ui/badges'
@@ -21,25 +22,33 @@ import {
 import { toast } from '@/components/ui/sonner'
 import { ProofUploadButton } from '@/components/proof/proof-upload-button'
 import { ProofLightbox } from '@/components/proof/proof-lightbox'
+import { ProofValidationBadge } from '@/components/proof/proof-validation-badge'
 import { EditDeliverableDialog } from '../../edit-deliverable-dialog'
 import { EventActivityFeed } from '@/app/(app)/events/[id]/event-activity-feed'
 import {
   advanceDeliverableStatusAction,
   deleteDeliverableAction,
+  approveDeliverableAction,
+  rejectDeliverableAction,
+  extendUsageRightsAction,
 } from '@/app/(app)/actions/deliverables'
-import { deleteProofAction } from '@/app/(app)/actions/proof'
+import { deleteProofAction, approveProofAction, requestProofReuploadAction } from '@/app/(app)/actions/proof'
 import { useOrg } from '@/hooks/use-org'
-import { canDeleteProof } from '@/lib/permissions'
+import { canDeleteProof, canManageContent } from '@/lib/permissions'
 import {
   STATUS_FLOW,
   STATUS_CONFIG,
   PROOF_REQUIRED_CONFIG,
+  TALENT_TYPE_CONFIG,
+  USAGE_SCOPE_OPTIONS,
+  USAGE_TERRITORY_OPTIONS,
+  USAGE_DURATION_OPTIONS,
   isOverdue,
   formatShortDate,
 } from '@/lib/constants'
 import { isImageType, isVideoType, isPdfType, formatFileSize } from '@/lib/proof-utils'
 import { cn } from '@/lib/utils'
-import type { Deliverable, DeliverableStatus, Partner, Proof, ActivityLog } from '@/lib/types/database'
+import type { Deliverable, DeliverableStatus, Partner, Proof, ActivityLog, Talent, Asset, UsageDuration } from '@/lib/types/database'
 import type { StatusTransition } from './page'
 
 interface DeliverableDetailContentProps {
@@ -50,6 +59,11 @@ interface DeliverableDetailContentProps {
   activities: ActivityLog[]
   statusHistory: StatusTransition[]
   ownerName: string | null
+  talent?: Talent | null
+  talents?: Talent[]
+  asset?: Asset | null
+  assets?: Asset[]
+  eventDate?: string | null
 }
 
 export function DeliverableDetailContent({
@@ -60,6 +74,11 @@ export function DeliverableDetailContent({
   activities,
   statusHistory,
   ownerName,
+  talent,
+  talents,
+  asset,
+  assets,
+  eventDate,
 }: DeliverableDetailContentProps) {
   const router = useRouter()
   const { role, canEdit, isAdmin } = useOrg()
@@ -72,6 +91,47 @@ export function DeliverableDetailContent({
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [deletingProofId, setDeletingProofId] = useState<string | null>(null)
+  const [overridingProofId, setOverridingProofId] = useState<string | null>(null)
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [rejectionNote, setRejectionNote] = useState('')
+  const [showExtendForm, setShowExtendForm] = useState(false)
+  const [extensionDuration, setExtensionDuration] = useState<UsageDuration>('90d')
+
+  const hasAdminOverride = canManageContent(role)
+
+  const handleApproveProof = async (proof: Proof) => {
+    setOverridingProofId(proof.id)
+    try {
+      const result = await approveProofAction(proof.id, eventId, deliverable.partner_id, deliverable.id)
+      if (result.ok) {
+        toast.success('Proof approved')
+        router.refresh()
+      } else {
+        toast.error(result.error ?? 'Failed to approve')
+      }
+    } catch {
+      toast.error('Failed to approve')
+    } finally {
+      setOverridingProofId(null)
+    }
+  }
+
+  const handleRequestReupload = async (proof: Proof) => {
+    setOverridingProofId(proof.id)
+    try {
+      const result = await requestProofReuploadAction(proof.id, eventId, deliverable.partner_id, deliverable.id)
+      if (result.ok) {
+        toast.success('Re-upload requested')
+        router.refresh()
+      } else {
+        toast.error(result.error ?? 'Failed to request re-upload')
+      }
+    } catch {
+      toast.error('Failed to request re-upload')
+    } finally {
+      setOverridingProofId(null)
+    }
+  }
 
   const overdue = isOverdue(deliverable.status, deliverable.due_date)
   const config = STATUS_CONFIG[deliverable.status]
@@ -211,58 +271,82 @@ export function DeliverableDetailContent({
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-semibold mb-2">{deliverable.title}</h1>
             <div className="flex items-center gap-2 flex-wrap">
-              <CategoryBadge category={deliverable.category} />
+              <CategoryBadge
+                category={deliverable.category}
+                talentSubType={deliverable.talent_sub_type}
+              />
 
               {/* Status dropdown */}
               <div className="relative" ref={dropdownRef}>
                 {canEdit ? (
                   <button
                     type="button"
+                    aria-label={`Status: ${config.label}. Click to change status`}
+                    aria-expanded={dropdownOpen}
+                    aria-haspopup="listbox"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     disabled={isPending}
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all duration-150',
+                      'shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]',
                       config.bgColor,
                       config.color,
                       config.borderColor,
                       isPending && 'opacity-50',
-                      'hover:ring-2 hover:ring-gray-900/10',
+                      'hover:ring-2 hover:ring-gray-900/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-gray-400',
                     )}
                   >
-                    <span className={cn('h-1.5 w-1.5 rounded-full', config.dotColor)} />
+                    <span aria-hidden="true" className={cn('h-2 w-2 rounded-full ring-1 ring-white/50', config.dotColor)} />
                     <span>{config.label}</span>
                   </button>
                 ) : (
                   <span
+                    role="status"
+                    aria-label={`Status: ${config.label}`}
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                      'shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]',
                       config.bgColor,
                       config.color,
                       config.borderColor,
                     )}
                   >
-                    <span className={cn('h-1.5 w-1.5 rounded-full', config.dotColor)} />
+                    <span aria-hidden="true" className={cn('h-2 w-2 rounded-full ring-1 ring-white/50', config.dotColor)} />
                     <span>{config.label}</span>
                   </span>
                 )}
 
                 {canEdit && dropdownOpen && (
-                  <div className="absolute left-0 top-full mt-1 z-[80] w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                    {STATUS_FLOW.map((status) => {
+                  <div
+                    role="listbox"
+                    aria-label="Select deliverable status"
+                    className="absolute left-0 top-full mt-1 z-[80] w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+                  >
+                    {STATUS_FLOW
+                      .filter((s) => s !== 'pending_approval' || deliverable.status === 'pending_approval')
+                      .map((status) => {
                       const sc = STATUS_CONFIG[status]
                       const isActive = status === deliverable.status
                       return (
                         <button
                           key={status}
                           type="button"
+                          role="option"
+                          aria-selected={isActive}
                           onClick={() => handleStatusChange(status)}
                           className={cn(
-                            'flex w-full items-center gap-2 px-3 py-1.5 text-sm transition-colors',
-                            isActive ? 'bg-gray-50 font-medium' : 'hover:bg-gray-50',
+                            'flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors',
+                            isActive
+                              ? 'bg-gray-50 font-medium'
+                              : 'hover:bg-gray-50',
+                            'focus-visible:outline-none focus-visible:bg-gray-100',
                           )}
                         >
-                          <span className={cn('h-2 w-2 rounded-full', sc.dotColor)} />
+                          <span aria-hidden="true" className={cn('h-2 w-2 rounded-full ring-1 ring-black/5', sc.dotColor)} />
                           <span>{sc.label}</span>
+                          {isActive && (
+                            <span className="ml-auto text-[10px] text-gray-400">Current</span>
+                          )}
                         </button>
                       )
                     })}
@@ -271,12 +355,211 @@ export function DeliverableDetailContent({
               </div>
 
               {overdue && (
-                <span className="inline-flex items-center gap-1 text-xs text-red-600 font-medium">
-                  <AlertTriangle className="w-3.5 h-3.5" />
+                <span
+                  role="alert"
+                  className="inline-flex items-center gap-1 text-xs text-red-600 font-medium"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" />
                   Overdue
                 </span>
               )}
             </div>
+
+            {/* Linked talent panel — rich card when talent record is linked */}
+            {deliverable.category === 'talent' && talent && (() => {
+              const talentCfg = talent.type ? TALENT_TYPE_CONFIG[talent.type as keyof typeof TALENT_TYPE_CONFIG] : null
+              return (
+                <Link
+                  href={`/talent/${talent.id}`}
+                  className={cn(
+                    'mt-3 inline-flex items-center gap-3 rounded-lg border px-4 py-2.5',
+                    'shadow-sm hover:shadow transition-shadow',
+                    'animate-in fade-in slide-in-from-top-1 duration-200',
+                    'bg-gray-50 border-gray-200',
+                  )}
+                >
+                  {talent.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={talent.photo_url}
+                      alt=""
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="w-10 h-10 rounded-full bg-gray-200 text-sm font-medium text-gray-600 flex items-center justify-center">
+                      {talent.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-gray-900">{talent.name}</span>
+                    <span className="text-xs text-gray-500">
+                      {talentCfg && <>{talentCfg.icon} {talentCfg.label}</>}
+                      {talent.affiliation && <>{talentCfg ? ' · ' : ''}{talent.affiliation}</>}
+                    </span>
+                  </div>
+                </Link>
+              )
+            })()}
+
+            {/* Fallback: talent sub-type panel when no talent record linked */}
+            {deliverable.category === 'talent' && !talent && deliverable.talent_sub_type && (() => {
+              const talentCfg = TALENT_TYPE_CONFIG[deliverable.talent_sub_type]
+              return (
+                <div
+                  role="region"
+                  aria-label={`Talent details: ${talentCfg.label}`}
+                  className={cn(
+                    'mt-3 inline-flex items-center gap-3 rounded-lg border px-4 py-2.5',
+                    'shadow-sm',
+                    'animate-in fade-in slide-in-from-top-1 duration-200',
+                    talentCfg.bgColor,
+                    talentCfg.borderColor,
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="text-lg leading-none"
+                  >
+                    {talentCfg.icon}
+                  </span>
+                  <div className="flex flex-col">
+                    <span className={cn('text-[10px] uppercase tracking-widest font-medium', talentCfg.color.replace('700', '500'))}>
+                      Talent Type
+                    </span>
+                    <span className={cn('text-sm font-semibold -mt-0.5', talentCfg.color)}>
+                      {talentCfg.label}
+                    </span>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Linked asset */}
+            {asset && (
+              <Link
+                href={`/assets/${asset.id}`}
+                className={cn(
+                  'mt-3 inline-flex items-center gap-3 rounded-lg border px-4 py-2.5',
+                  'shadow-sm hover:shadow transition-shadow',
+                  'animate-in fade-in slide-in-from-top-1 duration-200',
+                  'bg-blue-50 border-blue-200',
+                )}
+              >
+                <Package className="w-5 h-5 text-blue-500" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-widest font-medium text-blue-400">Linked Asset</span>
+                  <span className="text-sm font-semibold text-gray-900 -mt-0.5">{asset.name}</span>
+                </div>
+                {asset.capacity != null && (
+                  <span className="text-xs text-blue-500 ml-2">Cap: {asset.capacity}</span>
+                )}
+              </Link>
+            )}
+
+            {/* Usage rights panel */}
+            {deliverable.category === 'talent' && (deliverable.usage_scope || deliverable.usage_territory || deliverable.usage_duration) && (() => {
+              const scopeLabel = deliverable.usage_scope === 'custom'
+                ? deliverable.usage_scope_custom || 'Custom'
+                : USAGE_SCOPE_OPTIONS.find((o) => o.value === deliverable.usage_scope)?.label
+              const territoryLabel = deliverable.usage_territory === 'custom'
+                ? deliverable.usage_territory_custom || 'Custom'
+                : USAGE_TERRITORY_OPTIONS.find((o) => o.value === deliverable.usage_territory)?.label
+              const durationLabel = USAGE_DURATION_OPTIONS.find((o) => o.value === deliverable.usage_duration)?.label
+
+              const isExpiringSoon = deliverable.usage_expiration_date && (() => {
+                const diff = new Date(deliverable.usage_expiration_date).getTime() - Date.now()
+                return diff > 0 && diff < 30 * 86_400_000
+              })()
+              const isExpired = deliverable.usage_expiration_date && new Date(deliverable.usage_expiration_date).getTime() < Date.now()
+
+              return (
+                <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Usage Rights</p>
+                    {isAdmin && deliverable.usage_expiration_date && (
+                      <button
+                        type="button"
+                        onClick={() => setShowExtendForm(!showExtendForm)}
+                        className="inline-flex items-center gap-1 text-xs text-copper hover:underline"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Extend
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    {scopeLabel && (
+                      <div>
+                        <span className="text-gray-500 text-xs">Scope:</span>{' '}
+                        <span className="font-medium text-gray-900">{scopeLabel}</span>
+                      </div>
+                    )}
+                    {territoryLabel && (
+                      <div>
+                        <span className="text-gray-500 text-xs">Territory:</span>{' '}
+                        <span className="font-medium text-gray-900">{territoryLabel}</span>
+                      </div>
+                    )}
+                    {durationLabel && (
+                      <div>
+                        <span className="text-gray-500 text-xs">Duration:</span>{' '}
+                        <span className="font-medium text-gray-900">{durationLabel}</span>
+                      </div>
+                    )}
+                    {deliverable.usage_expiration_date && (
+                      <div>
+                        <span className="text-gray-500 text-xs">Expires:</span>{' '}
+                        <span className={cn(
+                          'font-medium',
+                          isExpired ? 'text-red-600' : isExpiringSoon ? 'text-amber-600' : 'text-gray-900',
+                        )}>
+                          {formatShortDate(deliverable.usage_expiration_date)}
+                          {isExpired && ' (expired)'}
+                          {isExpiringSoon && !isExpired && ' (soon)'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {showExtendForm && isAdmin && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-2">
+                      <select
+                        value={extensionDuration}
+                        onChange={(e) => setExtensionDuration(e.target.value as UsageDuration)}
+                        className="text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-copper"
+                      >
+                        {USAGE_DURATION_OPTIONS.filter((o) => o.value !== 'custom').map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                      <Button
+                        size="sm"
+                        disabled={isPending}
+                        onClick={() => {
+                          startTransition(async () => {
+                            const result = await extendUsageRightsAction(
+                              deliverable.id,
+                              eventId,
+                              deliverable.partner_id,
+                              extensionDuration,
+                            )
+                            if (result.ok) {
+                              toast.success('Usage rights extended')
+                              setShowExtendForm(false)
+                              router.refresh()
+                            } else {
+                              toast.error(result.error ?? 'Failed to extend')
+                            }
+                          })
+                        }}
+                        className="bg-copper hover:bg-copper/90 text-white"
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           {/* Admin actions */}
@@ -326,6 +609,84 @@ export function DeliverableDetailContent({
         )}
       </div>
 
+      {/* ===== Approval Banner ===== */}
+      {deliverable.status === 'pending_approval' && (
+        <div className="mb-8 rounded-lg bg-orange-50 border border-orange-200 px-5 py-4">
+          <div className="flex items-center gap-4">
+            <ShieldCheck className="w-5 h-5 text-orange-500 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-orange-800">Awaiting Admin Approval</p>
+              <p className="text-xs text-orange-600 mt-0.5">
+                Proof has been uploaded. An admin must approve before this deliverable is marked as proved.
+              </p>
+            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowRejectForm(!showRejectForm)}
+                  disabled={isPending}
+                  className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                >
+                  Reject
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    startTransition(async () => {
+                      const result = await approveDeliverableAction(deliverable.id, eventId, deliverable.partner_id)
+                      if (result.ok) { toast.success('Deliverable approved'); router.refresh() }
+                      else toast.error(result.error ?? 'Failed to approve')
+                    })
+                  }}
+                  disabled={isPending}
+                  className="gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Approve
+                </Button>
+              </div>
+            )}
+          </div>
+          {showRejectForm && isAdmin && (
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                value={rejectionNote}
+                onChange={(e) => setRejectionNote(e.target.value)}
+                placeholder="Reason for rejection..."
+                className="flex-1 text-sm border border-red-200 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-300"
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!rejectionNote.trim()) { toast.error('Please enter a reason'); return }
+                  startTransition(async () => {
+                    const result = await rejectDeliverableAction(deliverable.id, eventId, deliverable.partner_id, rejectionNote)
+                    if (result.ok) { toast.success('Deliverable rejected'); setShowRejectForm(false); setRejectionNote(''); router.refresh() }
+                    else toast.error(result.error ?? 'Failed to reject')
+                  })
+                }}
+                disabled={isPending || !rejectionNote.trim()}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                Confirm Rejection
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===== Rejection Note Callout ===== */}
+      {deliverable.rejection_note && deliverable.status === 'done' && (
+        <div className="mb-8 rounded-lg bg-red-50 border border-red-200 px-5 py-4">
+          <p className="text-sm font-semibold text-red-800">Rejected</p>
+          <p className="text-xs text-red-600 mt-1">{deliverable.rejection_note}</p>
+          <p className="text-[11px] text-red-400 mt-2">Re-upload proof to re-submit for approval.</p>
+        </div>
+      )}
+
       {/* ===== B. Status History ===== */}
       <section className="mb-8">
         <h2 className="text-sm font-semibold mb-3">Status History</h2>
@@ -368,6 +729,7 @@ export function DeliverableDetailContent({
               partnerId={deliverable.partner_id}
               currentStatus={deliverable.status}
               hasProof={proofs.length > 0}
+              proofRequired={deliverable.proof_required}
             />
           )}
         </div>
@@ -393,6 +755,10 @@ export function DeliverableDetailContent({
                       alt={proof.file_name}
                       className="aspect-video w-full object-cover"
                     />
+                  ) : proof.file_type === 'text/uri-list' ? (
+                    <div className="aspect-video w-full bg-indigo-50 flex items-center justify-center">
+                      <LinkIcon className="w-8 h-8 text-indigo-400" />
+                    </div>
                   ) : isPdfType(proof.file_type) ? (
                     <div className="aspect-video w-full bg-red-50 flex items-center justify-center">
                       <FileText className="w-8 h-8 text-red-400" />
@@ -411,8 +777,53 @@ export function DeliverableDetailContent({
                 <div className="px-2 py-1.5">
                   <p className="text-xs truncate">{proof.file_name}</p>
                   <p className="text-xs text-gray-400">
-                    {formatFileSize(proof.file_size)} · {formatDate(proof.created_at)}
+                    {proof.file_size > 0 ? `${formatFileSize(proof.file_size)} · ` : ''}{formatDate(proof.created_at)}
                   </p>
+                  <ProofValidationBadge
+                    status={proof.validation_status}
+                    result={proof.validation_result}
+                    variant="inline"
+                    className="mt-0.5"
+                  />
+
+                  {/* Admin override buttons — show when proof needs review */}
+                  {hasAdminOverride && proof.validation_status && proof.validation_status !== 'approved' && proof.validation_status !== 'pending' && proof.validation_status !== 'skipped' && (
+                    <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-50">
+                      {proof.validation_status !== 'reupload_requested' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleApproveProof(proof)}
+                            disabled={overridingProofId === proof.id}
+                            className="inline-flex items-center gap-1 text-[11px] text-green-600 hover:text-green-700 transition-colors disabled:opacity-50"
+                          >
+                            <ShieldCheck className="w-3 h-3" />
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRequestReupload(proof)}
+                            disabled={overridingProofId === proof.id}
+                            className="inline-flex items-center gap-1 text-[11px] text-orange-500 hover:text-orange-600 transition-colors disabled:opacity-50"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            Request re-upload
+                          </button>
+                        </>
+                      )}
+                      {proof.validation_status === 'reupload_requested' && (
+                        <button
+                          type="button"
+                          onClick={() => handleApproveProof(proof)}
+                          disabled={overridingProofId === proof.id}
+                          className="inline-flex items-center gap-1 text-[11px] text-green-600 hover:text-green-700 transition-colors disabled:opacity-50"
+                        >
+                          <ShieldCheck className="w-3 h-3" />
+                          Approve instead
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {canDeleteProof(role) && (
@@ -449,6 +860,9 @@ export function DeliverableDetailContent({
         eventId={eventId}
         onClose={() => setShowEdit(false)}
         proofs={proofs}
+        talents={talents}
+        assets={assets}
+        eventDate={eventDate}
       />
 
       <ProofLightbox

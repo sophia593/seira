@@ -4,7 +4,9 @@ import { getUserMembership } from '@/lib/db/client'
 import { getSeasonById, getSeasonPartnerRollup } from '@/lib/db/seasons'
 import { listEventsWithCompletion } from '@/lib/db/events'
 import { listTemplates } from '@/lib/db/templates'
+import { getSeasonAssetUtilization } from '@/lib/db/assets'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { AssetUtilizationTable } from '@/components/asset-utilization-table'
 import { SeasonHeader } from './season-header'
 import { SeasonEventsSection } from './season-events-section'
 import { SeasonPartnerRollupSection } from './season-partner-rollup'
@@ -24,10 +26,11 @@ export default async function SeasonDetailPage({ params }: SeasonDetailPageProps
   const membership = user ? await getUserMembership(supabase, user.id) : null
   if (!membership) notFound()
 
-  const [allEvents, templates, partnerRollup] = await Promise.all([
+  const [allEvents, templates, partnerRollup, seasonUtilization] = await Promise.all([
     listEventsWithCompletion(membership.org_id),
     listTemplates(supabase, membership.org_id, { includeGlobal: true }),
     getSeasonPartnerRollup(seasonId),
+    getSeasonAssetUtilization(membership.org_id, seasonId),
   ])
   const seasonEvents = allEvents.filter((e) => e.season_id === seasonId)
 
@@ -89,6 +92,14 @@ export default async function SeasonDetailPage({ params }: SeasonDetailPageProps
         <div className="mb-8">
           <SeasonPartnerRollupSection seasonId={seasonId} partners={partnerRollup} />
         </div>
+      )}
+
+      {/* Asset Utilization */}
+      {seasonUtilization.length > 0 && (
+        <section className="mb-8 border-t border-gray-100 pt-6">
+          <h2 className="text-sm font-semibold mb-4">Asset Utilization</h2>
+          <AssetUtilizationTable utilization={seasonUtilization} showEventsColumn />
+        </section>
       )}
 
       <SeasonEventsSection

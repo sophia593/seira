@@ -49,7 +49,7 @@ export function SeasonRecapReport({ data }: SeasonRecapReportProps) {
                 {events.map((event) => {
                   const eventTotal = event.deliverables.length
                   const eventCompleted = event.deliverables.filter(
-                    (d) => d.status === 'done' || d.status === 'proved'
+                    (d) => d.status === 'done' || d.status === 'pending_approval' || d.status === 'proved'
                   ).length
                   const eventPct = eventTotal > 0 ? Math.round((eventCompleted / eventTotal) * 100) : 0
 

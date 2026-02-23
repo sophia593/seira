@@ -1,5 +1,5 @@
 import { useOrgStore } from '@/stores/org-store'
-import type { OrgRole } from '@/lib/types/database'
+import type { OrgRole, DeliverableCategory } from '@/lib/types/database'
 
 interface UseOrgResult {
   orgId: string
@@ -8,6 +8,7 @@ interface UseOrgResult {
   isOwner: boolean
   isAdmin: boolean
   canEdit: boolean
+  approvalCategories: DeliverableCategory[]
 }
 
 /**
@@ -19,6 +20,7 @@ export function useOrg(): UseOrgResult {
   const orgId = useOrgStore((state) => state.orgId)
   const orgName = useOrgStore((state) => state.orgName)
   const role = useOrgStore((state) => state.role)
+  const approvalCategories = useOrgStore((state) => state.approvalCategories)
 
   if (!orgId || !orgName || !role) {
     return {
@@ -28,6 +30,7 @@ export function useOrg(): UseOrgResult {
       isOwner: false,
       isAdmin: false,
       canEdit: false,
+      approvalCategories: approvalCategories ?? ['talent'],
     }
   }
 
@@ -38,6 +41,7 @@ export function useOrg(): UseOrgResult {
     isOwner: role === 'owner',
     isAdmin: role === 'owner' || role === 'admin',
     canEdit: role === 'owner' || role === 'admin' || role === 'contributor',
+    approvalCategories,
   }
 }
 
@@ -49,6 +53,7 @@ export function useOrgSafe(): UseOrgResult | null {
   const orgId = useOrgStore((state) => state.orgId)
   const orgName = useOrgStore((state) => state.orgName)
   const role = useOrgStore((state) => state.role)
+  const approvalCategories = useOrgStore((state) => state.approvalCategories)
   const isHydrated = useOrgStore((state) => state.isHydrated)
 
   if (!isHydrated || !orgId || !orgName || !role) {
@@ -62,5 +67,6 @@ export function useOrgSafe(): UseOrgResult | null {
     isOwner: role === 'owner',
     isAdmin: role === 'owner' || role === 'admin',
     canEdit: role === 'owner' || role === 'admin' || role === 'contributor',
+    approvalCategories,
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Trash2, Send, Copy, Check, ExternalLink, Download, Mail, EyeOff, Info } from 'lucide-react'
+import { Pencil, Trash2, Send, Copy, Check, ExternalLink, Download, Mail, EyeOff, Info, Sparkles, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
@@ -40,7 +40,7 @@ interface RecapControlsProps {
 
 export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShareUrl, partnerContactEmail, partnerName, eventName }: RecapControlsProps) {
   const router = useRouter()
-  const { role } = useOrg()
+  const { orgId, role } = useOrg()
   const hasManagePermission = canManageRecaps(role)
   const [isPending, startTransition] = useTransition()
   const [showEdit, setShowEdit] = useState(false)
@@ -49,6 +49,8 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
   const [isDeleting, setIsDeleting] = useState(false)
   const [shareUrl, setShareUrl] = useState(initialShareUrl)
   const [copied, setCopied] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [coverNote, setCoverNote] = useState(recap.cover_note ?? '')
 
   const isDraft = recap.status === 'draft'
   const isPublished = recap.status === 'published'
@@ -144,6 +146,40 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
     }
   }
 
+  const handleGenerate = async () => {
+    if (!orgId) return
+    setIsGenerating(true)
+    try {
+      let message: string
+      if (recap.is_combined) {
+        message = `Write a cover note for a combined recap for partner "${partnerName ?? recap.partner_name ?? 'Partner'}" across all events. partner_name: ${partnerName ?? recap.partner_name}, combined: true`
+      } else if (recap.season_id) {
+        message = `Write a cover note for a season recap for partner "${partnerName ?? recap.partner_name ?? 'Partner'}". partner_name: ${partnerName ?? recap.partner_name}, season_id: ${recap.season_id}`
+      } else {
+        message = `Write a cover note for a single-event recap for partner "${partnerName ?? 'Partner'}" at event "${eventName ?? 'Event'}". event_id: ${eventId}, partner_id: ${partnerId}`
+      }
+
+      const res = await fetch('/api/agents/recap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, org_id: orgId }),
+      })
+
+      if (!res.ok) {
+        throw new Error('Agent request failed')
+      }
+
+      const data = await res.json()
+      if (data.response) {
+        setCoverNote(data.response)
+      }
+    } catch {
+      toast.error('Failed to generate — you can still write manually')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   return (
     <>
       {/* Action bar */}
@@ -170,7 +206,7 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
         </a>
 
         {hasManagePermission && (
-          <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+          <Button variant="outline" size="sm" onClick={() => { setCoverNote(recap.cover_note ?? ''); setShowEdit(true) }}>
             <Pencil className="w-4 h-4 mr-1" />
             Edit
           </Button>
@@ -297,15 +333,42 @@ export function RecapControls({ recap, eventId, partnerId, shareUrl: initialShar
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-recap-note">Cover Note</Label>
-              <textarea
-                id="edit-recap-note"
-                name="cover_note"
-                rows={3}
-                defaultValue={recap.cover_note ?? ''}
-                placeholder="Optional note to include at the top of the recap..."
-                className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-recap-note">Cover Note</Label>
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={isGenerating || isPending}
+                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-copper hover:text-copper/80 hover:bg-copper/5 transition-colors disabled:opacity-50"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  {isGenerating ? 'Generating...' : 'Generate with AI'}
+                </button>
+              </div>
+              <div className="relative">
+                <textarea
+                  id="edit-recap-note"
+                  name="cover_note"
+                  rows={5}
+                  value={coverNote}
+                  onChange={(e) => setCoverNote(e.target.value)}
+                  placeholder="Optional note to include at the top of the recap..."
+                  disabled={isGenerating}
+                  className="flex w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                {isGenerating && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-md bg-white/60">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Writing cover note...
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           {editError && (

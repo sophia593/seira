@@ -11,7 +11,7 @@ import { AppShell } from "@/components/app-shell"
 import { AppShellProvider } from "./provider"
 import { CreateWorkspaceForm } from "./create-workspace-form"
 import { isUuid } from "@/lib/validation"
-import type { OrgRole } from "@/lib/types/database"
+import type { OrgRole, OrgSettings, DeliverableCategory } from "@/lib/types/database"
 
 export default async function AppLayout({
   children,
@@ -39,7 +39,7 @@ export default async function AppLayout({
   // ---------------------------------------------------------------------------
   // Org bootstrap: lookup membership, auto-create once if missing
   // ---------------------------------------------------------------------------
-  let initialOrg: { id: string; name: string; role: OrgRole } | null = null
+  let initialOrg: { id: string; name: string; role: OrgRole; approvalCategories: DeliverableCategory[] } | null = null
 
   try {
     // 0. Check for cookie-selected org
@@ -125,10 +125,12 @@ export default async function AppLayout({
         org = await getOrganization(supabase, membership.org_id)
       }
       if (org) {
+        const settings = (org.settings ?? {}) as OrgSettings
         initialOrg = {
           id: org.id,
           name: org.name,
           role: (membership.role as OrgRole) ?? "admin",
+          approvalCategories: settings.approval_required_categories ?? ['talent'] as DeliverableCategory[],
         }
       }
     }

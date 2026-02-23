@@ -201,7 +201,7 @@ export async function createOrganization(
 export async function updateOrganization(
   supabase: SupabaseClient,
   orgId: string,
-  updates: Partial<Pick<Organization, 'name'>>
+  updates: Partial<Pick<Organization, 'name' | 'settings'>>
 ): Promise<Organization> {
   const { data, error } = await supabase
     .from('organizations')
