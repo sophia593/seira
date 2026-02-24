@@ -114,7 +114,7 @@ export default function HowItWorksPage() {
                 </span>
                 <div
                   className={cn(
-                    'inline-flex items-center justify-center w-12 h-12 rounded-2xl mt-3 mb-4',
+                    'inline-flex items-center justify-center w-12 h-12 rounded-2xl mt-6 mb-4',
                     step.bgColor,
                     step.color,
                   )}
