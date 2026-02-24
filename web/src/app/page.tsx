@@ -4,6 +4,7 @@ import { MarketingNav } from '@/components/marketing/marketing-nav'
 import { HeroSection } from '@/components/marketing/hero-section'
 import { FeaturesSection } from '@/components/marketing/features-section'
 import { StepsSection } from '@/components/marketing/steps-section'
+import { DemoVideoSection } from '@/components/marketing/demo-video-section'
 import { FeatureGridSection } from '@/components/marketing/feature-grid-section'
 import { AudienceSection } from '@/components/marketing/audience-section'
 import { SocialProofSection } from '@/components/marketing/social-proof-section'
@@ -37,6 +38,10 @@ export default async function HomePage() {
       <HeroSection />
       <FeaturesSection />
       <StepsSection />
+      <DemoVideoSection
+        videoSrc="https://www.youtube.com/embed/VIDEO_ID_HERE"
+        videoType="youtube"
+      />
       <FeatureGridSection />
       <AudienceSection />
       <SocialProofSection />

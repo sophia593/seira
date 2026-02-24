@@ -13,8 +13,9 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { PartnerActions } from './partner-actions'
 import { DeliverableSection } from './deliverable-section'
 import { RecapSection } from './recap-section'
-import { STATUS_FLOW, STATUS_CONFIG } from '@/lib/constants'
+import { STATUS_FLOW, STATUS_CONFIG, RECAP_STATUS_CONFIG } from '@/lib/constants'
 import { InfoTip } from '@/components/ui/info-tip'
+import { RecapStatusBadge } from '@/components/ui/badges'
 import type { DeliverableStatus } from '@/lib/types/database'
 
 interface PartnerDetailPageProps {
@@ -145,19 +146,19 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
                 return (
                   <span
                     key={status}
-                    className="border border-gray-200 rounded-full px-2.5 py-0.5 text-xs text-gray-600"
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_CONFIG[status].bgColor} ${STATUS_CONFIG[status].color} ${STATUS_CONFIG[status].borderColor}`}
                   >
                     {count} {STATUS_CONFIG[status].label.toLowerCase()}
                   </span>
                 )
               })}
               {provedCount > 0 && (
-                <span className="border border-copper/30 bg-copper/5 rounded-full px-2.5 py-0.5 text-xs text-copper">
+                <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_CONFIG.proved.bgColor} ${STATUS_CONFIG.proved.color} ${STATUS_CONFIG.proved.borderColor}`}>
                   {provedCount} of {deliverables.length} proved
                 </span>
               )}
               {needProofCount > 0 && (
-                <span className="border border-amber-200 bg-amber-50 rounded-full px-2.5 py-0.5 text-xs text-amber-600">
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-600">
                   {needProofCount} need proof
                 </span>
               )}
@@ -166,16 +167,14 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
                   href={recapPublicUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 border border-green-200 bg-green-50 rounded-full px-2.5 py-0.5 text-xs text-green-700 hover:bg-green-100 transition-colors"
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium hover:opacity-80 transition-colors ${RECAP_STATUS_CONFIG.published.bgColor} ${RECAP_STATUS_CONFIG.published.color} ${RECAP_STATUS_CONFIG.published.borderColor}`}
                 >
                   Recap published
                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
                 </a>
               )}
               {latestRecap?.status === 'draft' && (
-                <span className="border border-amber-200 bg-amber-50 rounded-full px-2.5 py-0.5 text-xs text-amber-600">
-                  Recap draft
-                </span>
+                <RecapStatusBadge status="draft" />
               )}
             </div>
           )}

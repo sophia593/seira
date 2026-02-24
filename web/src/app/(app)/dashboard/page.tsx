@@ -24,10 +24,12 @@ import { getRecentActivity } from '@/lib/db/activity-log'
 import { getAssetUtilizationSummary } from '@/lib/db/assets'
 import { DashboardFilters } from './dashboard-filters'
 import { isUuid } from '@/lib/validation'
-import { CATEGORIES, STATUS_FLOW } from '@/lib/constants'
+import { CATEGORIES, STATUS_FLOW, ATTENTION_CONFIG } from '@/lib/constants'
 import type { DashboardStats, DashboardFilters as DashboardFiltersType, UpcomingRenewal, ExpiringUsageRight } from '@/lib/db/dashboard'
 import type { Event, Season, EventWithCompletion, DeliverableWithPartner, DeliverableCategory, DeliverableStatus, ActivityLog, AssetUtilizationSummary, OrgSettings } from '@/lib/types/database'
 import { ProgressBar } from '@/components/ui/progress-bar'
+import { SectionHeader } from '@/components/ui/section-header'
+import { CountBadge } from '@/components/ui/badges'
 import { AlertBadge, computeAlertSeverity } from '@/components/ui/alert-badge'
 import { SampleDataButton } from './sample-data-button'
 import { ActivityMiniWidget } from '@/components/activity-mini-widget'
@@ -312,17 +314,14 @@ export default async function DashboardPage({
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: Upcoming Events */}
         <div className="lg:col-span-3">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold">
-              {hasFilters && (filters.eventId || filters.seasonId) ? 'Events' : 'Upcoming Events'}
-            </h2>
-            <Link
-              href="/events"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
-            >
-              View all &rarr;
-            </Link>
-          </div>
+          <SectionHeader
+            title={hasFilters && (filters.eventId || filters.seasonId) ? 'Events' : 'Upcoming Events'}
+            action={
+              <Link href="/events" className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150">
+                View all &rarr;
+              </Link>
+            }
+          />
 
           {upcomingEvents.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6">
@@ -386,14 +385,7 @@ export default async function DashboardPage({
 
         {/* Right: Attention */}
         <div className="lg:col-span-2">
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-sm font-semibold">Attention</h2>
-            {totalAttentionCount > 0 && (
-              <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
-                {totalAttentionCount}
-              </span>
-            )}
-          </div>
+          <SectionHeader title="Attention" count={totalAttentionCount} />
 
           {totalAttentionCount === 0 ? (
             <p className="text-sm text-muted-foreground py-6">
@@ -404,8 +396,8 @@ export default async function DashboardPage({
               {/* Overdue section */}
               {displayedOverdue.length > 0 && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-red-400 font-medium mb-1 mt-1">
-                    Overdue
+                  <p className={`text-[10px] uppercase tracking-widest font-medium mb-1 mt-1 ${ATTENTION_CONFIG.overdue.headerColor}`}>
+                    {ATTENTION_CONFIG.overdue.label}
                   </p>
                   <div className="divide-y divide-border">
                     {displayedOverdue.map((item) => (
@@ -414,13 +406,13 @@ export default async function DashboardPage({
                         href={`/events/${item.event_id}/partners/${item.partner_id}`}
                         className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
                       >
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ATTENTION_CONFIG.overdue.dotColor}`} />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{item.title}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-xs text-muted-foreground truncate">{item.partner.name}</span>
                             {item.due_date && (
-                              <span className="text-xs text-red-500 shrink-0">
+                              <span className={`text-xs shrink-0 ${ATTENTION_CONFIG.overdue.accentColor}`}>
                                 · Due {formatShortDate(item.due_date)}
                               </span>
                             )}
@@ -438,8 +430,8 @@ export default async function DashboardPage({
               {/* Awaiting Approval section (admins only) */}
               {isAdminOrOwner && pendingApprovalItems.length > 0 && (
                 <div className={displayedOverdue.length > 0 ? 'mt-3' : ''}>
-                  <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1 mt-1">
-                    Awaiting Approval &middot; {pendingApprovalItems.length}
+                  <p className={`text-[10px] uppercase tracking-widest font-medium mb-1 mt-1 ${ATTENTION_CONFIG.pending_approval.headerColor}`}>
+                    {ATTENTION_CONFIG.pending_approval.label} &middot; {pendingApprovalItems.length}
                   </p>
                   <div className="divide-y divide-border">
                     {pendingApprovalItems.slice(0, 5).map((item) => (
@@ -448,7 +440,7 @@ export default async function DashboardPage({
                         href={`/events/${item.event_id}/partners/${item.partner_id}/deliverables/${item.id}`}
                         className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
                       >
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-orange-400" />
+                        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ATTENTION_CONFIG.pending_approval.dotColor}`} />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{item.title}</p>
                           <span className="text-xs text-muted-foreground truncate">{item.partner.name}</span>
@@ -463,7 +455,7 @@ export default async function DashboardPage({
                     <div className="pt-1.5">
                       <Link
                         href="/events"
-                        className="text-xs text-orange-500 hover:text-orange-600 transition-colors duration-150"
+                        className={`text-xs ${ATTENTION_CONFIG.pending_approval.accentColor} hover:opacity-80 transition-colors duration-150`}
                       >
                         and {pendingApprovalItems.length - 5} more &rarr;
                       </Link>
@@ -475,8 +467,8 @@ export default async function DashboardPage({
               {/* Needs proof section */}
               {displayedNeedsProof.length > 0 && (
                 <div className={(displayedOverdue.length > 0 || (isAdminOrOwner && pendingApprovalItems.length > 0)) ? 'mt-3' : ''}>
-                  <p className="text-[10px] uppercase tracking-widest text-yellow-500 font-medium mb-1 mt-1">
-                    Needs Proof
+                  <p className={`text-[10px] uppercase tracking-widest font-medium mb-1 mt-1 ${ATTENTION_CONFIG.needs_proof.headerColor}`}>
+                    {ATTENTION_CONFIG.needs_proof.label}
                   </p>
                   <div className="divide-y divide-border">
                     {displayedNeedsProof.map((item) => (
@@ -485,7 +477,7 @@ export default async function DashboardPage({
                         href={`/events/${item.event_id}/partners/${item.partner_id}`}
                         className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
                       >
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-yellow-500" />
+                        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ATTENTION_CONFIG.needs_proof.dotColor}`} />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{item.title}</p>
                           <span className="text-xs text-muted-foreground truncate">{item.partner.name}</span>
@@ -515,12 +507,7 @@ export default async function DashboardPage({
           {/* Upcoming Renewals */}
           {upcomingRenewals.length > 0 && (
             <div className="mt-6">
-              <div className="mb-3 flex items-center gap-2">
-                <h2 className="text-sm font-semibold">Upcoming Renewals</h2>
-                <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
-                  {upcomingRenewals.length}
-                </span>
-              </div>
+              <SectionHeader title="Upcoming Renewals" count={upcomingRenewals.length} />
               <div className="divide-y divide-border">
                 {upcomingRenewals.map((r) => (
                   <Link
@@ -528,12 +515,12 @@ export default async function DashboardPage({
                     href={`/partners/${encodeURIComponent(r.partner_name)}`}
                     className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors duration-150"
                   >
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-400" />
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ATTENTION_CONFIG.renewal.dotColor}`} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{r.partner_name}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-xs text-muted-foreground truncate">{r.event_name}</span>
-                        <span className="text-xs text-blue-500 shrink-0">
+                        <span className={`text-xs shrink-0 ${ATTENTION_CONFIG.renewal.accentColor}`}>
                           · Renews {formatShortDate(r.renewal_date)}
                         </span>
                       </div>
@@ -554,12 +541,7 @@ export default async function DashboardPage({
       {/* Expiring Usage Rights */}
       {expiringUsageRights.length > 0 && (
         <div className="mt-6">
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-sm font-semibold">Expiring Usage Rights</h2>
-            <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
-              {expiringUsageRights.length}
-            </span>
-          </div>
+          <SectionHeader title="Expiring Usage Rights" count={expiringUsageRights.length} />
           <div className="divide-y divide-border">
             {expiringUsageRights.map((r) => {
               const daysUntil = Math.ceil(
@@ -614,7 +596,7 @@ export default async function DashboardPage({
       {/* Recent Activity */}
       {recentActivity.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-sm font-semibold mb-3">Recent Activity</h2>
+          <SectionHeader title="Recent Activity" />
           <ActivityMiniWidget activities={recentActivity} />
         </div>
       )}

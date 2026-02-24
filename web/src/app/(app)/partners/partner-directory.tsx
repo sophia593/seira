@@ -119,7 +119,7 @@ export function PartnerDirectory({ partners }: PartnerDirectoryProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="text-page-title">
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
             Partners
             {partners.length > 0 && (
               <span className="text-muted-foreground font-normal text-sm ml-2">({partners.length})</span>

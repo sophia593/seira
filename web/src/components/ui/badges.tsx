@@ -8,6 +8,7 @@ import {
   STATUS_CONFIG,
   EVENT_STATUS_CONFIG,
   TALENT_TYPE_CONFIG,
+  RECAP_STATUS_CONFIG,
 } from '@/lib/constants'
 import type {
   DeliverableCategory,
@@ -148,6 +149,49 @@ export function EventStatusBadge({
     >
       {showIcon && <span aria-hidden="true">{config.icon}</span>}
       <span>{config.label}</span>
+    </span>
+  )
+}
+
+// =============================================================================
+// Count Badge (numeric pill used in section headers)
+// =============================================================================
+
+interface CountBadgeProps {
+  count: number
+  className?: string
+}
+
+export function CountBadge({ count, className }: CountBadgeProps) {
+  return (
+    <span className={cn('text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5', className)}>
+      {count}
+    </span>
+  )
+}
+
+// =============================================================================
+// Recap Status Badge (published / draft)
+// =============================================================================
+
+interface RecapStatusBadgeProps {
+  status: 'published' | 'draft'
+  className?: string
+}
+
+export function RecapStatusBadge({ status, className }: RecapStatusBadgeProps) {
+  const config = RECAP_STATUS_CONFIG[status]
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
+        config.bgColor,
+        config.color,
+        config.borderColor,
+        className,
+      )}
+    >
+      {config.label}
     </span>
   )
 }

@@ -415,6 +415,47 @@ export function completionPct(total: number, completed: number): number {
 }
 
 // ============================================
+// DASHBOARD ATTENTION SECTIONS
+// ============================================
+
+export const ATTENTION_CONFIG = {
+  overdue:          { label: 'Overdue',           headerColor: 'text-red-500',    dotColor: 'bg-red-500',    accentColor: 'text-red-500' },
+  pending_approval: { label: 'Awaiting Approval', headerColor: 'text-orange-500', dotColor: 'bg-orange-400', accentColor: 'text-orange-500' },
+  needs_proof:      { label: 'Needs Proof',       headerColor: 'text-amber-500',  dotColor: 'bg-amber-400',  accentColor: 'text-amber-500' },
+  renewal:          { label: 'Upcoming Renewals',  headerColor: 'text-blue-500',   dotColor: 'bg-blue-400',   accentColor: 'text-blue-500' },
+} as const;
+
+// ============================================
+// RECAP STATUS
+// ============================================
+
+export const RECAP_STATUS_CONFIG = {
+  published: { label: 'Published', color: 'text-green-700', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
+  draft:     { label: 'Draft',     color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
+} as const;
+
+// ============================================
+// BILLING STATUS
+// ============================================
+
+export const BILLING_STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+  trialing: { label: 'Trial',    color: 'text-amber-700',   bgColor: 'bg-amber-100' },
+  active:   { label: 'Active',   color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+  past_due: { label: 'Past Due', color: 'text-red-700',     bgColor: 'bg-red-100' },
+  canceled: { label: 'Canceled', color: 'text-gray-600',    bgColor: 'bg-gray-100' },
+  none:     { label: 'No Plan',  color: 'text-gray-600',    bgColor: 'bg-gray-100' },
+};
+
+// ============================================
+// CONNECTION / INTEGRATION STATUS
+// ============================================
+
+export const CONNECTION_STATUS_CONFIG = {
+  connected: { label: 'Connected', color: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' },
+  paused:    { label: 'Paused',    color: 'text-gray-500',    bgColor: 'bg-gray-50',    borderColor: 'border-gray-200' },
+} as const;
+
+// ============================================
 // APP-WIDE DEFAULTS
 // ============================================
 

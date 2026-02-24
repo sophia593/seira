@@ -23,6 +23,7 @@ const COLUMNS = [
     title: 'Resources',
     links: [
       { label: 'documentation', href: '#' },
+      { label: 'one-pager (pdf)', href: '/api/one-pager/pdf' },
       { label: 'changelog', href: '#' },
       { label: 'status', href: '#' },
     ],
@@ -55,7 +56,16 @@ export function MarketingFooter() {
               <ul className="space-y-2.5">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    {link.href.startsWith('/') ? (
+                    {link.href.startsWith('/api/') ? (
+                      <a
+                        href={link.href}
+                        className="text-sm hover:text-white transition-colors"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {link.label}
+                      </a>
+                    ) : link.href.startsWith('/') ? (
                       <Link
                         href={link.href}
                         className="text-sm hover:text-white transition-colors"

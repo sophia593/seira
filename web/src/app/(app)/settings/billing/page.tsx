@@ -3,38 +3,16 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { getOrgSubscription } from '@/lib/db/billing'
 import { ManageBillingButton } from './manage-billing-button'
+import { BILLING_STATUS_CONFIG } from '@/lib/constants'
 
-function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { label: string; className: string }> = {
-    trialing: {
-      label: 'trial',
-      className: 'bg-amber-100 text-amber-700',
-    },
-    active: {
-      label: 'active',
-      className: 'bg-emerald-100 text-emerald-700',
-    },
-    past_due: {
-      label: 'past due',
-      className: 'bg-red-100 text-red-700',
-    },
-    canceled: {
-      label: 'canceled',
-      className: 'bg-gray-100 text-gray-600',
-    },
-    none: {
-      label: 'no plan',
-      className: 'bg-gray-100 text-gray-600',
-    },
-  }
-
-  const { label, className } = config[status] ?? config.none
+function BillingStatusBadge({ status }: { status: string }) {
+  const config = BILLING_STATUS_CONFIG[status] ?? BILLING_STATUS_CONFIG.none
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.bgColor} ${config.color}`}
     >
-      {label}
+      {config.label}
     </span>
   )
 }
@@ -81,7 +59,7 @@ export default async function BillingPage() {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <p className="text-sm font-medium text-gray-900">Seira Pro</p>
-            <StatusBadge status={status} />
+            <BillingStatusBadge status={status} />
           </div>
 
           {status === 'trialing' && subscription?.trial_ends_at && (

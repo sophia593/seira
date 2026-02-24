@@ -191,6 +191,14 @@ export default function PricingPage() {
             <p className="text-xs text-muted-foreground text-center mt-3">
               14-day free trial · cancel anytime
             </p>
+            <a
+              href="/api/one-pager/pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-xs text-copper text-center mt-2 hover:underline lowercase"
+            >
+              download one-pager (pdf)
+            </a>
           </div>
         </div>
       </section>

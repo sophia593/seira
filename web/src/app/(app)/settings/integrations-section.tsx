@@ -19,6 +19,7 @@ import { toast } from '@/components/ui/sonner'
 import { WebhookDialog } from './webhook-dialog'
 import { deleteWebhookAction, updateWebhookAction, saveSlackWebhookAction } from '@/app/(app)/actions/webhooks'
 import { ApiKeysSection } from './api-keys-section'
+import { CONNECTION_STATUS_CONFIG } from '@/lib/constants'
 import type { Webhook, WebhookEventType, ApiKeyDisplay } from '@/lib/types/database'
 
 const EVENT_LABELS: Record<WebhookEventType, string> = {
@@ -117,8 +118,8 @@ export function IntegrationsSection({ webhooks, apiKeys }: IntegrationsSectionPr
         {slackWebhook ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold">
-                Connected
+              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${CONNECTION_STATUS_CONFIG.connected.bgColor} ${CONNECTION_STATUS_CONFIG.connected.color} ${CONNECTION_STATUS_CONFIG.connected.borderColor}`}>
+                {CONNECTION_STATUS_CONFIG.connected.label}
               </span>
               <span className="text-xs text-gray-500 truncate flex-1">
                 {slackWebhook.url}
@@ -178,15 +179,14 @@ export function IntegrationsSection({ webhooks, apiKeys }: IntegrationsSectionPr
                     <span className="text-sm font-medium text-gray-900 truncate">
                       {wh.description || wh.url}
                     </span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        wh.active
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-gray-50 text-gray-500 border border-gray-200'
-                      }`}
-                    >
-                      {wh.active ? 'Active' : 'Paused'}
-                    </span>
+                    {(() => {
+                      const cfg = wh.active ? CONNECTION_STATUS_CONFIG.connected : CONNECTION_STATUS_CONFIG.paused
+                      return (
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cfg.bgColor} ${cfg.color} ${cfg.borderColor}`}>
+                          {wh.active ? 'Active' : cfg.label}
+                        </span>
+                      )
+                    })()}
                   </div>
                   {wh.description && (
                     <p className="text-xs text-gray-400 mt-0.5 truncate pl-6">{wh.url}</p>
