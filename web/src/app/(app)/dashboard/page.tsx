@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { CalendarDays, Users, ClipboardCheck, Plus, ArrowRight } from 'lucide-react'
+import { startTimer } from '@/lib/perf'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { getOrganization } from '@/lib/db/organizations'
@@ -10,6 +11,7 @@ import { listSeasons } from '@/lib/db/seasons'
 import { listDistinctPartnerNames } from '@/lib/db/partners'
 import { CreateWorkspaceForm } from '../create-workspace-form'
 import {
+  createDashboardContext,
   getDashboardStats,
   getUpcomingEvents,
   getOverdueDeliverables,
@@ -24,12 +26,13 @@ import { DashboardFilters } from './dashboard-filters'
 import { isUuid } from '@/lib/validation'
 import { CATEGORIES, STATUS_FLOW } from '@/lib/constants'
 import type { DashboardStats, DashboardFilters as DashboardFiltersType, UpcomingRenewal, ExpiringUsageRight } from '@/lib/db/dashboard'
-import type { Event, Season, EventWithCompletion, DeliverableWithPartner, DeliverableCategory, DeliverableStatus, ActivityLog, AssetUtilizationSummary } from '@/lib/types/database'
+import type { Event, Season, EventWithCompletion, DeliverableWithPartner, DeliverableCategory, DeliverableStatus, ActivityLog, AssetUtilizationSummary, OrgSettings } from '@/lib/types/database'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { AlertBadge, computeAlertSeverity } from '@/components/ui/alert-badge'
 import { SampleDataButton } from './sample-data-button'
 import { ActivityMiniWidget } from '@/components/activity-mini-widget'
 import { AssetUtilizationWidget } from '@/components/dashboard/asset-utilization-widget'
+import { InfoTip } from '@/components/ui/info-tip'
 import { formatShortDate, CATEGORY_CONFIG, PROOF_REQUIRED_CONFIG, EVENT_DOT_COLOR } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
@@ -96,6 +99,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  const pageTimer = startTimer('DashboardPage:total')
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -134,26 +138,28 @@ export default async function DashboardPage({
   const hasFilters = Object.keys(filters).length > 0
 
   // ---------------------------------------------------------------------------
-  // Fetch data
+  // Fetch data — shared context eliminates duplicate event queries & clients
   // ---------------------------------------------------------------------------
+  const ctx = await createDashboardContext(orgId, hasFilters ? filters : undefined)
+
   const [
     orgResult, statsResult, eventsResult, overdueResult, needsProofResult, activityResult,
     allEventsResult, seasonsResult, partnerNamesResult, renewalsResult, pendingApprovalResult,
     expiringRightsResult, assetUtilResult,
   ] = await Promise.allSettled([
     getOrganization(supabase, orgId),
-    getDashboardStats(orgId, hasFilters ? filters : undefined),
-    getUpcomingEvents(orgId, hasFilters ? filters : undefined),
-    getOverdueDeliverables(orgId, hasFilters ? filters : undefined),
-    getNeedsProofDeliverables(orgId, hasFilters ? filters : undefined),
+    getDashboardStats(ctx),
+    getUpcomingEvents(ctx),
+    getOverdueDeliverables(ctx),
+    getNeedsProofDeliverables(ctx),
     getRecentActivity(orgId, 15, hasFilters ? { eventId: filters.eventId, seasonId: filters.seasonId } : undefined),
     // Filter option lists
     listEvents(orgId),
     listSeasons(orgId),
     listDistinctPartnerNames(orgId),
-    getUpcomingRenewals(orgId, 90, hasFilters ? filters : undefined),
-    getPendingApprovalDeliverables(orgId, hasFilters ? filters : undefined),
-    getExpiringUsageRights(orgId, 60, hasFilters ? filters : undefined),
+    getUpcomingRenewals(ctx, 90),
+    getPendingApprovalDeliverables(ctx),
+    getExpiringUsageRights(ctx, 60),
     getAssetUtilizationSummary(orgId),
   ])
 
@@ -184,6 +190,11 @@ export default async function DashboardPage({
   // Empty state — onboarding
   // ---------------------------------------------------------------------------
   if (isEmpty) {
+    const orgSettings = (org?.settings ?? {}) as OrgSettings
+    if (!orgSettings.onboarding_completed) {
+      redirect('/onboarding')
+    }
+
     return (
       <div className="px-4 pt-24 md:pt-32 md:px-8">
         <div className="max-w-lg mx-auto text-center">
@@ -238,6 +249,7 @@ export default async function DashboardPage({
   const displayedNeedsProof = sortedNeedsProof.slice(0, remainingSlots)
   const moreEventsCount = stats.activeEvents - upcomingEvents.length
 
+  pageTimer.end()
   return (
     <div className="px-4 py-6 pb-24 md:px-8 md:py-8 max-w-5xl mx-auto lg:pb-8">
       {/* Header */}
@@ -268,14 +280,15 @@ export default async function DashboardPage({
         className="grid grid-cols-2 gap-3 lg:flex lg:items-start lg:gap-0 lg:divide-x lg:divide-border mb-8"
         aria-label="Dashboard statistics"
       >
-        <StatItem label="Active Events" value={stats.activeEvents} sub={hasFilters ? 'matching filters' : 'upcoming + active'} />
-        <StatItem label="Total Deliverables" value={stats.totalDeliverables} sub={hasFilters ? 'matching filters' : 'across all events'} />
+        <StatItem label="Active Events" value={stats.activeEvents} sub={hasFilters ? 'matching filters' : 'upcoming + active'} tooltip="Events with 'upcoming' or 'active' status" />
+        <StatItem label="Total Deliverables" value={stats.totalDeliverables} sub={hasFilters ? 'matching filters' : 'across all events'} tooltip="All deliverables across active events" />
         <StatItem
           label="Overdue"
           value={stats.overdueCount}
           sub="need attention"
           valueClassName={stats.overdueCount > 0 ? 'text-destructive' : undefined}
           showPulse={stats.overdueCount > 0}
+          tooltip="Deliverables past due that are not yet done"
         />
         {isAdminOrOwner && (
           <StatItem
@@ -283,6 +296,7 @@ export default async function DashboardPage({
             value={pendingApprovalItems.length}
             sub="need review"
             valueClassName={pendingApprovalItems.length > 0 ? 'text-orange-500' : undefined}
+            tooltip="Deliverables with proof awaiting admin review"
           />
         )}
         <StatItem
@@ -290,6 +304,7 @@ export default async function DashboardPage({
           value={`${stats.completionPct}%`}
           sub="proved or done"
           valueClassName={completionColor(stats.completionPct)}
+          tooltip="Percentage of deliverables marked done or proved"
         />
       </section>
 
@@ -637,17 +652,20 @@ function StatItem({
   sub,
   valueClassName,
   showPulse,
+  tooltip,
 }: {
   label: string
   value: number | string
   sub: string
   valueClassName?: string
   showPulse?: boolean
+  tooltip?: string
 }) {
   return (
     <div className="min-w-0 rounded-lg p-2 hover:bg-muted/30 transition-colors duration-150 lg:rounded-none lg:p-0 lg:hover:bg-transparent lg:flex-1 lg:px-4 lg:first:pl-0 lg:last:pr-0">
       <div className="flex items-center gap-1.5">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+        {tooltip && <InfoTip text={tooltip} />}
         {showPulse && (
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />

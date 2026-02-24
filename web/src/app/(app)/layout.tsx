@@ -151,16 +151,26 @@ export default async function AppLayout({
 
   // ---------------------------------------------------------------------------
   // Subscription gate: redirect to /subscribe if no active subscription
+  // Note: redirect() must NOT be inside try/catch — it throws a special error
+  // that Next.js uses internally. Catching it would swallow the redirect.
   // ---------------------------------------------------------------------------
+  let shouldRedirectToSubscribe = false
   try {
     const subscription = await getOrgSubscription(initialOrg.id)
-    const status = subscription?.subscription_status ?? 'none'
-    if (status === 'none' || status === 'unpaid' || status === 'canceled') {
-      redirect('/subscribe')
+    // Only gate if we got a valid subscription record with an explicit bad status.
+    // If subscription is null (billing not configured), allow through.
+    if (subscription) {
+      const status = subscription.subscription_status
+      if (status === 'unpaid' || status === 'canceled') {
+        shouldRedirectToSubscribe = true
+      }
     }
   } catch (e) {
     console.error('[Subscription check] Error:', e)
     // Allow through on error to avoid blocking the app entirely
+  }
+  if (shouldRedirectToSubscribe) {
+    redirect('/subscribe')
   }
 
   // Fetch recent events and unread count in parallel (best-effort)

@@ -5,7 +5,12 @@ import { Camera, FileText, Play, ExternalLink } from 'lucide-react'
 import { CATEGORY_CONFIG, STATUS_CONFIG, formatShortDate, isDeliverableCompleted, buildUsageRightsSentence } from '@/lib/constants'
 import { isImageType, isVideoType, isPdfType, formatFileSize } from '@/lib/proof-utils'
 import { useInView } from '@/hooks/use-in-view'
-import { ProofLightbox } from '@/components/proof/proof-lightbox'
+import dynamic from 'next/dynamic'
+
+const ProofLightbox = dynamic(
+  () => import('@/components/proof/proof-lightbox').then(mod => ({ default: mod.ProofLightbox })),
+  { ssr: false }
+)
 import type { DeliverableCategory, DeliverableStatus, Proof } from '@/lib/types/database'
 
 type RecapProof = Proof & { uploader_name: string | null }

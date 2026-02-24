@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { startTimer } from '@/lib/perf'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { getEventById } from '@/lib/db/events'
@@ -15,6 +16,8 @@ import { PartnerSection } from './partner-section'
 import { EventActivityFeed } from './event-activity-feed'
 import { AssetUtilizationTable } from '@/components/asset-utilization-table'
 import { Download } from 'lucide-react'
+import { InfoTip } from '@/components/ui/info-tip'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { completionPct, isOverdue, isDeliverableCompleted } from '@/lib/constants'
 import { canEditContent } from '@/lib/permissions'
 import type { DeliverableStatus } from '@/lib/types/database'
@@ -24,6 +27,7 @@ interface EventDetailPageProps {
 }
 
 export default async function EventDetailPage({ params }: EventDetailPageProps) {
+  const pageTimer = startTimer('EventDetailPage:total')
   const { id: eventId } = await params
 
   const event = await getEventById(eventId)
@@ -36,7 +40,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const { data: { user } } = await supabase.auth.getUser()
   const membership = user ? await getUserMembership(supabase, user.id) : null
 
-  const [partners, deliverables, templates, seasons, activities, assetUtilization] = await Promise.all([
+  const [partnersResult, deliverablesResult, templatesResult, seasonsResult, activitiesResult, assetUtilResult] = await Promise.allSettled([
     listPartnersByEvent(eventId),
     listDeliverablesByEvent(eventId),
     membership
@@ -50,6 +54,13 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       ? getEventAssetUtilization(membership.org_id, eventId)
       : Promise.resolve([]),
   ])
+
+  const partners = partnersResult.status === 'fulfilled' ? partnersResult.value : []
+  const deliverables = deliverablesResult.status === 'fulfilled' ? deliverablesResult.value : []
+  const templates = templatesResult.status === 'fulfilled' ? templatesResult.value : []
+  const seasons = seasonsResult.status === 'fulfilled' ? seasonsResult.value : []
+  const activities = activitiesResult.status === 'fulfilled' ? activitiesResult.value : []
+  const assetUtilization = assetUtilResult.status === 'fulfilled' ? assetUtilResult.value : []
 
   // Compute per-partner stats (plain object — serializable across server→client)
   const completionMap: Record<string, {
@@ -96,6 +107,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     deliverablePreviewMap[d.partner_id] = arr
   }
 
+  pageTimer.end()
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
       <Breadcrumbs
@@ -118,6 +130,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                   `Proof: ${totalProved} of ${totalDeliverables} collected`
                 )}
               </span>
+              <InfoTip text="Deliverables with verified proof attached" />
               {totalProved < totalDeliverables && (
                 <div className="w-16 h-1 rounded-full bg-gray-100 overflow-hidden">
                   <div
@@ -131,22 +144,32 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
         </div>
         <div className="flex items-center gap-2 flex-wrap shrink-0 print:hidden">
           {totalDeliverables > 0 && (
-            <a
-              href={`/api/export/deliverables?event=${eventId}`}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Export</span>
-            </a>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={`/api/export/deliverables?event=${eventId}`}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Export</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>Download deliverables as CSV</TooltipContent>
+            </Tooltip>
           )}
           {partners.length > 0 && (
-            <a
-              href={`/api/export/partners?event=${eventId}`}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Partners CSV</span>
-            </a>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={`/api/export/partners?event=${eventId}`}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Partners CSV</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>Download partner list as CSV</TooltipContent>
+            </Tooltip>
           )}
           {userCanEdit && hasIncomplete && (event.status === 'active' || event.status === 'upcoming') && (
             <GameDayActions eventId={eventId} categoryCounts={categoryCounts} />

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Zap, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { toast } from '@/components/ui/sonner'
 import { markCategoryDoneAction } from '@/app/(app)/actions/deliverables'
 import { CATEGORY_CONFIG } from '@/lib/constants'
@@ -52,18 +53,23 @@ export function GameDayActions({ eventId, categoryCounts }: GameDayActionsProps)
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        disabled={isPending}
-        className={cn(
-          'inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 h-9 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors',
-          isPending && 'opacity-50',
-        )}
-      >
-        <Zap className="w-4 h-4" />
-        Game Day
-        <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => setOpen(!open)}
+            disabled={isPending}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 h-9 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors',
+              isPending && 'opacity-50',
+            )}
+          >
+            <Zap className="w-4 h-4" />
+            Game Day
+            <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>Quickly mark categories as done during the event</TooltipContent>
+      </Tooltip>
 
       {open && (
         <div className="absolute right-0 top-full mt-1 z-[80] w-64 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">

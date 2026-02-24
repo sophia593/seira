@@ -132,20 +132,22 @@ async function authorizeRequest(
     return { authorized: false, status: 403, error: 'Not a member of this organization' }
   }
 
-  // Session users may access draft + published recaps
+  // Session users may access draft + published recaps — skip sanitization for internal use
+  const noSanitize = { sanitize: false }
+
   if (recap.is_combined) {
-    const data = await getCombinedRecapDataPublic(recapId)
+    const data = await getCombinedRecapDataPublic(recapId, noSanitize)
     if (!data) return { authorized: false, status: 404, error: 'Recap data not found' }
     return { authorized: true, authData: { kind: 'combined', data } }
   }
 
   if (recap.season_id) {
-    const data = await getSeasonRecapDataPublic(recapId)
+    const data = await getSeasonRecapDataPublic(recapId, noSanitize)
     if (!data) return { authorized: false, status: 404, error: 'Recap data not found' }
     return { authorized: true, authData: { kind: 'season', data } }
   }
 
-  const data = await getRecapDataPublic(recapId)
+  const data = await getRecapDataPublic(recapId, noSanitize)
   if (!data) {
     return { authorized: false, status: 404, error: 'Recap data not found' }
   }

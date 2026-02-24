@@ -27,6 +27,7 @@ import { postEventScanEmailSubject, postEventScanEmailHtml } from '@/lib/email/t
 import { partnerHealthEmailSubject, partnerHealthEmailHtml } from '@/lib/email/templates/partner-health'
 import { usageRightsExpiringEmailSubject, usageRightsExpiringEmailHtml } from '@/lib/email/templates/usage-rights-expiring'
 import { relativeEventTime } from '@/lib/relative-time'
+import { retryDelivery } from '@/lib/webhooks/dispatch'
 
 // ---------------------------------------------------------------------------
 // Admin client (inline — can't use cookie-based createClient from server.ts)
@@ -916,6 +917,60 @@ async function triggerUsageRightsExpiring(admin: ReturnType<typeof getAdminClien
 }
 
 // ---------------------------------------------------------------------------
+// Trigger 8: Webhook delivery retries
+// ---------------------------------------------------------------------------
+
+// Backoff schedule: minutes to wait before retry at each attempt number
+const BACKOFF_MINUTES = [0, 1, 5, 30, 120, 1440]
+
+async function triggerWebhookRetries(admin: ReturnType<typeof getAdminClient>): Promise<number> {
+  let retryCount = 0
+
+  // Fetch failed deliveries from the last 24h that haven't exhausted retries
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+  const { data: failedLogs } = await admin
+    .from('webhook_delivery_log')
+    .select('id, webhook_id, org_id, event_type, payload, attempt_number, original_delivery_id, created_at')
+    .eq('success', false)
+    .eq('retries_exhausted', false)
+    .gte('created_at', twentyFourHoursAgo)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (!failedLogs || failedLogs.length === 0) return 0
+
+  // Deduplicate: keep only the latest attempt per chain
+  const latestByChain = new Map<string, typeof failedLogs[number]>()
+  for (const log of failedLogs) {
+    const chainId = log.original_delivery_id ?? log.id
+    if (!latestByChain.has(chainId)) {
+      latestByChain.set(chainId, log)
+    }
+  }
+
+  const now = Date.now()
+
+  for (const log of latestByChain.values()) {
+    // Backoff check: skip if too recent for this attempt number
+    const backoffIdx = Math.min(log.attempt_number, BACKOFF_MINUTES.length - 1)
+    const minWaitMs = BACKOFF_MINUTES[backoffIdx] * 60 * 1000
+    const logAge = now - new Date(log.created_at).getTime()
+
+    if (logAge < minWaitMs) continue
+
+    try {
+      await retryDelivery(admin, log)
+      retryCount++
+    } catch (err) {
+      console.error('[Cron] Webhook retry failed:', err)
+    }
+  }
+
+  return retryCount
+}
+
+// ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
@@ -928,7 +983,7 @@ export async function GET(request: Request) {
     const admin = getAdminClient()
     const startTime = Date.now()
 
-    const [dueSoonCount, needsProofCount, weeklyRiskCount, preEventCount, postEventCount, partnerHealthCount, usageRightsCount] = await Promise.all([
+    const [dueSoonCount, needsProofCount, weeklyRiskCount, preEventCount, postEventCount, partnerHealthCount, usageRightsCount, webhookRetryCount] = await Promise.all([
       triggerDueSoon(admin),
       triggerNeedsProof(admin),
       triggerWeeklyRisk(admin),
@@ -936,12 +991,13 @@ export async function GET(request: Request) {
       triggerPostEventScan(admin),
       triggerPartnerHealth(admin),
       triggerUsageRightsExpiring(admin),
+      triggerWebhookRetries(admin),
     ])
 
     const duration = Date.now() - startTime
     const total = dueSoonCount + needsProofCount + weeklyRiskCount + preEventCount + postEventCount + partnerHealthCount + usageRightsCount
 
-    console.log(`[Cron] Notification run complete in ${duration}ms — due_soon: ${dueSoonCount}, needs_proof: ${needsProofCount}, weekly_risk: ${weeklyRiskCount}, pre_event: ${preEventCount}, post_event: ${postEventCount}, partner_health: ${partnerHealthCount}, usage_rights_expiring: ${usageRightsCount}`)
+    console.log(`[Cron] Notification run complete in ${duration}ms — due_soon: ${dueSoonCount}, needs_proof: ${needsProofCount}, weekly_risk: ${weeklyRiskCount}, pre_event: ${preEventCount}, post_event: ${postEventCount}, partner_health: ${partnerHealthCount}, usage_rights_expiring: ${usageRightsCount}, webhook_retries: ${webhookRetryCount}`)
 
     return NextResponse.json({
       ok: true,
@@ -955,6 +1011,7 @@ export async function GET(request: Request) {
         usage_rights_expiring: usageRightsCount,
         total,
       },
+      webhook_retries: webhookRetryCount,
       duration_ms: duration,
     })
   } catch (err) {

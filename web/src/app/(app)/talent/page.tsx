@@ -27,7 +27,12 @@ export default async function TalentPage() {
     )
   }
 
-  const talent = await listTalent(membership.org_id)
+  let talent: Awaited<ReturnType<typeof listTalent>> = []
+  try {
+    talent = await listTalent(membership.org_id)
+  } catch (e) {
+    console.error('[Talent] Failed to load talent:', e)
+  }
 
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">

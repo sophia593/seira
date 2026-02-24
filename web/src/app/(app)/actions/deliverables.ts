@@ -26,6 +26,7 @@ import { isUuid } from '@/lib/validation'
 import { canEditContent, canManageContent } from '@/lib/permissions'
 import type { DeliverableCategory, DeliverableStatus, OrgRole, OrgSettings, ProofRequired, TalentType, UsageScope, UsageTerritory, UsageDuration } from '@/lib/types/database'
 import { logActivity } from '@/lib/db/activity-log'
+import { fireWebhook } from '@/lib/webhooks/dispatch'
 import { tryCreateAdminClient } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/db/notifications'
 import { requiresApproval } from '@/lib/approval'
@@ -507,6 +508,14 @@ export async function approveDeliverableAction(
     }
 
     await updateDeliverableStatus(deliverableId, 'proved')
+
+    fireWebhook('deliverable_proved', auth.orgId, {
+      deliverable_id: deliverableId,
+      title: deliverable.title,
+      category: deliverable.category,
+      event_id: eventId,
+      partner_id: partnerId,
+    })
 
     // Clear any previous rejection note
     if (deliverable.rejection_note) {

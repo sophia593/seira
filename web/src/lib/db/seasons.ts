@@ -1,7 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
+import { timed, startTimer } from '@/lib/perf'
 import { isDeliverableCompleted } from '@/lib/constants'
 import type { Season, CreateSeasonInput, SeasonWithStats, SeasonPartnerRollup, DeliverableStatus } from '@/lib/types/database'
+
+/** Returns true if the error indicates a table or column does not exist. */
+function isSchemaError(error: { message?: string; code?: string }): boolean {
+  const msg = error.message?.toLowerCase() ?? ''
+  return (
+    msg.includes('does not exist') ||
+    msg.includes('could not find') ||
+    error.code === '42P01' ||
+    error.code === '42703'
+  )
+}
 
 // =============================================================================
 // Read Operations
@@ -16,7 +28,10 @@ export async function listSeasons(orgId: string): Promise<Season[]> {
     .eq('org_id', orgId)
     .order('start_date', { ascending: false, nullsFirst: false })
 
-  if (error) handleDbError(error, 'Failed to list seasons')
+  if (error) {
+    if (isSchemaError(error)) return []
+    handleDbError(error, 'Failed to list seasons')
+  }
 
   return (data ?? []) as Season[]
 }
@@ -32,6 +47,7 @@ export async function getSeasonById(seasonId: string): Promise<Season | null> {
 
   if (error) {
     if (error.code === 'PGRST116') return null
+    if (isSchemaError(error)) return null
     handleDbError(error, 'Failed to get season')
   }
 
@@ -40,36 +56,36 @@ export async function getSeasonById(seasonId: string): Promise<Season | null> {
 
 /** List all seasons with aggregated event/deliverable stats. */
 export async function listSeasonsWithStats(orgId: string): Promise<SeasonWithStats[]> {
+  const timer = startTimer('listSeasonsWithStats')
   const supabase = await createClient()
 
   // 1. All seasons for this org
-  const { data: seasons, error: seasonError } = await supabase
-    .from('seasons')
-    .select('*')
-    .eq('org_id', orgId)
-    .order('start_date', { ascending: false, nullsFirst: false })
+  const { data: seasons, error: seasonError } = await timed('seasonsWithStats:seasons', () =>
+    supabase.from('seasons').select('*').eq('org_id', orgId).order('start_date', { ascending: false, nullsFirst: false })
+  )
 
-  if (seasonError) handleDbError(seasonError, 'Failed to list seasons')
-  if (!seasons || seasons.length === 0) return []
+  if (seasonError) {
+    if (isSchemaError(seasonError)) { timer.end(); return [] }
+    handleDbError(seasonError, 'Failed to list seasons')
+  }
+  if (!seasons || seasons.length === 0) { timer.end(); return [] }
 
   const seasonIds = seasons.map((s) => s.id)
 
-  // 2. All events assigned to these seasons
-  const { data: events, error: eventError } = await supabase
-    .from('events')
-    .select('id, season_id')
-    .in('season_id', seasonIds)
+  // 2. All events assigned to these seasons (sequential — needs seasonIds)
+  const { data: events, error: eventError } = await timed('seasonsWithStats:events', () =>
+    supabase.from('events').select('id, season_id').in('season_id', seasonIds)
+  )
 
   if (eventError) handleDbError(eventError, 'Failed to fetch events for seasons')
 
   const eventIds = (events ?? []).map((e) => e.id)
 
-  // 3. All deliverables for those events
+  // 3. All deliverables for those events (sequential — needs eventIds)
   const { data: deliverables, error: delError } = eventIds.length > 0
-    ? await supabase
-        .from('deliverables')
-        .select('id, event_id, status')
-        .in('event_id', eventIds)
+    ? await timed('seasonsWithStats:deliverables', () =>
+        supabase.from('deliverables').select('id, event_id, status').in('event_id', eventIds)
+      )
     : { data: [], error: null }
 
   if (delError) handleDbError(delError, 'Failed to fetch deliverables for seasons')
@@ -85,14 +101,12 @@ export async function listSeasonsWithStats(orgId: string): Promise<SeasonWithSta
     stats[s.id] = { events: 0, total: 0, completed: 0 }
   }
 
-  // Count events per season
   for (const e of events ?? []) {
     if (e.season_id && stats[e.season_id]) {
       stats[e.season_id].events++
     }
   }
 
-  // Count deliverables per season (via event → season mapping)
   for (const d of deliverables ?? []) {
     const seasonId = eventSeasonMap[d.event_id]
     if (seasonId && stats[seasonId]) {
@@ -103,6 +117,7 @@ export async function listSeasonsWithStats(orgId: string): Promise<SeasonWithSta
     }
   }
 
+  timer.end()
   return (seasons as Season[]).map((s) => {
     const st = stats[s.id] ?? { events: 0, total: 0, completed: 0 }
     return {
@@ -117,36 +132,34 @@ export async function listSeasonsWithStats(orgId: string): Promise<SeasonWithSta
 
 /** Aggregate partner fulfillment across all events in a season, grouped by partner name. */
 export async function getSeasonPartnerRollup(seasonId: string): Promise<SeasonPartnerRollup[]> {
+  const timer = startTimer('getSeasonPartnerRollup')
   const supabase = await createClient()
 
   // 1. Events in this season
-  const { data: events, error: eventErr } = await supabase
-    .from('events')
-    .select('id, name')
-    .eq('season_id', seasonId)
+  const { data: events, error: eventErr } = await timed('seasonPartnerRollup:events', () =>
+    supabase.from('events').select('id, name').eq('season_id', seasonId)
+  )
 
   if (eventErr) handleDbError(eventErr, 'Failed to fetch season events')
-  if (!events || events.length === 0) return []
+  if (!events || events.length === 0) { timer.end(); return [] }
 
   const eventIds = events.map((e) => e.id)
   const eventMap: Record<string, string> = Object.fromEntries(events.map((e) => [e.id, e.name]))
 
-  // 2. Partners for those events
-  const { data: partners, error: partnerErr } = await supabase
-    .from('partners')
-    .select('id, event_id, name')
-    .in('event_id', eventIds)
+  // 2+3. Partners and deliverables in parallel (both need eventIds)
+  const [partnerResult, delResult] = await timed('seasonPartnerRollup:partners+deliverables', () =>
+    Promise.all([
+      supabase.from('partners').select('id, event_id, name').in('event_id', eventIds),
+      supabase.from('deliverables').select('id, partner_id, status, due_date').in('event_id', eventIds),
+    ])
+  )
 
-  if (partnerErr) handleDbError(partnerErr, 'Failed to fetch partners')
-  if (!partners || partners.length === 0) return []
+  if (partnerResult.error) handleDbError(partnerResult.error, 'Failed to fetch partners')
+  if (!partnerResult.data || partnerResult.data.length === 0) { timer.end(); return [] }
+  const partners = partnerResult.data
 
-  // 3. Deliverables for those events
-  const { data: deliverables, error: delErr } = await supabase
-    .from('deliverables')
-    .select('id, partner_id, status, due_date')
-    .in('event_id', eventIds)
-
-  if (delErr) handleDbError(delErr, 'Failed to fetch deliverables')
+  if (delResult.error) handleDbError(delResult.error, 'Failed to fetch deliverables')
+  const deliverables = delResult.data
 
   // 4. Group partners by normalized name
   const groups = new Map<string, {
@@ -213,6 +226,7 @@ export async function getSeasonPartnerRollup(seasonId: string): Promise<SeasonPa
   }
 
   results.sort((a, b) => a.name.localeCompare(b.name))
+  timer.end()
   return results
 }
 

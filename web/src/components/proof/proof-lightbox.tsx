@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, X, ExternalLink, Trash2, FileText, Play } from 'lucide-react'
 import { isImageType, isVideoType, isPdfType, formatFileSize } from '@/lib/proof-utils'
+import { supabaseImageUrl } from '@/lib/image-utils'
 import type { Proof } from '@/lib/types/database'
 
 interface ProofLightboxProps {
@@ -104,7 +105,7 @@ export function ProofLightbox({ proofs, initialIndex, open, onClose, onDelete }:
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               key={currentProof.id}
-              src={currentProof.file_url}
+              src={supabaseImageUrl(currentProof.file_url, { width: 1200, resize: 'contain', quality: 80 })}
               alt={currentProof.file_name}
               className="object-contain max-h-[75vh] max-w-full rounded-lg select-none transition-opacity duration-200"
               style={{ opacity: imageLoaded ? 1 : 0 }}

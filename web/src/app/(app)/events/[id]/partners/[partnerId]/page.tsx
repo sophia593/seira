@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { startTimer } from '@/lib/perf'
 import { createClient } from '@/lib/supabase/server'
 import { getEventById } from '@/lib/db/events'
 import { getPartnerById } from '@/lib/db/partners'
@@ -13,6 +14,7 @@ import { PartnerActions } from './partner-actions'
 import { DeliverableSection } from './deliverable-section'
 import { RecapSection } from './recap-section'
 import { STATUS_FLOW, STATUS_CONFIG } from '@/lib/constants'
+import { InfoTip } from '@/components/ui/info-tip'
 import type { DeliverableStatus } from '@/lib/types/database'
 
 interface PartnerDetailPageProps {
@@ -20,13 +22,18 @@ interface PartnerDetailPageProps {
 }
 
 export default async function PartnerDetailPage({ params }: PartnerDetailPageProps) {
+  const pageTimer = startTimer('PartnerDetailPage:total')
   const { id: eventId, partnerId } = await params
 
-  const [event, partner, deliverables] = await Promise.all([
+  const [eventResult, partnerResult, deliverablesResult] = await Promise.allSettled([
     getEventById(eventId),
     getPartnerById(partnerId),
     listDeliverablesByPartner(partnerId),
   ])
+
+  const event = eventResult.status === 'fulfilled' ? eventResult.value : null
+  const partner = partnerResult.status === 'fulfilled' ? partnerResult.value : null
+  const deliverables = deliverablesResult.status === 'fulfilled' ? deliverablesResult.value : []
 
   if (!event || !partner) notFound()
   if (partner.event_id !== eventId) notFound()
@@ -34,7 +41,7 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
   // Fetch proof data + recaps + templates
   const supabase = await createClient()
   const deliverableIds = deliverables.map((d) => d.id)
-  const [proofCounts, allProofs, recaps, templates, talents, assets] = await Promise.all([
+  const [proofCountsResult, allProofsResult, recapsResult, templatesResult, talentsResult, assetsResult] = await Promise.allSettled([
     countProofByDeliverable(deliverableIds),
     listProofByPartner(partnerId),
     listRecapsByPartner(partnerId),
@@ -42,6 +49,13 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
     listTalent(event.org_id),
     listAssets(event.org_id),
   ])
+
+  const proofCounts = proofCountsResult.status === 'fulfilled' ? proofCountsResult.value : {}
+  const allProofs = allProofsResult.status === 'fulfilled' ? allProofsResult.value : []
+  const recaps = recapsResult.status === 'fulfilled' ? recapsResult.value : []
+  const templates = templatesResult.status === 'fulfilled' ? templatesResult.value : []
+  const talents = talentsResult.status === 'fulfilled' ? talentsResult.value : []
+  const assets = assetsResult.status === 'fulfilled' ? assetsResult.value : []
 
   // Build proof map: deliverable_id → Proof[]
   const proofMap: Record<string, typeof allProofs> = {}
@@ -83,6 +97,7 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
     ? `${baseUrl}/recap/${latestRecap.share_token}`
     : null
 
+  pageTimer.end()
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
       <Breadcrumbs
@@ -167,7 +182,10 @@ export default async function PartnerDetailPage({ params }: PartnerDetailPagePro
 
           {deliverables.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs font-medium text-gray-500 mb-1.5">Proof collection</p>
+              <p className="text-xs font-medium text-gray-500 mb-1.5 inline-flex items-center gap-1">
+                Proof collection
+                <InfoTip text="Tracks how many deliverables have verified proof for recap reports" />
+              </p>
               <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
                 <div
                   className="h-full bg-copper rounded-full transition-all duration-300"

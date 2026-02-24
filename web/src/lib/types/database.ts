@@ -11,8 +11,12 @@ export type UsageScope = 'social' | 'broadcast' | 'all' | 'custom';
 export type UsageTerritory = 'us' | 'global' | 'custom';
 export type UsageDuration = '30d' | '90d' | '1yr' | 'perpetual' | 'custom';
 
+export type OrgType = 'sports' | 'music' | 'festival' | 'conference' | 'university' | 'other';
+
 export interface OrgSettings {
   approval_required_categories?: DeliverableCategory[];
+  org_type?: OrgType;
+  onboarding_completed?: boolean;
 }
 
 export interface Organization {
@@ -485,6 +489,66 @@ export interface AssetUtilizationSummary {
   at_capacity_count: number;
   underutilized_count: number;
   underutilized_assets: { name: string; utilization_pct: number; available: number }[];
+}
+
+// === WEBHOOKS ===
+
+export type WebhookEventType =
+  | 'recap_published'
+  | 'deliverable_proved'
+  | 'event_completed'
+  | 'partner_added';
+
+export interface Webhook {
+  id: string;
+  org_id: string;
+  url: string;
+  events: WebhookEventType[];
+  active: boolean;
+  signing_secret: string;
+  description: string | null;
+  last_triggered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WebhookDeliveryLog {
+  id: string;
+  webhook_id: string;
+  org_id: string;
+  event_type: WebhookEventType;
+  payload: Record<string, unknown>;
+  status_code: number | null;
+  response_body: string | null;
+  error: string | null;
+  duration_ms: number | null;
+  success: boolean;
+  attempt_number: number;
+  original_delivery_id: string | null;
+  retries_exhausted: boolean;
+  created_at: string;
+}
+
+// === API KEYS ===
+
+export interface ApiKey {
+  id: string;
+  org_id: string;
+  key_hash: string;
+  key_prefix: string;
+  name: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiKeyDisplay {
+  id: string;
+  key_prefix: string;
+  name: string;
+  last_used_at: string | null;
+  created_at: string;
 }
 
 // === ACTIVITY LOG ===

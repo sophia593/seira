@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { startTimer } from '@/lib/perf'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { getSeasonById, getSeasonPartnerRollup } from '@/lib/db/seasons'
@@ -16,6 +17,7 @@ interface SeasonDetailPageProps {
 }
 
 export default async function SeasonDetailPage({ params }: SeasonDetailPageProps) {
+  const pageTimer = startTimer('SeasonDetailPage:total')
   const { id: seasonId } = await params
 
   const season = await getSeasonById(seasonId)
@@ -26,12 +28,17 @@ export default async function SeasonDetailPage({ params }: SeasonDetailPageProps
   const membership = user ? await getUserMembership(supabase, user.id) : null
   if (!membership) notFound()
 
-  const [allEvents, templates, partnerRollup, seasonUtilization] = await Promise.all([
+  const [allEventsResult, templatesResult, partnerRollupResult, seasonUtilResult] = await Promise.allSettled([
     listEventsWithCompletion(membership.org_id),
     listTemplates(supabase, membership.org_id, { includeGlobal: true }),
     getSeasonPartnerRollup(seasonId),
     getSeasonAssetUtilization(membership.org_id, seasonId),
   ])
+
+  const allEvents = allEventsResult.status === 'fulfilled' ? allEventsResult.value : []
+  const templates = templatesResult.status === 'fulfilled' ? templatesResult.value : []
+  const partnerRollup = partnerRollupResult.status === 'fulfilled' ? partnerRollupResult.value : []
+  const seasonUtilization = seasonUtilResult.status === 'fulfilled' ? seasonUtilResult.value : []
   const seasonEvents = allEvents.filter((e) => e.season_id === seasonId)
 
   // Combined stats
@@ -44,6 +51,7 @@ export default async function SeasonDetailPage({ params }: SeasonDetailPageProps
   const overdueCount = seasonEvents.reduce((sum, e) => sum + e.overdue_count, 0)
   const completionPct = totalDeliverables > 0 ? Math.round((completedDeliverables / totalDeliverables) * 100) : 0
 
+  pageTimer.end()
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
       <Breadcrumbs

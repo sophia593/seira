@@ -27,7 +27,12 @@ export default async function AssetsPage() {
     )
   }
 
-  const assets = await listAssets(membership.org_id)
+  let assets: Awaited<ReturnType<typeof listAssets>> = []
+  try {
+    assets = await listAssets(membership.org_id)
+  } catch (e) {
+    console.error('[Assets] Failed to load assets:', e)
+  }
 
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">

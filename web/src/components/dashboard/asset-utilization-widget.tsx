@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Package, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { InfoTip } from '@/components/ui/info-tip'
 import type { AssetUtilizationSummary } from '@/lib/types/database'
 
 function barColor(pct: number): string {
@@ -62,6 +63,7 @@ export function AssetUtilizationWidget({ summary }: AssetUtilizationWidgetProps)
             <p className="text-[10px] uppercase tracking-widest text-amber-600 font-medium">
               Revenue Opportunity
             </p>
+            <InfoTip text="Available inventory that could be sold to additional sponsors" />
           </div>
           <p className="text-xs text-muted-foreground mb-3">
             These assets have available capacity that could be sold to additional partners.

@@ -5,8 +5,10 @@ import { listSeasonsWithStats } from '@/lib/db/seasons'
 import { SeasonList } from './season-list'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Layers } from 'lucide-react'
+import { startTimer } from '@/lib/perf'
 
 export default async function SeasonsPage() {
+  const pageTimer = startTimer('SeasonsPage:total')
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -26,8 +28,15 @@ export default async function SeasonsPage() {
     )
   }
 
-  const seasons = await listSeasonsWithStats(membership.org_id)
+  let seasons: Awaited<ReturnType<typeof listSeasonsWithStats>> = []
 
+  try {
+    seasons = await listSeasonsWithStats(membership.org_id)
+  } catch (e) {
+    console.error('[Seasons] Failed to load seasons:', e)
+  }
+
+  pageTimer.end()
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
       <SeasonList seasons={seasons} />

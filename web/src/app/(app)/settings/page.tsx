@@ -2,12 +2,18 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/db/client'
 import { getOrganization, getOrganizationMembersWithProfiles } from '@/lib/db/organizations'
+import { listWebhooksByOrg } from '@/lib/db/webhooks'
+import { listApiKeysByOrg } from '@/lib/db/api-keys'
+import { startTimer } from '@/lib/perf'
 import { WorkspaceForm } from './workspace-form'
 import { ApprovalCategoryForm } from './approval-category-form'
+import { IntegrationsSection } from './integrations-section'
 import { DangerZone } from './danger-zone'
 import { SignOutButton } from './sign-out-button'
+import type { Webhook, ApiKeyDisplay } from '@/lib/types/database'
 
 export default async function SettingsPage() {
+  const pageTimer = startTimer('SettingsPage:total')
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.getUser()
@@ -34,19 +40,29 @@ export default async function SettingsPage() {
   const canRename = membership.role === 'owner' || membership.role === 'admin'
   const isOwner = membership.role === 'owner'
 
-  // Fetch admins for transfer ownership dropdown (only if owner)
+  // Fetch integrations + team data in parallel (all non-critical)
+  let webhooks: Webhook[] = []
+  let apiKeys: ApiKeyDisplay[] = []
   let admins: { user_id: string; name: string | null; email: string }[] = []
-  if (isOwner) {
-    try {
-      const members = await getOrganizationMembersWithProfiles(supabase, membership.org_id)
+
+  if (canRename || isOwner) {
+    const [webhookResult, apiKeyResult, membersResult] = await Promise.allSettled([
+      canRename ? listWebhooksByOrg(membership.org_id) : Promise.resolve([]),
+      canRename ? listApiKeysByOrg(membership.org_id) : Promise.resolve([]),
+      isOwner ? getOrganizationMembersWithProfiles(supabase, membership.org_id) : Promise.resolve([]),
+    ])
+
+    if (webhookResult.status === 'fulfilled') webhooks = webhookResult.value as Webhook[]
+    if (apiKeyResult.status === 'fulfilled') apiKeys = apiKeyResult.value as ApiKeyDisplay[]
+    if (membersResult.status === 'fulfilled') {
+      const members = membersResult.value as Awaited<ReturnType<typeof getOrganizationMembersWithProfiles>>
       admins = members
         .filter((m) => m.role === 'admin')
         .map((m) => ({ user_id: m.user_id, name: m.name, email: m.email }))
-    } catch {
-      // Non-critical
     }
   }
 
+  pageTimer.end()
   return (
     <div className="max-w-2xl">
       {/* Section 1 — Workspace */}
@@ -64,6 +80,17 @@ export default async function SettingsPage() {
             Choose which deliverable categories require admin approval before being marked as proved.
           </p>
           <ApprovalCategoryForm currentCategories={org.settings?.approval_required_categories} />
+        </section>
+      )}
+
+      {/* Section — Integrations */}
+      {canRename && (
+        <section className="py-6 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1">Integrations</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Configure API keys, webhooks, and external service connections.
+          </p>
+          <IntegrationsSection webhooks={webhooks} apiKeys={apiKeys} />
         </section>
       )}
 

@@ -24,7 +24,7 @@ export function CreateWorkspaceForm() {
         setError(result.error ?? 'Failed to create workspace')
         return
       }
-      router.refresh()
+      router.push('/onboarding')
     })
   }
 

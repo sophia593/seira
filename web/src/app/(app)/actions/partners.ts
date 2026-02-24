@@ -7,6 +7,7 @@ import { createPartner, updatePartner, deletePartner } from '@/lib/db/partners'
 import { isUuid } from '@/lib/validation'
 import { canManageContent } from '@/lib/permissions'
 import { logActivity } from '@/lib/db/activity-log'
+import { fireWebhook } from '@/lib/webhooks/dispatch'
 import type { OrgRole } from '@/lib/types/database'
 
 async function getAuthenticatedOrg() {
@@ -85,6 +86,15 @@ export async function createPartnerAction(
     }
 
     logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'created', targetType: 'partner', targetId: partner.id, eventId, details: { name, actor_email: auth.userEmail } })
+
+    fireWebhook('partner_added', auth.orgId, {
+      partner_id: partner.id,
+      event_id: eventId,
+      name: partner.name,
+      contact_name: partner.contact_name,
+      contact_email: partner.contact_email,
+      deal_value: partner.deal_value,
+    })
 
     revalidatePath('/events')
     revalidatePath('/dashboard')

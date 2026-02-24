@@ -4,6 +4,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
 import { countProofByDeliverable } from './proof'
+import { startTimer } from '@/lib/perf'
 import { isDeliverableCompleted } from '@/lib/constants'
 import type {
   Event,
@@ -31,6 +32,49 @@ export interface DashboardFilters {
   partnerName?: string
   category?: DeliverableCategory
   status?: DeliverableStatus
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseClient = any
+
+/**
+ * Shared context for dashboard queries — avoids creating multiple Supabase
+ * clients and re-querying the events table in every function.
+ */
+export interface DashboardContext {
+  supabase: SupabaseClient
+  orgId: string
+  filters: DashboardFilters
+  /** Pre-resolved event IDs matching event/season filters, or null = all */
+  filteredEventIds: string[] | null
+  /** All non-archived event IDs for the org (fetched once). */
+  orgEventIds: string[]
+}
+
+/**
+ * Create a shared DashboardContext — one `createClient()` call, one events
+ * query — then pass `ctx` to every dashboard function.
+ */
+export async function createDashboardContext(
+  orgId: string,
+  filters?: DashboardFilters,
+): Promise<DashboardContext> {
+  const supabase = await createClient()
+  const f = filters ?? {}
+
+  // 1. All non-archived event IDs (shared by stats, overdue, needs-proof, etc.)
+  const { data: allEvents } = await supabase
+    .from('events')
+    .select('id')
+    .eq('org_id', orgId)
+    .neq('status', 'archived')
+
+  const orgEventIds = (allEvents ?? []).map((e: { id: string }) => e.id)
+
+  // 2. Resolve filtered event IDs if event/season filter is active
+  const filteredEventIds = await resolveFilteredEventIds(supabase, orgId, f)
+
+  return { supabase, orgId, filters: f, filteredEventIds, orgEventIds }
 }
 
 // =============================================================================
@@ -81,43 +125,50 @@ async function resolvePartnerIds(client: any, orgId: string, partnerName: string
 // =============================================================================
 
 /** Aggregate stats across non-archived events for the org. */
-export async function getDashboardStats(orgId: string, filters?: DashboardFilters): Promise<DashboardStats> {
-  const supabase = await createClient()
+export async function getDashboardStats(ctx: DashboardContext): Promise<DashboardStats>
+export async function getDashboardStats(orgId: string, filters?: DashboardFilters): Promise<DashboardStats>
+export async function getDashboardStats(orgIdOrCtx: string | DashboardContext, filters?: DashboardFilters): Promise<DashboardStats> {
+  const timer = startTimer('getDashboardStats')
 
-  // 1. All non-archived events for this org
-  let eventQuery = supabase
-    .from('events')
-    .select('id, status')
-    .eq('org_id', orgId)
-    .neq('status', 'archived')
+  // Resolve context
+  const ctx = typeof orgIdOrCtx === 'string'
+    ? await createDashboardContext(orgIdOrCtx, filters)
+    : orgIdOrCtx
+  const { supabase, orgId, filters: f } = ctx
 
-  if (filters?.eventId) eventQuery = eventQuery.eq('id', filters.eventId)
-  if (filters?.seasonId) eventQuery = eventQuery.eq('season_id', filters.seasonId)
-
-  const { data: events, error: eventError } = await eventQuery
-
-  if (eventError) handleDbError(eventError, 'Failed to load dashboard stats')
-  if (!events || events.length === 0) {
+  // Use pre-resolved event IDs — skip the events query entirely
+  let eventIds = f.eventId || f.seasonId ? ctx.filteredEventIds ?? [] : ctx.orgEventIds
+  if (eventIds.length === 0) {
+    timer.end()
     return { activeEvents: 0, totalDeliverables: 0, overdueCount: 0, completionPct: 0 }
   }
 
-  const activeEvents = events.filter(
-    (e) => e.status === 'upcoming' || e.status === 'active'
+  // We need statuses to count active events, so fetch status for our scoped event IDs
+  const { data: events, error: eventError } = await supabase
+    .from('events')
+    .select('id, status')
+    .in('id', eventIds)
+
+  if (eventError) handleDbError(eventError, 'Failed to load dashboard stats')
+
+  const activeEvents = (events ?? []).filter(
+    (e: { status: string }) => e.status === 'upcoming' || e.status === 'active'
   ).length
+  eventIds = (events ?? []).map((e: { id: string }) => e.id)
 
   // 2. All deliverables for those events
-  const eventIds = events.map((e) => e.id)
   let delQuery = supabase
     .from('deliverables')
     .select('id, event_id, status, due_date, category, partner_id')
     .in('event_id', eventIds)
 
-  if (filters?.category) delQuery = delQuery.eq('category', filters.category)
-  if (filters?.status) delQuery = delQuery.eq('status', filters.status)
+  if (f.category) delQuery = delQuery.eq('category', f.category)
+  if (f.status) delQuery = delQuery.eq('status', f.status)
 
-  if (filters?.partnerName) {
-    const partnerIds = await resolvePartnerIds(supabase, orgId, filters.partnerName, eventIds)
+  if (f.partnerName) {
+    const partnerIds = await resolvePartnerIds(supabase, orgId, f.partnerName, eventIds)
     if (partnerIds.length === 0) {
+      timer.end()
       return { activeEvents: 0, totalDeliverables: 0, overdueCount: 0, completionPct: 0 }
     }
     delQuery = delQuery.in('partner_id', partnerIds)
@@ -140,6 +191,7 @@ export async function getDashboardStats(orgId: string, filters?: DashboardFilter
     }
   }
 
+  timer.end()
   return {
     activeEvents,
     totalDeliverables,
@@ -155,8 +207,16 @@ export async function getDashboardStats(orgId: string, filters?: DashboardFilter
 // =============================================================================
 
 /** Up to 5 upcoming/active events with completion data, ordered by date asc. */
-export async function getUpcomingEvents(orgId: string, filters?: DashboardFilters): Promise<EventWithCompletion[]> {
-  const supabase = await createClient()
+export async function getUpcomingEvents(ctx: DashboardContext): Promise<EventWithCompletion[]>
+export async function getUpcomingEvents(orgId: string, filters?: DashboardFilters): Promise<EventWithCompletion[]>
+export async function getUpcomingEvents(orgIdOrCtx: string | DashboardContext, filters?: DashboardFilters): Promise<EventWithCompletion[]> {
+  const timer = startTimer('getUpcomingEvents')
+  const ctx = typeof orgIdOrCtx === 'string'
+    ? await createDashboardContext(orgIdOrCtx, filters)
+    : orgIdOrCtx
+  const { supabase, orgId, filters: f } = ctx
+  // Re-alias filters for the rest of the function
+  filters = f
 
   // 1. Events query — scope by filter
   let eventQuery = supabase.from('events').select('*').eq('org_id', orgId)
@@ -177,7 +237,7 @@ export async function getUpcomingEvents(orgId: string, filters?: DashboardFilter
   if (!events || events.length === 0) return []
 
   // 2. Deliverables for those events
-  const eventIds = events.map((e) => e.id)
+  const eventIds = (events ?? []).map((e: { id: string }) => e.id)
   let delQuery = supabase
     .from('deliverables')
     .select('id, event_id, status, due_date, category, partner_id')
@@ -230,6 +290,7 @@ export async function getUpcomingEvents(orgId: string, filters?: DashboardFilter
   const allDoneIds = [...doneIdsByEvent.values()].flat()
   const proofCounts = allDoneIds.length > 0 ? await countProofByDeliverable(allDoneIds) : {}
 
+  timer.end()
   return (events as Event[]).map((e) => {
     const s = stats[e.id] ?? { total: 0, completed: 0, overdue: 0 }
     const doneIds = doneIdsByEvent.get(e.id) ?? []
@@ -250,30 +311,22 @@ export async function getUpcomingEvents(orgId: string, filters?: DashboardFilter
 // =============================================================================
 
 /** Up to 10 overdue deliverables with partner name, across all org events. */
-export async function getOverdueDeliverables(orgId: string, filters?: DashboardFilters): Promise<DeliverableWithPartner[]> {
+export async function getOverdueDeliverables(ctx: DashboardContext): Promise<DeliverableWithPartner[]>
+export async function getOverdueDeliverables(orgId: string, filters?: DashboardFilters): Promise<DeliverableWithPartner[]>
+export async function getOverdueDeliverables(orgIdOrCtx: string | DashboardContext, filters?: DashboardFilters): Promise<DeliverableWithPartner[]> {
+  const ctx = typeof orgIdOrCtx === 'string'
+    ? await createDashboardContext(orgIdOrCtx, filters)
+    : orgIdOrCtx
+  const { supabase, orgId, filters: f } = ctx
+
   // Overdue only applies to incomplete statuses
-  if (filters?.status && isDeliverableCompleted(filters.status)) return []
+  if (f.status && isDeliverableCompleted(f.status)) return []
 
-  const supabase = await createClient()
-
-  // Resolve event IDs
-  const filteredEventIds = filters ? await resolveFilteredEventIds(supabase, orgId, filters) : null
-
-  let eventIds: string[]
-  if (filteredEventIds) {
-    if (filteredEventIds.length === 0) return []
-    eventIds = filteredEventIds
-  } else {
-    const { data: events, error: eventsError } = await supabase
-      .from('events')
-      .select('id')
-      .eq('org_id', orgId)
-      .neq('status', 'archived')
-
-    if (eventsError) handleDbError(eventsError, 'Failed to load org events for overdue')
-    if (!events || events.length === 0) return []
-    eventIds = events.map((e) => e.id)
-  }
+  // Use pre-resolved event IDs from context
+  const eventIds = f.eventId || f.seasonId
+    ? (ctx.filteredEventIds ?? [])
+    : ctx.orgEventIds
+  if (eventIds.length === 0) return []
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -286,16 +339,16 @@ export async function getOverdueDeliverables(orgId: string, filters?: DashboardF
     .limit(10)
 
   // Status filter
-  if (filters?.status) {
-    delQuery = delQuery.eq('status', filters.status)
+  if (f.status) {
+    delQuery = delQuery.eq('status', f.status)
   } else {
     delQuery = delQuery.in('status', ['not_started', 'in_progress'])
   }
 
-  if (filters?.category) delQuery = delQuery.eq('category', filters.category)
+  if (f.category) delQuery = delQuery.eq('category', f.category)
 
-  if (filters?.partnerName) {
-    const partnerIds = await resolvePartnerIds(supabase, orgId, filters.partnerName, eventIds)
+  if (f.partnerName) {
+    const partnerIds = await resolvePartnerIds(supabase, orgId, f.partnerName, eventIds)
     if (partnerIds.length === 0) return []
     delQuery = delQuery.in('partner_id', partnerIds)
   }
@@ -304,7 +357,8 @@ export async function getOverdueDeliverables(orgId: string, filters?: DashboardF
 
   if (error) handleDbError(error, 'Failed to load overdue deliverables')
 
-  return (data ?? []).map((row) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []).map((row: any) => {
     const { partners, ...deliverable } = row as Deliverable & { partners: { id: string; name: string } }
     return { ...deliverable, partner: partners } as DeliverableWithPartner
   })
@@ -315,30 +369,22 @@ export async function getOverdueDeliverables(orgId: string, filters?: DashboardF
 // =============================================================================
 
 /** Up to 10 deliverables with status 'done' and zero proofs, with partner name. */
-export async function getNeedsProofDeliverables(orgId: string, filters?: DashboardFilters): Promise<DeliverableWithPartner[]> {
+export async function getNeedsProofDeliverables(ctx: DashboardContext): Promise<DeliverableWithPartner[]>
+export async function getNeedsProofDeliverables(orgId: string, filters?: DashboardFilters): Promise<DeliverableWithPartner[]>
+export async function getNeedsProofDeliverables(orgIdOrCtx: string | DashboardContext, filters?: DashboardFilters): Promise<DeliverableWithPartner[]> {
+  const ctx = typeof orgIdOrCtx === 'string'
+    ? await createDashboardContext(orgIdOrCtx, filters)
+    : orgIdOrCtx
+  const { supabase, orgId, filters: f } = ctx
+
   // Needs-proof only applies to 'done' status
-  if (filters?.status && filters.status !== 'done') return []
+  if (f.status && f.status !== 'done') return []
 
-  const supabase = await createClient()
-
-  // Resolve event IDs
-  const filteredEventIds = filters ? await resolveFilteredEventIds(supabase, orgId, filters) : null
-
-  let eventIds: string[]
-  if (filteredEventIds) {
-    if (filteredEventIds.length === 0) return []
-    eventIds = filteredEventIds
-  } else {
-    const { data: events, error: eventsError } = await supabase
-      .from('events')
-      .select('id')
-      .eq('org_id', orgId)
-      .neq('status', 'archived')
-
-    if (eventsError) handleDbError(eventsError, 'Failed to load org events for needs-proof')
-    if (!events || events.length === 0) return []
-    eventIds = events.map((e) => e.id)
-  }
+  // Use pre-resolved event IDs from context
+  const eventIds = f.eventId || f.seasonId
+    ? (ctx.filteredEventIds ?? [])
+    : ctx.orgEventIds
+  if (eventIds.length === 0) return []
 
   let delQuery = supabase
     .from('deliverables')
@@ -347,10 +393,10 @@ export async function getNeedsProofDeliverables(orgId: string, filters?: Dashboa
     .eq('status', 'done')
     .order('due_date', { ascending: true, nullsFirst: false })
 
-  if (filters?.category) delQuery = delQuery.eq('category', filters.category)
+  if (f.category) delQuery = delQuery.eq('category', f.category)
 
-  if (filters?.partnerName) {
-    const partnerIds = await resolvePartnerIds(supabase, orgId, filters.partnerName, eventIds)
+  if (f.partnerName) {
+    const partnerIds = await resolvePartnerIds(supabase, orgId, f.partnerName, eventIds)
     if (partnerIds.length === 0) return []
     delQuery = delQuery.in('partner_id', partnerIds)
   }
@@ -359,7 +405,8 @@ export async function getNeedsProofDeliverables(orgId: string, filters?: Dashboa
 
   if (error) handleDbError(error, 'Failed to load needs-proof deliverables')
 
-  const rows = (data ?? []).map((row) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: DeliverableWithPartner[] = (data ?? []).map((row: any) => {
     const { partners, ...deliverable } = row as Deliverable & { partners: { id: string; name: string } }
     return { ...deliverable, partner: partners } as DeliverableWithPartner
   })
@@ -376,28 +423,21 @@ export async function getNeedsProofDeliverables(orgId: string, filters?: Dashboa
 // =============================================================================
 
 /** Deliverables with status 'pending_approval', with partner name. */
-export async function getPendingApprovalDeliverables(orgId: string, filters?: DashboardFilters): Promise<DeliverableWithPartner[]> {
-  if (filters?.status && filters.status !== 'pending_approval') return []
+export async function getPendingApprovalDeliverables(ctx: DashboardContext): Promise<DeliverableWithPartner[]>
+export async function getPendingApprovalDeliverables(orgId: string, filters?: DashboardFilters): Promise<DeliverableWithPartner[]>
+export async function getPendingApprovalDeliverables(orgIdOrCtx: string | DashboardContext, filters?: DashboardFilters): Promise<DeliverableWithPartner[]> {
+  const ctx = typeof orgIdOrCtx === 'string'
+    ? await createDashboardContext(orgIdOrCtx, filters)
+    : orgIdOrCtx
+  const { supabase, orgId, filters: f } = ctx
 
-  const supabase = await createClient()
+  if (f.status && f.status !== 'pending_approval') return []
 
-  const filteredEventIds = filters ? await resolveFilteredEventIds(supabase, orgId, filters) : null
-
-  let eventIds: string[]
-  if (filteredEventIds) {
-    if (filteredEventIds.length === 0) return []
-    eventIds = filteredEventIds
-  } else {
-    const { data: events, error: eventsError } = await supabase
-      .from('events')
-      .select('id')
-      .eq('org_id', orgId)
-      .neq('status', 'archived')
-
-    if (eventsError) handleDbError(eventsError, 'Failed to load org events for pending approval')
-    if (!events || events.length === 0) return []
-    eventIds = events.map((e) => e.id)
-  }
+  // Use pre-resolved event IDs from context
+  const eventIds = f.eventId || f.seasonId
+    ? (ctx.filteredEventIds ?? [])
+    : ctx.orgEventIds
+  if (eventIds.length === 0) return []
 
   let delQuery = supabase
     .from('deliverables')
@@ -407,10 +447,10 @@ export async function getPendingApprovalDeliverables(orgId: string, filters?: Da
     .order('updated_at', { ascending: true })
     .limit(20)
 
-  if (filters?.category) delQuery = delQuery.eq('category', filters.category)
+  if (f.category) delQuery = delQuery.eq('category', f.category)
 
-  if (filters?.partnerName) {
-    const partnerIds = await resolvePartnerIds(supabase, orgId, filters.partnerName, eventIds)
+  if (f.partnerName) {
+    const partnerIds = await resolvePartnerIds(supabase, orgId, f.partnerName, eventIds)
     if (partnerIds.length === 0) return []
     delQuery = delQuery.in('partner_id', partnerIds)
   }
@@ -419,7 +459,8 @@ export async function getPendingApprovalDeliverables(orgId: string, filters?: Da
 
   if (error) handleDbError(error, 'Failed to load pending approval deliverables')
 
-  return (data ?? []).map((row) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []).map((row: any) => {
     const { partners, ...deliverable } = row as Deliverable & { partners: { id: string; name: string } }
     return { ...deliverable, partner: partners } as DeliverableWithPartner
   })
@@ -490,17 +531,17 @@ export interface UpcomingRenewal {
 }
 
 /** Partners with renewal dates in the next N days, deduplicated by name. */
-export async function getUpcomingRenewals(
-  orgId: string,
-  daysAhead: number = 90,
-  filters?: DashboardFilters,
-): Promise<UpcomingRenewal[]> {
-  const supabase = await createClient()
+export async function getUpcomingRenewals(ctx: DashboardContext, daysAhead?: number): Promise<UpcomingRenewal[]>
+export async function getUpcomingRenewals(orgId: string, daysAhead?: number, filters?: DashboardFilters): Promise<UpcomingRenewal[]>
+export async function getUpcomingRenewals(orgIdOrCtx: string | DashboardContext, daysAhead: number = 90, filters?: DashboardFilters): Promise<UpcomingRenewal[]> {
+  const ctx = typeof orgIdOrCtx === 'string'
+    ? await createDashboardContext(orgIdOrCtx, filters)
+    : orgIdOrCtx
+  const { supabase, orgId, filters: f } = ctx
+  if (typeof orgIdOrCtx !== 'string' && typeof daysAhead !== 'number') daysAhead = 90
 
   const today = new Date().toISOString().slice(0, 10)
   const futureDate = new Date(Date.now() + daysAhead * 86_400_000).toISOString().slice(0, 10)
-
-  const filteredEventIds = filters ? await resolveFilteredEventIds(supabase, orgId, filters) : null
 
   let query = supabase
     .from('partners')
@@ -511,13 +552,13 @@ export async function getUpcomingRenewals(
     .order('renewal_date', { ascending: true })
     .limit(30)
 
-  if (filteredEventIds) {
-    if (filteredEventIds.length === 0) return []
-    query = query.in('event_id', filteredEventIds)
+  if (ctx.filteredEventIds) {
+    if (ctx.filteredEventIds.length === 0) return []
+    query = query.in('event_id', ctx.filteredEventIds)
   }
 
-  if (filters?.partnerName) {
-    query = query.ilike('name', filters.partnerName)
+  if (f.partnerName) {
+    query = query.ilike('name', f.partnerName)
   }
 
   const { data, error } = await query
@@ -558,31 +599,23 @@ export interface ExpiringUsageRight {
 }
 
 /** Talent deliverables with usage_expiration_date in the next N days. */
-export async function getExpiringUsageRights(
-  orgId: string,
-  daysAhead: number = 60,
-  filters?: DashboardFilters,
-): Promise<ExpiringUsageRight[]> {
-  const supabase = await createClient()
+export async function getExpiringUsageRights(ctx: DashboardContext, daysAhead?: number): Promise<ExpiringUsageRight[]>
+export async function getExpiringUsageRights(orgId: string, daysAhead?: number, filters?: DashboardFilters): Promise<ExpiringUsageRight[]>
+export async function getExpiringUsageRights(orgIdOrCtx: string | DashboardContext, daysAhead: number = 60, filters?: DashboardFilters): Promise<ExpiringUsageRight[]> {
+  const ctx = typeof orgIdOrCtx === 'string'
+    ? await createDashboardContext(orgIdOrCtx, filters)
+    : orgIdOrCtx
+  const { supabase, orgId, filters: f } = ctx
+  if (typeof orgIdOrCtx !== 'string' && typeof daysAhead !== 'number') daysAhead = 60
 
   const today = new Date().toISOString().slice(0, 10)
   const futureDate = new Date(Date.now() + daysAhead * 86_400_000).toISOString().slice(0, 10)
 
-  const filteredEventIds = filters ? await resolveFilteredEventIds(supabase, orgId, filters) : null
-
-  let eventIds: string[]
-  if (filteredEventIds) {
-    if (filteredEventIds.length === 0) return []
-    eventIds = filteredEventIds
-  } else {
-    const { data: events } = await supabase
-      .from('events')
-      .select('id')
-      .eq('org_id', orgId)
-
-    if (!events || events.length === 0) return []
-    eventIds = events.map((e: { id: string }) => e.id)
-  }
+  // Use pre-resolved event IDs from context (all events, not just non-archived)
+  const eventIds = f.eventId || f.seasonId
+    ? (ctx.filteredEventIds ?? [])
+    : ctx.orgEventIds
+  if (eventIds.length === 0) return []
 
   let query = supabase
     .from('deliverables')
@@ -594,12 +627,12 @@ export async function getExpiringUsageRights(
     .order('usage_expiration_date', { ascending: true })
     .limit(30)
 
-  if (filters?.partnerName) {
+  if (f.partnerName) {
     const { data: matchingPartners } = await supabase
       .from('partners')
       .select('id')
       .in('event_id', eventIds)
-      .ilike('name', filters.partnerName)
+      .ilike('name', f.partnerName)
 
     if (!matchingPartners || matchingPartners.length === 0) return []
     query = query.in('partner_id', matchingPartners.map((p: { id: string }) => p.id))
@@ -619,34 +652,28 @@ export async function getExpiringUsageRights(
 
   if (rows.length === 0) return []
 
-  // Fetch partner names
+  // Fetch partner names, event names, and talent names in PARALLEL
   const partnerIds = [...new Set(rows.map((d) => d.partner_id))]
-  const { data: partners } = await supabase
-    .from('partners')
-    .select('id, name')
-    .in('id', partnerIds)
-  const partnerMap = new Map((partners ?? []).map((p: { id: string; name: string }) => [p.id, p.name]))
-
-  // Fetch event names
   const rowEventIds = [...new Set(rows.map((d) => d.event_id))]
-  const { data: events } = await supabase
-    .from('events')
-    .select('id, name')
-    .in('id', rowEventIds)
-  const eventMap = new Map((events ?? []).map((e: { id: string; name: string }) => [e.id, e.name]))
+  const talentIds = [...new Set(rows.map((d) => d.talent_id).filter(Boolean) as string[])]
 
-  // Fetch talent names
-  const talentIds = rows.map((d) => d.talent_id).filter(Boolean) as string[]
-  const talentMap = new Map<string, string>()
-  if (talentIds.length > 0) {
-    const { data: talents } = await supabase
-      .from('talent')
-      .select('id, name')
-      .in('id', [...new Set(talentIds)])
-    for (const t of (talents ?? []) as { id: string; name: string }[]) {
-      talentMap.set(t.id, t.name)
-    }
-  }
+  const [partnersResult, eventsResult, talentsResult] = await Promise.all([
+    supabase.from('partners').select('id, name').in('id', partnerIds),
+    supabase.from('events').select('id, name').in('id', rowEventIds),
+    talentIds.length > 0
+      ? supabase.from('talent').select('id, name').in('id', talentIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const partnerMap = new Map(
+    ((partnersResult.data ?? []) as { id: string; name: string }[]).map((p) => [p.id, p.name])
+  )
+  const eventMap = new Map(
+    ((eventsResult.data ?? []) as { id: string; name: string }[]).map((e) => [e.id, e.name])
+  )
+  const talentMap = new Map(
+    ((talentsResult.data ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name])
+  )
 
   return rows.map((row) => ({
     deliverable_id: row.id,

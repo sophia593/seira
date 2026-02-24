@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, CalendarDays, Layers, Building2, Users, Package, BarChart3, Settings, Plus } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Layers, Building2, Users, Package, BarChart3, Settings, HelpCircle, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserMenu } from '@/components/layout/user-menu'
 import { NotificationBell } from '@/components/layout/notification-bell'
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { href: '/assets', label: 'Assets', icon: Package },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/help', label: 'Help', icon: HelpCircle },
 ]
 
 // =============================================================================
@@ -211,6 +212,13 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, recentEvents }: AppShellProps) {
+  const pathname = usePathname()
+
+  // Render without chrome during onboarding
+  if (pathname === '/onboarding') {
+    return <>{children}</>
+  }
+
   return (
     <div className="flex h-screen bg-background">
       {/* Desktop Sidebar */}

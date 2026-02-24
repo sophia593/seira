@@ -19,7 +19,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/components/ui/sonner'
 import { ProofUploadButton } from '@/components/proof/proof-upload-button'
-import { ProofLightbox } from '@/components/proof/proof-lightbox'
+import dynamic from 'next/dynamic'
+
+const ProofLightbox = dynamic(
+  () => import('@/components/proof/proof-lightbox').then(mod => ({ default: mod.ProofLightbox })),
+  { ssr: false }
+)
 import { updateDeliverableAction, deleteDeliverableAction } from '@/app/(app)/actions/deliverables'
 import { deleteProofAction } from '@/app/(app)/actions/proof'
 import {

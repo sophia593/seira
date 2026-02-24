@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { EmptyState } from '@/components/ui/empty-state'
 import { useOrg } from '@/hooks/use-org'
 import { CreateEventDialog } from '@/app/(app)/events/create-event-dialog'
 import { deleteEventAction } from '@/app/(app)/actions/events'
@@ -135,21 +136,19 @@ export function EventList({ events, seasons = [] }: EventListProps) {
 
       {/* ---------- Empty state ---------- */}
       {events.length === 0 ? (
-        <div className="text-center py-16">
-          <CalendarDays className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm font-medium">No events yet</p>
-          <p className="text-xs text-muted-foreground mt-1 mb-4">
-            Create your first event to start tracking partner deliverables.
-          </p>
-          {isAdmin && (
+        <EmptyState
+          icon={CalendarDays}
+          title="No events yet"
+          description="Create your first event to start tracking partner deliverables."
+          action={isAdmin ? (
             <button
               onClick={() => setShowCreateDialog(true)}
               className="bg-kurobeni text-white text-sm rounded-md h-9 px-4 hover:bg-blackberry transition-colors"
             >
               + new event
             </button>
-          )}
-        </div>
+          ) : undefined}
+        />
       ) : (
         <>
           {/* ---------- Next Up strip ---------- */}

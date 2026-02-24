@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Package, Infinity as InfinityIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { InfoTip } from '@/components/ui/info-tip'
 import type { AssetUtilization, SeasonAssetUtilization } from '@/lib/types/database'
 
 function getBarColor(pct: number | null): string {
@@ -46,9 +47,13 @@ export function AssetUtilizationTable({ utilization, showEventsColumn }: AssetUt
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200">
             <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-widest text-gray-500 font-semibold">Asset</th>
-            <th className="text-center px-3 py-2.5 text-[10px] uppercase tracking-widest text-gray-500 font-semibold">Capacity</th>
+            <th className="text-center px-3 py-2.5 text-[10px] uppercase tracking-widest text-gray-500 font-semibold">
+              <span className="inline-flex items-center gap-1">Capacity <InfoTip text="Max allocations for this asset" side="bottom" /></span>
+            </th>
             <th className="text-center px-3 py-2.5 text-[10px] uppercase tracking-widest text-gray-500 font-semibold">Used</th>
-            <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-widest text-gray-500 font-semibold min-w-[120px]">Utilization</th>
+            <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-widest text-gray-500 font-semibold min-w-[120px]">
+              <span className="inline-flex items-center gap-1">Utilization <InfoTip text="Percentage of capacity allocated to partners" side="bottom" /></span>
+            </th>
             {showEventsColumn && (
               <th className="text-center px-3 py-2.5 text-[10px] uppercase tracking-widest text-gray-500 font-semibold">Events</th>
             )}

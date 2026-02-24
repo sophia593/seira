@@ -7,8 +7,14 @@ import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/sonner'
 import { deleteTemplateAction, duplicateTemplateAction, generateShareTokenAction, revokeShareTokenAction } from '@/app/(app)/actions/templates'
 import { CATEGORY_CONFIG } from '@/lib/constants'
+import { EmptyState } from '@/components/ui/empty-state'
+import dynamic from 'next/dynamic'
 import type { Template, DeliverableCategory } from '@/lib/types/database'
-import { TemplateDialog } from './template-dialog'
+
+const TemplateDialog = dynamic(
+  () => import('./template-dialog').then(mod => ({ default: mod.TemplateDialog })),
+  { ssr: false }
+)
 
 const INDUSTRY_LABEL: Record<string, string> = {
   sports: 'Sports',
@@ -124,20 +130,20 @@ export function TemplateList({ templates, orgId, isManager }: TemplateListProps)
       )}
 
       {templates.length === 0 && (
-        <div className="border border-dashed border-gray-200 rounded-xl py-12 flex flex-col items-center justify-center">
-          <FileText className="w-8 h-8 text-gray-300 mb-2" />
-          <p className="text-sm text-gray-500">No templates yet</p>
-          {isManager && (
+        <EmptyState
+          icon={FileText}
+          title="No templates yet"
+          description="Templates let you pre-fill deliverables when adding partners — saves time on repeat events."
+          action={isManager ? (
             <Button
               onClick={() => setShowCreate(true)}
               variant="ghost"
               size="sm"
-              className="mt-2"
             >
               Create your first template
             </Button>
-          )}
-        </div>
+          ) : undefined}
+        />
       )}
 
       {/* Create/Edit dialog */}

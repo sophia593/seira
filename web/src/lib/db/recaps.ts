@@ -361,9 +361,14 @@ export async function getRecapData(recapId: string): Promise<RecapData | null> {
 }
 
 /** Fetch everything needed to render a recap (public/admin context). */
-export async function getRecapDataPublic(recapId: string): Promise<RecapData | null> {
+export async function getRecapDataPublic(
+  recapId: string,
+  options?: { sanitize?: boolean },
+): Promise<RecapData | null> {
   const admin = createAdminClient()
-  return fetchRecapData(admin, recapId)
+  const data = await fetchRecapData(admin, recapId)
+  if (!data) return null
+  return options?.sanitize === false ? data : sanitizeRecapData(data)
 }
 
 async function fetchRecapData(
@@ -502,9 +507,14 @@ export async function getSeasonRecapData(recapId: string): Promise<SeasonRecapDa
 }
 
 /** Fetch everything needed to render a season recap (public/admin context). */
-export async function getSeasonRecapDataPublic(recapId: string): Promise<SeasonRecapData | null> {
+export async function getSeasonRecapDataPublic(
+  recapId: string,
+  options?: { sanitize?: boolean },
+): Promise<SeasonRecapData | null> {
   const admin = createAdminClient()
-  return fetchSeasonRecapData(admin, recapId)
+  const data = await fetchSeasonRecapData(admin, recapId)
+  if (!data) return null
+  return options?.sanitize === false ? data : sanitizeSeasonRecapData(data)
 }
 
 async function fetchSeasonRecapData(
@@ -721,9 +731,14 @@ export async function getCombinedRecapData(recapId: string): Promise<CombinedRec
 }
 
 /** Fetch everything needed to render a combined recap (public/admin context). */
-export async function getCombinedRecapDataPublic(recapId: string): Promise<CombinedRecapData | null> {
+export async function getCombinedRecapDataPublic(
+  recapId: string,
+  options?: { sanitize?: boolean },
+): Promise<CombinedRecapData | null> {
   const admin = createAdminClient()
-  return fetchCombinedRecapData(admin, recapId)
+  const data = await fetchCombinedRecapData(admin, recapId)
+  if (!data) return null
+  return options?.sanitize === false ? data : sanitizeCombinedRecapData(data)
 }
 
 async function fetchCombinedRecapData(
@@ -944,5 +959,70 @@ async function fetchCombinedRecapData(
     events: eventsWithDeliverables,
     deliverables: flatDeliverables,
     stats: { total, completed, proved, inProgress, byCategory },
+  }
+}
+
+// =============================================================================
+// Public view sanitizers — strip internal fields before rendering
+// =============================================================================
+
+type DeliverableWithProofs = RecapData['deliverables'][number]
+
+/** Strip internal proof fields for public view. */
+function sanitizeProofs(
+  proofs: DeliverableWithProofs['proofs'],
+): DeliverableWithProofs['proofs'] {
+  return proofs.map((p) => ({
+    ...p,
+    uploader_name: null,
+    uploaded_by: '',
+    org_id: '',
+    validation_status: null,
+    validation_result: null,
+  }))
+}
+
+/** Map internal workflow statuses to public-friendly equivalents. */
+function publicStatus(status: DeliverableStatus): DeliverableStatus {
+  // "pending_approval" is an internal approval step — show as "done" publicly
+  if (status === 'pending_approval') return 'done'
+  return status
+}
+
+function sanitizeDeliverables(items: DeliverableWithProofs[]): DeliverableWithProofs[] {
+  return items.map((d) => ({
+    ...d,
+    status: publicStatus(d.status),
+    proofs: sanitizeProofs(d.proofs),
+  }))
+}
+
+function sanitizeRecapData(data: RecapData): RecapData {
+  return {
+    ...data,
+    deliverables: sanitizeDeliverables(data.deliverables),
+  }
+}
+
+function sanitizeSeasonRecapData(data: SeasonRecapData): SeasonRecapData {
+  return {
+    ...data,
+    events: data.events.map((e) => ({
+      ...e,
+      deliverables: sanitizeDeliverables(e.deliverables),
+    })),
+    deliverables: sanitizeDeliverables(data.deliverables),
+  }
+}
+
+function sanitizeCombinedRecapData(data: CombinedRecapData): CombinedRecapData {
+  return {
+    ...data,
+    totalDealValue: 0,
+    events: data.events.map((e) => ({
+      ...e,
+      deliverables: sanitizeDeliverables(e.deliverables),
+    })),
+    deliverables: sanitizeDeliverables(data.deliverables),
   }
 }

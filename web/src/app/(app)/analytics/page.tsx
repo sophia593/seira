@@ -7,6 +7,8 @@ import { getOrgPartnerRollup } from '@/lib/db/partners'
 import { getRecentActivity } from '@/lib/db/activity-log'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { ActivityMiniWidget } from '@/components/activity-mini-widget'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ClipboardList, Users } from 'lucide-react'
 import { CATEGORY_CONFIG } from '@/lib/constants'
 import { formatShortDate } from '@/lib/constants'
 import type { DashboardStats, CategoryBreakdown } from '@/lib/db/dashboard'
@@ -92,7 +94,11 @@ export default async function AnalyticsPage() {
         <section>
           <h2 className="text-sm font-semibold mb-4">Deliverables by Category</h2>
           {categories.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No deliverables yet.</p>
+            <EmptyState
+              icon={ClipboardList}
+              title="No deliverables yet"
+              description="Add deliverables to events to see category breakdowns here."
+            />
           ) : (
             <div className="space-y-3">
               {categories.map((cat) => (
@@ -127,7 +133,11 @@ export default async function AnalyticsPage() {
             )}
           </div>
           {topPartners.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No partners yet.</p>
+            <EmptyState
+              icon={Users}
+              title="No partners yet"
+              description="Partner data will appear once you add sponsors to events."
+            />
           ) : (
             <div className="divide-y divide-border">
               {topPartners.map((partner) => (

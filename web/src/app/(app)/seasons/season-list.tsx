@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Layers, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { EmptyState } from '@/components/ui/empty-state'
 import { useOrg } from '@/hooks/use-org'
 import { deleteSeasonAction } from '@/app/(app)/actions/seasons'
 import { CreateSeasonDialog } from './create-season-dialog'
@@ -114,21 +115,19 @@ export function SeasonList({ seasons }: SeasonListProps) {
 
       {/* Empty state */}
       {seasons.length === 0 ? (
-        <div className="text-center py-16">
-          <Layers className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm font-medium">No seasons yet</p>
-          <p className="text-xs text-muted-foreground mt-1 mb-4">
-            Create your first season to group related events together.
-          </p>
-          {isAdmin && (
+        <EmptyState
+          icon={Layers}
+          title="No seasons yet"
+          description="Group related events into a season to see aggregate stats and utilization."
+          action={isAdmin ? (
             <button
               onClick={() => setShowCreateDialog(true)}
               className="bg-kurobeni text-white text-sm rounded-md h-9 px-4 hover:bg-blackberry transition-colors"
             >
               + new season
             </button>
-          )}
-        </div>
+          ) : undefined}
+        />
       ) : (
         <>
           <div className="flex items-center justify-between mb-3">

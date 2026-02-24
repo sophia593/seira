@@ -4,8 +4,13 @@ import { useState, useMemo } from 'react'
 import { ClipboardList, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import dynamic from 'next/dynamic'
 import { DeliverableCard } from './deliverable-card'
-import { AddDeliverableDialog } from './add-deliverable-dialog'
+
+const AddDeliverableDialog = dynamic(
+  () => import('./add-deliverable-dialog').then(mod => ({ default: mod.AddDeliverableDialog })),
+  { ssr: false }
+)
 import { useOrg } from '@/hooks/use-org'
 import { SortControl } from '@/components/ui/sort-control'
 import { STATUS_FLOW } from '@/lib/constants'

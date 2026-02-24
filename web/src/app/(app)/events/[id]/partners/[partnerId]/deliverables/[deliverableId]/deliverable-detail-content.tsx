@@ -20,10 +20,19 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from '@/components/ui/sonner'
+import dynamic from 'next/dynamic'
 import { ProofUploadButton } from '@/components/proof/proof-upload-button'
-import { ProofLightbox } from '@/components/proof/proof-lightbox'
 import { ProofValidationBadge } from '@/components/proof/proof-validation-badge'
-import { EditDeliverableDialog } from '../../edit-deliverable-dialog'
+import { supabaseImageUrl } from '@/lib/image-utils'
+
+const ProofLightbox = dynamic(
+  () => import('@/components/proof/proof-lightbox').then(mod => ({ default: mod.ProofLightbox })),
+  { ssr: false }
+)
+const EditDeliverableDialog = dynamic(
+  () => import('../../edit-deliverable-dialog').then(mod => ({ default: mod.EditDeliverableDialog })),
+  { ssr: false }
+)
 import { EventActivityFeed } from '@/app/(app)/events/[id]/event-activity-feed'
 import {
   advanceDeliverableStatusAction,
@@ -751,9 +760,10 @@ export function DeliverableDetailContent({
                   {isImageType(proof.file_type) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={proof.file_url}
+                      src={supabaseImageUrl(proof.file_url, { width: 600, resize: 'cover' })}
                       alt={proof.file_name}
                       className="aspect-video w-full object-cover"
+                      loading="lazy"
                     />
                   ) : proof.file_type === 'text/uri-list' ? (
                     <div className="aspect-video w-full bg-indigo-50 flex items-center justify-center">

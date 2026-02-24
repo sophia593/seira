@@ -6,8 +6,10 @@ import { listSeasons } from '@/lib/db/seasons'
 import { EventList } from '@/components/events'
 import { EmptyState } from '@/components/ui/empty-state'
 import { CalendarDays } from 'lucide-react'
+import { startTimer } from '@/lib/perf'
 
 export default async function EventsPage() {
+  const pageTimer = startTimer('EventsPage:total')
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -28,13 +30,24 @@ export default async function EventsPage() {
     )
   }
 
-  const [events, seasons] = await Promise.all([
-    listEventsWithCompletion(membership.org_id),
-    listSeasons(membership.org_id),
-  ])
+  let events: Awaited<ReturnType<typeof listEventsWithCompletion>> = []
+  let seasons: Awaited<ReturnType<typeof listSeasons>> = []
+
+  try {
+    events = await listEventsWithCompletion(membership.org_id)
+  } catch (e) {
+    console.error('[Events] Failed to load events:', e)
+  }
+
+  try {
+    seasons = await listSeasons(membership.org_id)
+  } catch (e) {
+    console.error('[Events] Failed to load seasons:', e)
+  }
 
   const seasonOptions = seasons.map((s) => ({ id: s.id, name: s.name }))
 
+  pageTimer.end()
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl mx-auto">
       <EventList events={events} orgId={membership.org_id} seasons={seasonOptions} />

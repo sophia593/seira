@@ -17,6 +17,7 @@ import {
   extractStoragePath,
 } from '@/lib/proof-utils'
 import { logActivity } from '@/lib/db/activity-log'
+import { fireWebhook } from '@/lib/webhooks/dispatch'
 import { requiresApproval } from '@/lib/approval'
 import { CATEGORY_CONFIG } from '@/lib/constants'
 import type { Proof, OrgSettings } from '@/lib/types/database'
@@ -197,7 +198,6 @@ export async function uploadProofAction(
         needsApproval ? 'pending_approval' : 'proved',
       )
 
-      // Notify admins that a deliverable needs their approval
       if (needsApproval && notifyAdmin) {
         notifyOrgAdmins(notifyAdmin, orgId, user.id, {
           type: 'pending_approval',
@@ -205,6 +205,16 @@ export async function uploadProofAction(
           body: `"${deliverable.title}" — admin review required`,
           link: `/events/${deliverable.event_id}/partners/${deliverable.partner_id}/deliverables/${deliverableId}`,
         }).catch(() => {})
+      }
+
+      if (!needsApproval) {
+        fireWebhook('deliverable_proved', orgId, {
+          deliverable_id: deliverableId,
+          title: deliverable.title,
+          category: deliverable.category,
+          event_id: deliverable.event_id,
+          partner_id: deliverable.partner_id,
+        })
       }
     }
 
@@ -413,6 +423,16 @@ export async function submitLinkProofAction(
           body: `"${deliverable.title}" — admin review required`,
           link: `/events/${deliverable.event_id}/partners/${deliverable.partner_id}/deliverables/${deliverableId}`,
         }).catch(() => {})
+      }
+
+      if (!needsApproval) {
+        fireWebhook('deliverable_proved', orgId, {
+          deliverable_id: deliverableId,
+          title: deliverable.title,
+          category: deliverable.category,
+          event_id: deliverable.event_id,
+          partner_id: deliverable.partner_id,
+        })
       }
     }
 

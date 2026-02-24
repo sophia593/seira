@@ -22,6 +22,7 @@ import { isUuid } from '@/lib/validation'
 import { sendEmail } from '@/lib/email/send'
 import { recapSharedEmailSubject, recapSharedEmailHtml } from '@/lib/email/templates/recap-shared'
 import { logActivity } from '@/lib/db/activity-log'
+import { fireWebhook } from '@/lib/webhooks/dispatch'
 import type { OrgRole } from '@/lib/types/database'
 
 // ---------------------------------------------------------------------------
@@ -265,6 +266,15 @@ export async function publishRecapAction(
     const recap = await publishRecap(recapId)
 
     logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'published', targetType: 'recap', targetId: recapId, eventId: recap.event_id, details: { title: recap.title, partner_id: recap.partner_id, actor_email: auth.userEmail } })
+
+    fireWebhook('recap_published', auth.orgId, {
+      recap_id: recapId,
+      title: recap.title,
+      event_id: recap.event_id,
+      partner_id: recap.partner_id,
+      published_at: recap.published_at,
+      share_token: recap.share_token,
+    })
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const shareUrl = `${baseUrl}/recap/${recap.share_token}`

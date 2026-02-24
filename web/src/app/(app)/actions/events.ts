@@ -9,6 +9,7 @@ import { listDeliverablesByEvent } from '@/lib/db/deliverables'
 import { isUuid } from '@/lib/validation'
 import { canManageContent } from '@/lib/permissions'
 import { logActivity } from '@/lib/db/activity-log'
+import { fireWebhook } from '@/lib/webhooks/dispatch'
 import type { EventStatus, OrgRole } from '@/lib/types/database'
 
 const VALID_STATUSES: EventStatus[] = ['upcoming', 'active', 'completed', 'archived']
@@ -101,6 +102,16 @@ export async function updateEventAction(
     })
 
     logActivity({ orgId: auth.orgId, userId: auth.userId, action: 'updated', targetType: 'event', targetId: eventId, eventId, details: { name, actor_email: auth.userEmail } })
+
+    if (status === 'completed') {
+      fireWebhook('event_completed', auth.orgId, {
+        event_id: eventId,
+        name: name!,
+        date: str(formData, 'date') ?? null,
+        venue: str(formData, 'venue') ?? null,
+        status: 'completed',
+      })
+    }
 
     revalidatePath('/events')
     revalidatePath('/seasons')

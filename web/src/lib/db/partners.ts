@@ -1,7 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleDbError } from './client'
+import { timed, startTimer } from '@/lib/perf'
 import { isOverdue, completionPct, isDeliverableCompleted } from '@/lib/constants'
 import type { Partner, CreatePartnerInput, DeliverableStatus, OrgPartnerRollup } from '@/lib/types/database'
+
+/** Returns true if the error indicates a missing table or column. */
+function isSchemaError(error: { message?: string; code?: string }): boolean {
+  const msg = error.message?.toLowerCase() ?? ''
+  return (
+    msg.includes('does not exist') ||
+    msg.includes('could not find') ||
+    error.code === '42P01' ||
+    error.code === '42703'
+  )
+}
 
 // =============================================================================
 // Read Operations
@@ -66,51 +78,54 @@ export async function getPartnerById(partnerId: string): Promise<Partner | null>
 
 /** All partners across all events, grouped by normalized name with aggregated stats. */
 export async function getOrgPartnerRollup(orgId: string): Promise<OrgPartnerRollup[]> {
+  const timer = startTimer('getOrgPartnerRollup')
   const supabase = await createClient()
 
-  // 1. All partners for the org
-  const { data: partners, error: pErr } = await supabase
-    .from('partners')
-    .select('id, event_id, name, contact_name, contact_email, contract_notes, deal_value, renewal_date, updated_at')
-    .eq('org_id', orgId)
+  // 1+2. Partners and events in parallel (both only need orgId)
+  const [pResult, eResult] = await timed('partnerRollup:partners+events', () =>
+    Promise.all([
+      supabase.from('partners').select('*').eq('org_id', orgId),
+      supabase.from('events').select('id, name').eq('org_id', orgId),
+    ])
+  )
 
-  if (pErr) handleDbError(pErr, 'Failed to fetch partners')
-  if (!partners || partners.length === 0) return []
+  if (pResult.error) {
+    if (isSchemaError(pResult.error)) { timer.end(); return [] }
+    handleDbError(pResult.error, 'Failed to fetch partners')
+  }
+  const partners = pResult.data
+  if (!partners || partners.length === 0) { timer.end(); return [] }
 
-  // 2. All events for the org (for name map)
-  const { data: events, error: eErr } = await supabase
-    .from('events')
-    .select('id, name')
-    .eq('org_id', orgId)
-
-  if (eErr) handleDbError(eErr, 'Failed to fetch events')
+  if (eResult.error) handleDbError(eResult.error, 'Failed to fetch events')
+  const events = eResult.data
   const eventMap: Record<string, string> = {}
   for (const e of events ?? []) eventMap[e.id] = e.name
 
-  // 3. All deliverables for those events
+  // 3+4. Deliverables and recaps in parallel (deliverables needs eventIds, recaps needs orgId)
   const eventIds = (events ?? []).map((e) => e.id)
-  const { data: deliverables, error: dErr } = eventIds.length > 0
-    ? await supabase
-        .from('deliverables')
-        .select('partner_id, status, due_date')
-        .in('event_id', eventIds)
-    : { data: [] as { partner_id: string; status: string; due_date: string | null }[], error: null }
 
-  if (dErr) handleDbError(dErr, 'Failed to fetch deliverables')
+  type RecapRow = { id: string; partner_id: string; status: string; published_at: string | null; created_at: string; event_id: string; share_token: string }
 
-  // 4. All recaps for the org (published or draft)
-  let recaps: { id: string; partner_id: string; status: string; published_at: string | null; created_at: string; event_id: string; share_token: string }[] = []
-  try {
-    const { data: recapData, error: rErr } = await supabase
-      .from('recap_reports')
-      .select('id, partner_id, status, published_at, created_at, event_id, share_token')
-      .eq('org_id', orgId)
-      .in('status', ['published', 'draft'])
-      .order('published_at', { ascending: false })
-    if (!rErr) recaps = recapData ?? []
-  } catch {
-    // recap_reports table may not exist yet
-  }
+  const [delResult, recapResult] = await timed('partnerRollup:deliverables+recaps', () =>
+    Promise.all([
+      eventIds.length > 0
+        ? supabase.from('deliverables').select('partner_id, status, due_date').in('event_id', eventIds)
+        : Promise.resolve({ data: [] as { partner_id: string; status: string; due_date: string | null }[], error: null }),
+      Promise.resolve(
+        supabase.from('recap_reports')
+          .select('id, partner_id, status, published_at, created_at, event_id, share_token')
+          .eq('org_id', orgId)
+          .in('status', ['published', 'draft'])
+          .order('published_at', { ascending: false })
+      ).catch(() => ({ data: [] as RecapRow[], error: null })),
+    ])
+  )
+
+  if (delResult.error) handleDbError(delResult.error, 'Failed to fetch deliverables')
+  const deliverables = delResult.data
+
+  let recaps: RecapRow[] = []
+  if (recapResult && !recapResult.error) recaps = (recapResult.data ?? []) as RecapRow[]
 
   // 5. Group partners by normalized name
   const groups = new Map<string, {
@@ -128,6 +143,13 @@ export async function getOrgPartnerRollup(orgId: string): Promise<OrgPartnerRoll
 
   for (const p of partners) {
     const key = p.name.toLowerCase().trim()
+    // Use optional access for CRM columns that may not exist in the DB yet
+    const pDealValue = (p as Record<string, unknown>).deal_value as number | null | undefined
+    const pRenewalDate = (p as Record<string, unknown>).renewal_date as string | null | undefined
+    const pContractNotes = (p as Record<string, unknown>).contract_notes as string | null | undefined
+    const pContactName = (p as Record<string, unknown>).contact_name as string | null | undefined
+    const pContactEmail = (p as Record<string, unknown>).contact_email as string | null | undefined
+
     const existing = groups.get(key)
     if (existing) {
       existing.partnerIds.add(p.id)
@@ -135,37 +157,37 @@ export async function getOrgPartnerRollup(orgId: string): Promise<OrgPartnerRoll
       existing.partnerIdToEventId.set(p.id, p.event_id)
       // Take contact from most recently updated record
       if (p.updated_at > existing.latestUpdatedAt) {
-        existing.contactName = p.contact_name
-        existing.contactEmail = p.contact_email
+        existing.contactName = pContactName ?? null
+        existing.contactEmail = pContactEmail ?? null
         existing.latestUpdatedAt = p.updated_at
       }
-      if (p.deal_value != null) existing.totalDealValue += p.deal_value
-      if (p.renewal_date) existing.renewalDates.push(p.renewal_date)
-      if (p.contract_notes) {
+      if (pDealValue != null) existing.totalDealValue += pDealValue
+      if (pRenewalDate) existing.renewalDates.push(pRenewalDate)
+      if (pContractNotes) {
         existing.dealSummaries.push({
           event_name: eventMap[p.event_id] ?? '',
           event_id: p.event_id,
-          notes: p.contract_notes,
+          notes: pContractNotes,
         })
       }
     } else {
       const dealSummaries: { event_name: string; event_id: string; notes: string }[] = []
-      if (p.contract_notes) {
+      if (pContractNotes) {
         dealSummaries.push({
           event_name: eventMap[p.event_id] ?? '',
           event_id: p.event_id,
-          notes: p.contract_notes,
+          notes: pContractNotes,
         })
       }
       groups.set(key, {
         displayName: p.name,
         partnerIds: new Set([p.id]),
         eventIds: new Set([p.event_id]),
-        contactName: p.contact_name,
-        contactEmail: p.contact_email,
+        contactName: pContactName ?? null,
+        contactEmail: pContactEmail ?? null,
         latestUpdatedAt: p.updated_at,
-        totalDealValue: p.deal_value ?? 0,
-        renewalDates: p.renewal_date ? [p.renewal_date] : [],
+        totalDealValue: pDealValue ?? 0,
+        renewalDates: pRenewalDate ? [pRenewalDate] : [],
         dealSummaries,
         partnerIdToEventId: new Map([[p.id, p.event_id]]),
       })
@@ -279,6 +301,7 @@ export async function getOrgPartnerRollup(orgId: string): Promise<OrgPartnerRoll
   }
 
   results.sort((a, b) => a.name.localeCompare(b.name))
+  timer.end()
   return results
 }
 

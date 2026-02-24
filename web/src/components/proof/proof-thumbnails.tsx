@@ -5,10 +5,16 @@ import { useRouter } from 'next/navigation'
 import { FileText, Play, X, Link } from 'lucide-react'
 import { deleteProofAction } from '@/app/(app)/actions/proof'
 import { toast } from '@/components/ui/sonner'
-import { ProofLightbox } from './proof-lightbox'
+import dynamic from 'next/dynamic'
+
+const ProofLightbox = dynamic(
+  () => import('./proof-lightbox').then(mod => ({ default: mod.ProofLightbox })),
+  { ssr: false }
+)
 import { ProofValidationBadge } from './proof-validation-badge'
 import { isImageType, isVideoType, isPdfType } from '@/lib/proof-utils'
 import { cn } from '@/lib/utils'
+import { supabaseImageUrl } from '@/lib/image-utils'
 import type { Proof } from '@/lib/types/database'
 
 interface ProofThumbnailsProps {
@@ -109,9 +115,10 @@ export function ProofThumbnails({
               {isImageType(proof.file_type) ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={proof.file_url}
+                  src={supabaseImageUrl(proof.file_url, { width: 112, height: 112, resize: 'cover' })}
                   alt={proof.file_name}
                   className="h-full w-full object-cover"
+                  loading="lazy"
                 />
               ) : proof.file_type === 'text/uri-list' ? (
                 <div className="h-full w-full bg-indigo-50 flex items-center justify-center">
