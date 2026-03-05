@@ -4,8 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   LogOut,
-  Settings,
-  User,
   MessageSquarePlus,
   Loader2,
   Crown
@@ -107,16 +105,6 @@ export function UserMenu({ isCollapsed = false, variant = 'default' }: UserMenuP
     router.replace('/')
   }
 
-  function handleProfile() {
-    router.push('/settings')
-    setIsOpen(false)
-  }
-
-  function handleSettings() {
-    router.push('/settings')
-    setIsOpen(false)
-  }
-
   function handleFeedback() {
     // Opens email with pre-filled subject
     window.location.href = 'mailto:support@seira.global?subject=Feedback'
@@ -214,22 +202,6 @@ export function UserMenu({ isCollapsed = false, variant = 'default' }: UserMenuP
             </div>
           </div>
         </DropdownMenuLabel>
-
-        <DropdownMenuSeparator />
-
-        {/* Profile */}
-        <MenuItem
-          onClick={handleProfile}
-          icon={User}
-          label="profile"
-        />
-
-        {/* Settings */}
-        <MenuItem
-          onClick={handleSettings}
-          icon={Settings}
-          label="settings"
-        />
 
         <DropdownMenuSeparator />
 

@@ -4,16 +4,15 @@ import { createClient } from "@/lib/supabase/server"
 import { tryCreateAdminClient } from "@/lib/supabase/admin"
 import { getUserMembership, getUserMembershipForOrg } from "@/lib/db/client"
 import { getOrganization } from "@/lib/db/organizations"
-import { getOrgSubscription } from "@/lib/db/billing"
-import { listEvents } from "@/lib/db/events"
-import { getUnreadCount } from "@/lib/db/notifications"
-import { AppShell } from "@/components/app-shell"
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/layout/app-sidebar"
+import { TopBar } from "@/components/layout/top-bar"
 import { AppShellProvider } from "./provider"
 import { CreateWorkspaceForm } from "./create-workspace-form"
 import { isUuid } from "@/lib/validation"
-import type { OrgRole, OrgSettings, DeliverableCategory } from "@/lib/types/database"
+import type { OrgRole, OrgSettings } from "@/lib/types/database"
 
-export default async function AppLayout({
+export default async function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode
@@ -39,7 +38,7 @@ export default async function AppLayout({
   // ---------------------------------------------------------------------------
   // Org bootstrap: lookup membership, auto-create once if missing
   // ---------------------------------------------------------------------------
-  let initialOrg: { id: string; name: string; role: OrgRole; approvalCategories: DeliverableCategory[] } | null = null
+  let initialOrg: { id: string; name: string; role: OrgRole } | null = null
 
   try {
     // 0. Check for cookie-selected org
@@ -62,8 +61,6 @@ export default async function AppLayout({
       const admin = tryCreateAdminClient()
 
       if (admin) {
-        // Only create if the user doesn't already have an org
-        // (guards against duplicate creation on retry)
         const { data: existingMember } = await admin
           .from("organization_members")
           .select("org_id")
@@ -72,7 +69,6 @@ export default async function AppLayout({
           .maybeSingle()
 
         if (existingMember) {
-          // Org exists but anon client couldn't read it — use admin data
           membership = {
             user_id: user.id,
             org_id: existingMember.org_id,
@@ -80,7 +76,6 @@ export default async function AppLayout({
             created_at: new Date().toISOString(),
           }
         } else {
-          // Create new org — trigger `handle_new_org` creates the member row
           const { error: orgError } = await admin
             .from("organizations")
             .insert({ name: "My Workspace", created_by: user.id })
@@ -88,7 +83,6 @@ export default async function AppLayout({
           if (orgError) {
             console.error("[Org bootstrap] Failed to create org:", orgError)
           } else {
-            // Re-read membership via admin (bypasses RLS SELECT too)
             const { data: newMember } = await admin
               .from("organization_members")
               .select("*")
@@ -111,7 +105,6 @@ export default async function AppLayout({
     // 3. Resolve org details
     if (membership) {
       const admin = tryCreateAdminClient()
-      // Try admin read first (bypasses RLS), fall back to anon
       let org = null
       if (admin) {
         const { data } = await admin
@@ -125,12 +118,10 @@ export default async function AppLayout({
         org = await getOrganization(supabase, membership.org_id)
       }
       if (org) {
-        const settings = (org.settings ?? {}) as OrgSettings
         initialOrg = {
           id: org.id,
           name: org.name,
           role: (membership.role as OrgRole) ?? "admin",
-          approvalCategories: settings.approval_required_categories ?? ['talent'] as DeliverableCategory[],
         }
       }
     }
@@ -149,51 +140,22 @@ export default async function AppLayout({
     )
   }
 
-  // ---------------------------------------------------------------------------
-  // Subscription gate: redirect to /subscribe if no active subscription
-  // Note: redirect() must NOT be inside try/catch — it throws a special error
-  // that Next.js uses internally. Catching it would swallow the redirect.
-  // ---------------------------------------------------------------------------
-  let shouldRedirectToSubscribe = false
-  try {
-    const subscription = await getOrgSubscription(initialOrg.id)
-    // Only gate if we got a valid subscription record with an explicit bad status.
-    // If subscription is null (billing not configured), allow through.
-    if (subscription) {
-      const status = subscription.subscription_status
-      if (status === 'unpaid' || status === 'canceled') {
-        shouldRedirectToSubscribe = true
-      }
-    }
-  } catch (e) {
-    console.error('[Subscription check] Error:', e)
-    // Allow through on error to avoid blocking the app entirely
-  }
-  if (shouldRedirectToSubscribe) {
-    redirect('/subscribe')
-  }
-
-  // Fetch recent events and unread count in parallel (best-effort)
-  let recentEvents: { id: string; name: string; status: string }[] = []
-  let unreadNotificationCount = 0
-  try {
-    const [allEvents, unread] = await Promise.all([
-      listEvents(initialOrg.id),
-      getUnreadCount(supabase, user.id, initialOrg.id),
-    ])
-    recentEvents = allEvents.slice(0, 3).map((e) => ({
-      id: e.id,
-      name: e.name,
-      status: e.status,
-    }))
-    unreadNotificationCount = unread
-  } catch {
-    // Non-critical — sidebar just won't show recent events
-  }
-
   return (
-    <AppShellProvider initialUser={user} initialOrg={initialOrg} initialUnreadCount={unreadNotificationCount}>
-      <AppShell recentEvents={recentEvents}>{children}</AppShell>
+    <AppShellProvider initialUser={user} initialOrg={initialOrg}>
+      <SidebarProvider
+        style={{
+          "--sidebar-width": "260px",
+          "--sidebar-width-icon": "72px",
+        } as React.CSSProperties}
+      >
+        <AppSidebar />
+        <main className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: "var(--content-bg)" }}>
+          <TopBar />
+          <div className="flex-1 overflow-y-auto seira-scroll">
+            {children}
+          </div>
+        </main>
+      </SidebarProvider>
     </AppShellProvider>
   )
 }

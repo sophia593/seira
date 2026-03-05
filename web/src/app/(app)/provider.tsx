@@ -307,41 +307,6 @@ export function AppShellProvider({
   }, [router])
 
   // ===========================================================================
-  // Global Keyboard Shortcuts
-  // ===========================================================================
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0
-      const modifier = isMac ? e.metaKey : e.ctrlKey
-
-      // Don't trigger if user is typing in an input
-      const target = e.target as HTMLElement
-      const isInput = target.tagName === "INPUT" ||
-                      target.tagName === "TEXTAREA" ||
-                      target.isContentEditable
-
-      if (isInput) return
-
-      // Cmd/Ctrl + K: New search
-      if (modifier && e.key === "k") {
-        e.preventDefault()
-        router.push("/events")
-      }
-
-      // Cmd/Ctrl + /: Go to settings (help/preferences)
-      if (modifier && e.key === "/") {
-        e.preventDefault()
-        router.push("/settings")
-      }
-
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [router])
-
-  // ===========================================================================
   // Reset activity on route change
   // ===========================================================================
 

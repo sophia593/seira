@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Space_Grotesk } from "next/font/google"
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "next-themes"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
@@ -10,7 +10,14 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-space-grotesk",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jetbrains-mono",
+  weight: ["400"],
 })
 
 export const viewport: Viewport = {
@@ -56,7 +63,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={spaceGrotesk.variable} suppressHydrationWarning>
+    <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className={`${spaceGrotesk.className} antialiased`}>
         <ThemeProvider
           attribute="class"
