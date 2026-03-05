@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import {
   ChevronsLeft,
   ChevronsRight,
@@ -14,6 +13,8 @@ import {
 } from 'lucide-react'
 import { Collapsible } from 'radix-ui'
 import { cn } from '@/lib/utils'
+import { TEST_PRODUCTIONS } from '@/lib/constants/test-productions'
+import { useSidebarState } from '@/hooks/use-sidebar-state'
 import {
   Sidebar,
   SidebarContent,
@@ -29,16 +30,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
-
-// ---------------------------------------------------------------------------
-// Test data — will be replaced with real data from Supabase
-// ---------------------------------------------------------------------------
-
-const TEST_PRODUCTIONS = [
-  { id: '1', name: 'Untitled Horror Short', status: 'Pre-Production', statusColor: '#F59E0B' },
-  { id: '2', name: 'Senior Thesis Film', status: 'Production', statusColor: '#10B981' },
-  { id: '3', name: 'Nike Commercial', status: 'Development', statusColor: '#3B82F6' },
-]
 
 // ---------------------------------------------------------------------------
 // Header
@@ -78,8 +69,8 @@ function SidebarHeaderContent() {
 const LS_KEY = 'seira-productions-open'
 
 function ProductionsGroup() {
-  const pathname = usePathname()
-  const isActive = pathname.startsWith('/production')
+  const { currentPage, isProductionActive } = useSidebarState()
+  const isGroupActive = currentPage === 'production'
   const [open, setOpen] = useState(true)
 
   useEffect(() => {
@@ -101,8 +92,8 @@ function ProductionsGroup() {
         <SidebarMenuItem className="hidden group-data-[collapsible=icon]:list-item">
           <SidebarMenuButton
             tooltip="Productions"
-            isActive={isActive}
-            className={isActive ? 'border-l-2 border-l-[#C4363A]' : ''}
+            isActive={isGroupActive}
+            className={isGroupActive ? 'border-l-2 border-l-[#C4363A]' : ''}
           >
             <Film />
             <span>Productions</span>
@@ -118,8 +109,8 @@ function ProductionsGroup() {
           <SidebarMenuItem>
             <Collapsible.Trigger asChild>
               <SidebarMenuButton
-                isActive={isActive}
-                className={isActive ? 'border-l-2 border-l-[#C4363A]' : ''}
+                isActive={isGroupActive}
+                className={isGroupActive ? 'border-l-2 border-l-[#C4363A]' : ''}
               >
                 <Film />
                 <span>Productions</span>
@@ -130,7 +121,7 @@ function ProductionsGroup() {
             <Collapsible.Content>
               <SidebarMenuSub>
                 {TEST_PRODUCTIONS.map((prod) => {
-                  const active = pathname.startsWith(`/production/${prod.id}`)
+                  const active = isProductionActive(prod.id)
                   return (
                     <SidebarMenuSubItem key={prod.id}>
                       <SidebarMenuSubButton
@@ -179,7 +170,7 @@ function ProductionsGroup() {
 // ---------------------------------------------------------------------------
 
 export function AppSidebar() {
-  const pathname = usePathname()
+  const { isDashboardActive, isSettingsActive } = useSidebarState()
 
   return (
     <Sidebar collapsible="icon" side="left" variant="sidebar">
@@ -194,9 +185,9 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === '/dashboard'}
+                isActive={isDashboardActive}
                 tooltip="Dashboard"
-                className={pathname === '/dashboard' ? 'border-l-2 border-l-[#C4363A]' : ''}
+                className={isDashboardActive ? 'border-l-2 border-l-[#C4363A]' : ''}
               >
                 <Link href="/dashboard">
                   <LayoutGrid />
@@ -216,9 +207,9 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/settings'}
+              isActive={isSettingsActive}
               tooltip="Settings"
-              className={pathname === '/settings' ? 'border-l-2 border-l-[#C4363A]' : ''}
+              className={isSettingsActive ? 'border-l-2 border-l-[#C4363A]' : ''}
             >
               <Link href="/settings">
                 <Settings />

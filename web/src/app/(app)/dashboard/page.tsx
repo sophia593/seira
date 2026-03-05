@@ -1,11 +1,6 @@
 import Link from 'next/link'
 import { ContentArea } from '@/components/layout/content-area'
-
-const PRODUCTIONS = [
-  { id: '1', name: 'Untitled Horror Short', status: 'Pre-Production', statusColor: '#F59E0B' },
-  { id: '2', name: 'Senior Thesis Film', status: 'Production', statusColor: '#10B981' },
-  { id: '3', name: 'Nike Commercial', status: 'Development', statusColor: '#3B82F6' },
-]
+import { TEST_PRODUCTIONS } from '@/lib/constants/test-productions'
 
 export default function DashboardPage() {
   return (
@@ -13,7 +8,7 @@ export default function DashboardPage() {
       <h1 style={{ fontSize: 20, fontWeight: 600 }} className="mb-6">Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {PRODUCTIONS.map((prod) => (
+        {TEST_PRODUCTIONS.map((prod) => (
           <Link
             key={prod.id}
             href={`/production/${prod.id}`}

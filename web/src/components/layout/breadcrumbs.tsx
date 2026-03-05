@@ -1,14 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useParams } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
-
-const PRODUCTIONS: Record<string, string> = {
-  '1': 'Untitled Horror Short',
-  '2': 'Senior Thesis Film',
-  '3': 'Nike Commercial',
-}
+import { useSidebarState } from '@/hooks/use-sidebar-state'
 
 const SECTION_LABELS: Record<string, string> = {
   crew: 'Crew',
@@ -19,37 +13,34 @@ const SECTION_LABELS: Record<string, string> = {
 }
 
 export function Breadcrumbs() {
-  const pathname = usePathname()
-  const params = useParams<{ id?: string }>()
+  const { currentPage, activeProduction, activeSection } = useSidebarState()
 
-  if (pathname === '/dashboard') {
+  if (currentPage === 'dashboard') {
     return <span style={{ fontSize: 20, fontWeight: 600, color: '#18181B' }}>Dashboard</span>
   }
 
-  if (pathname === '/settings') {
+  if (currentPage === 'settings') {
     return <span style={{ fontSize: 20, fontWeight: 600, color: '#18181B' }}>Settings</span>
   }
 
-  if (pathname === '/productions/new') {
+  if (currentPage === 'new-production') {
     return <span style={{ fontSize: 20, fontWeight: 600, color: '#18181B' }}>New Production</span>
   }
 
-  if (pathname.startsWith('/production/') && params.id) {
-    const name = PRODUCTIONS[params.id] ?? `Production ${params.id}`
-    const segments = pathname.split('/').filter(Boolean)
-    // segments: ["production", id] or ["production", id, "crew"]
-    const section = segments[2]
-    const sectionLabel = section ? SECTION_LABELS[section] : null
+  if (currentPage === 'production' && activeProduction) {
+    const sectionLabel = activeSection && activeSection !== 'overview'
+      ? SECTION_LABELS[activeSection]
+      : null
 
     if (sectionLabel) {
       return (
         <div className="flex items-center">
           <Link
-            href={`/production/${params.id}`}
+            href={`/production/${activeProduction.id}`}
             className="hover:underline"
             style={{ fontSize: 20, fontWeight: 600, color: '#18181B' }}
           >
-            {name}
+            {activeProduction.name}
           </Link>
           <ChevronRight className="mx-2 size-4 text-[#71717A]" />
           <span style={{ fontSize: 20, fontWeight: 600, color: '#18181B' }}>{sectionLabel}</span>
@@ -57,7 +48,7 @@ export function Breadcrumbs() {
       )
     }
 
-    return <span style={{ fontSize: 20, fontWeight: 600, color: '#18181B' }}>{name}</span>
+    return <span style={{ fontSize: 20, fontWeight: 600, color: '#18181B' }}>{activeProduction.name}</span>
   }
 
   return null

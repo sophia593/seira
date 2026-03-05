@@ -178,7 +178,7 @@ function LoginForm() {
             Welcome back
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            sign in to your workspace
+            sign in to your account
           </p>
         </div>
 

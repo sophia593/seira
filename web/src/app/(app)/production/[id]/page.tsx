@@ -2,18 +2,13 @@
 
 import { useParams } from 'next/navigation'
 import { ContentArea } from '@/components/layout/content-area'
-
-const PRODUCTIONS: Record<string, { name: string; status: string; statusColor: string }> = {
-  '1': { name: 'Untitled Horror Short', status: 'Pre-Production', statusColor: '#F59E0B' },
-  '2': { name: 'Senior Thesis Film', status: 'Production', statusColor: '#10B981' },
-  '3': { name: 'Nike Commercial', status: 'Development', statusColor: '#3B82F6' },
-}
+import { getProductionById } from '@/lib/constants/test-productions'
 
 const CARDS = ['Upcoming Shoot Days', 'Tasks', 'Crew']
 
 export default function ProductionPage() {
   const { id } = useParams<{ id: string }>()
-  const prod = PRODUCTIONS[id] ?? { name: `Production ${id}`, status: 'Unknown', statusColor: '#71717A' }
+  const prod = getProductionById(id) ?? { name: `Production ${id}`, status: 'Unknown', statusColor: '#71717A' }
 
   return (
     <ContentArea>

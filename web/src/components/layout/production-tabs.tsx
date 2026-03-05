@@ -1,32 +1,29 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useParams } from 'next/navigation'
+import { useSidebarState } from '@/hooks/use-sidebar-state'
 
 const TABS = [
-  { label: 'Overview', segment: '' },
-  { label: 'Crew', segment: '/crew' },
-  { label: 'Schedule', segment: '/schedule' },
-  { label: 'Call Sheets', segment: '/call-sheets' },
-  { label: 'Documents', segment: '/documents' },
-  { label: 'Tasks', segment: '/tasks' },
+  { label: 'Overview', section: 'overview', segment: '' },
+  { label: 'Crew', section: 'crew', segment: '/crew' },
+  { label: 'Schedule', section: 'schedule', segment: '/schedule' },
+  { label: 'Call Sheets', section: 'call-sheets', segment: '/call-sheets' },
+  { label: 'Documents', section: 'documents', segment: '/documents' },
+  { label: 'Tasks', section: 'tasks', segment: '/tasks' },
 ]
 
 export function ProductionTabs() {
-  const pathname = usePathname()
-  const params = useParams<{ id?: string }>()
+  const { currentPage, activeProductionId, isSectionActive } = useSidebarState()
 
-  if (!pathname.startsWith('/production/') || !params.id) return null
+  if (currentPage !== 'production' || !activeProductionId) return null
 
-  const base = `/production/${params.id}`
+  const base = `/production/${activeProductionId}`
 
   return (
     <div className="flex items-center gap-6">
       {TABS.map((tab) => {
         const href = `${base}${tab.segment}`
-        const active = tab.segment === ''
-          ? pathname === base
-          : pathname.startsWith(href)
+        const active = isSectionActive(tab.section)
 
         return (
           <Link

@@ -1,7 +1,6 @@
 // lib/types/database.ts
 // Seira v1.1 — Core database types
 
-export type OrgRole = 'owner' | 'admin' | 'contributor' | 'viewer';
 export type EventStatus = 'upcoming' | 'active' | 'completed' | 'archived';
 export type DeliverableStatus = 'not_started' | 'in_progress' | 'done' | 'pending_approval' | 'proved';
 export type DeliverableCategory = 'in-venue' | 'digital' | 'hospitality' | 'signage' | 'talent' | 'content';
@@ -11,29 +10,6 @@ export type UsageScope = 'social' | 'broadcast' | 'all' | 'custom';
 export type UsageTerritory = 'us' | 'global' | 'custom';
 export type UsageDuration = '30d' | '90d' | '1yr' | 'perpetual' | 'custom';
 
-export type OrgType = 'sports' | 'music' | 'festival' | 'conference' | 'university' | 'other';
-
-export interface OrgSettings {
-  approval_required_categories?: DeliverableCategory[];
-  org_type?: OrgType;
-  onboarding_completed?: boolean;
-}
-
-export interface Organization {
-  id: string;
-  name: string;
-  created_by: string;
-  settings: OrgSettings;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface OrganizationMember {
-  user_id: string;
-  org_id: string;
-  role: OrgRole;
-  created_at: string;
-}
 
 export interface Event {
   id: string;
@@ -283,22 +259,6 @@ export interface CreateProofRecordInput {
   uploaded_by: string;
 }
 
-// === INVITATIONS ===
-
-export type InviteStatus = 'pending' | 'accepted' | 'revoked';
-
-export interface Invitation {
-  id: string;
-  org_id: string;
-  invite_code: string;
-  role: OrgRole;
-  created_by: string;
-  accepted_by: string | null;
-  accepted_at: string | null;
-  expires_at: string;
-  status: InviteStatus;
-  created_at: string;
-}
 
 // === NOTIFICATIONS ===
 

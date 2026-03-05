@@ -3,12 +3,10 @@
 import { useEffect, useState, useCallback, createContext, useContext } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useUserStore } from "@/stores/user-store"
-import { useOrgStore } from "@/stores/org-store"
 import { useNotificationStore } from "@/stores/notification-store"
 import { createClient } from "@/lib/supabase/client"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { toast } from "@/components/ui/sonner"
-import type { OrgRole, DeliverableCategory } from "@/lib/types/database"
 
 // =============================================================================
 // Types
@@ -21,17 +19,8 @@ interface User {
   avatar_url: string | null
 }
 
-interface InitialOrg {
-  id: string
-  name: string
-  role: OrgRole
-  approvalCategories?: DeliverableCategory[]
-}
-
 interface AppShellProviderProps {
   initialUser: User
-  initialOrg: InitialOrg | null
-  initialUnreadCount?: number
   children: React.ReactNode
 }
 
@@ -87,8 +76,6 @@ const TABLET_BREAKPOINT = 1024
 
 export function AppShellProvider({
   initialUser,
-  initialOrg,
-  initialUnreadCount = 0,
   children,
 }: AppShellProviderProps) {
   const router = useRouter()
@@ -98,9 +85,6 @@ export function AppShellProvider({
   const setUser = useUserStore((state) => state.setUser)
   const setLoading = useUserStore((state) => state.setLoading)
   const setHydrated = useUserStore((state) => state.setHydrated)
-
-  // Org store
-  const setOrg = useOrgStore((state) => state.setOrg)
 
   // Notification store
   const setUnreadCount = useNotificationStore((state) => state.setUnreadCount)
@@ -128,22 +112,14 @@ export function AppShellProvider({
   // ===========================================================================
 
   useEffect(() => {
-    // Hydrate user store
     setUser(initialUser)
     setHydrated(true)
     setLoading(false)
-
-    // Hydrate org store
-    if (initialOrg) {
-      setOrg({ id: initialOrg.id, name: initialOrg.name, role: initialOrg.role, approvalCategories: initialOrg.approvalCategories })
-    }
-
-    // Hydrate notification store
-    setUnreadCount(initialUnreadCount)
+    setUnreadCount(0)
 
     // Set initial session expiry (24 hours from now)
     setSessionExpiresAt(new Date(Date.now() + SESSION_DURATION_MS))
-  }, [initialUser, initialOrg, initialUnreadCount, setUser, setLoading, setHydrated, setOrg, setUnreadCount])
+  }, [initialUser, setUser, setLoading, setHydrated, setUnreadCount])
 
   // ===========================================================================
   // Online/Offline Detection
@@ -160,7 +136,6 @@ export function AppShellProvider({
       toast.error("you're offline — some features may not work")
     }
 
-    // Set initial state
     setIsOnline(navigator.onLine)
 
     window.addEventListener("online", handleOnline)
@@ -181,7 +156,6 @@ export function AppShellProvider({
       setScreenWidth(window.innerWidth)
     }
 
-    // Set initial
     setScreenWidth(window.innerWidth)
 
     window.addEventListener("resize", handleResize)
@@ -198,7 +172,6 @@ export function AppShellProvider({
   }, [])
 
   useEffect(() => {
-    // Activity events
     const events = ["mousedown", "keydown", "touchstart", "scroll"]
 
     function handleActivity() {
@@ -209,7 +182,6 @@ export function AppShellProvider({
       window.addEventListener(event, handleActivity, { passive: true })
     })
 
-    // Check for idle
     const idleInterval = setInterval(() => {
       const timeSinceActivity = Date.now() - lastActivity.getTime()
       if (timeSinceActivity >= IDLE_TIMEOUT_MS && !isIdle) {
@@ -242,12 +214,10 @@ export function AppShellProvider({
           return
         }
 
-        // Update session expiry based on token
         if (data.session.expires_at) {
           const expiresAt = new Date(data.session.expires_at * 1000)
           setSessionExpiresAt(expiresAt)
 
-          // Warn if expiring soon
           const timeUntilExpiry = expiresAt.getTime() - Date.now()
           if (timeUntilExpiry < SESSION_WARNING_THRESHOLD_MS && timeUntilExpiry > 0) {
             toast.warning("your session expires soon — save your work", {
@@ -256,7 +226,6 @@ export function AppShellProvider({
           }
         }
 
-        // Try to refresh if close to expiry
         const timeUntilExpiry = sessionExpiresAt
           ? sessionExpiresAt.getTime() - Date.now()
           : SESSION_DURATION_MS
@@ -272,17 +241,15 @@ export function AppShellProvider({
       }
     }
 
-    // Check immediately
     checkSession()
 
-    // Then check periodically
     const sessionInterval = setInterval(checkSession, SESSION_CHECK_INTERVAL_MS)
 
     return () => clearInterval(sessionInterval)
   }, [router, sessionExpiresAt])
 
   // ===========================================================================
-  // Auth State Change Listener (handles logout from other tabs, session expiry)
+  // Auth State Change Listener
   // ===========================================================================
 
   useEffect(() => {
@@ -291,11 +258,7 @@ export function AppShellProvider({
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event) => {
         if (event === 'SIGNED_OUT') {
-          // Clear all stores
           useUserStore.getState().clear()
-          useOrgStore.getState().clear()
-
-          // Redirect to landing page
           router.replace('/')
         }
       }
