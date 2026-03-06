@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { Plus, Search, Mail, Trash2 } from "lucide-react"
+import { useState, useCallback, useMemo } from "react"
+import { Plus, Search, Mail, Trash2, Film, ClipboardList, Users } from "lucide-react"
 import { ContentArea } from "@/components/layout/content-area"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,15 @@ import { Select } from "@/components/ui/select"
 import { Toggle } from "@/components/ui/toggle"
 import { Modal } from "@/components/ui/modal"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { Table, type Column } from "@/components/ui/table"
+import { FilterTabs } from "@/components/ui/filter-tabs"
+import { Dropdown, type DropdownOption } from "@/components/ui/dropdown"
+import { TimePicker } from "@/components/ui/time-picker"
+import { DateInput } from "@/components/ui/date-input"
+import { toast } from "@/components/ui/sonner"
+import { InlineFeedback } from "@/components/ui/inline-feedback"
+import { Skeleton, SkeletonText, SkeletonCard, SkeletonTableRow } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
 
 // =============================================================================
 // Sample data
@@ -35,6 +44,39 @@ const ROLES = [
   { value: "pa", label: "PA" },
 ]
 
+// Table mock data
+interface CrewCall {
+  id: string
+  name: string
+  department: string
+  departmentColor: string
+  role: string
+  callTime: string
+  status: string
+}
+
+const MOCK_CREW: CrewCall[] = [
+  { id: "1", name: "Jane Park", department: "Camera", departmentColor: "#3B82F6", role: "DP", callTime: "6:00 AM", status: "confirmed" },
+  { id: "2", name: "Marcus Lee", department: "Camera", departmentColor: "#3B82F6", role: "1st AC", callTime: "6:00 AM", status: "viewed" },
+  { id: "3", name: "Mike Torres", department: "Grip & Electric", departmentColor: "#F59E0B", role: "Gaffer", callTime: "5:30 AM", status: "confirmed" },
+  { id: "4", name: "Sarah Kim", department: "Grip & Electric", departmentColor: "#F59E0B", role: "Key Grip", callTime: "5:30 AM", status: "pending" },
+  { id: "5", name: "David Park", department: "Sound", departmentColor: "#8B5CF6", role: "Sound Mixer", callTime: "6:30 AM", status: "confirmed" },
+  { id: "6", name: "Lisa Chen", department: "Art", departmentColor: "#10B981", role: "Production Designer", callTime: "5:00 AM", status: "pending" },
+  { id: "7", name: "Alex Rivera", department: "Hair & Makeup", departmentColor: "#F43F5E", role: "Key MUA", callTime: "5:00 AM", status: "viewed" },
+  { id: "8", name: "Jordan Hayes", department: "Production", departmentColor: "#6366F1", role: "PA", callTime: "6:00 AM", status: "pending" },
+]
+
+const CALL_SHEET_TABS = [
+  { key: "upcoming", label: "Upcoming", count: 3 },
+  { key: "past", label: "Past", count: 8 },
+  { key: "all", label: "All" },
+]
+
+const CREW_TABS = [
+  { key: "all", label: "All", count: 18 },
+  { key: "by-department", label: "By Department" },
+]
+
 const PRODUCTION_TYPES = [
   { value: "film", label: "Film" },
   { value: "short", label: "Short" },
@@ -42,6 +84,17 @@ const PRODUCTION_TYPES = [
   { value: "music_video", label: "Music Video" },
   { value: "tv_episodic", label: "TV / Episodic" },
   { value: "other", label: "Other" },
+]
+
+const CREW_OPTIONS: DropdownOption[] = [
+  { id: "jp", label: "Jane Park", sublabel: "DP", group: "Camera", avatarFallback: "Jane Park", avatarColor: "#3B82F6" },
+  { id: "ml", label: "Marcus Lee", sublabel: "1st AC", group: "Camera", avatarFallback: "Marcus Lee", avatarColor: "#3B82F6" },
+  { id: "mt", label: "Mike Torres", sublabel: "Gaffer", group: "Grip & Electric", avatarFallback: "Mike Torres", avatarColor: "#F59E0B" },
+  { id: "sk", label: "Sarah Kim", sublabel: "Key Grip", group: "Grip & Electric", avatarFallback: "Sarah Kim", avatarColor: "#F59E0B" },
+  { id: "dp", label: "David Park", sublabel: "Sound Mixer", group: "Sound", avatarFallback: "David Park", avatarColor: "#8B5CF6" },
+  { id: "lc", label: "Lisa Chen", sublabel: "Production Designer", group: "Art", avatarFallback: "Lisa Chen", avatarColor: "#10B981" },
+  { id: "ar", label: "Alex Rivera", sublabel: "Key MUA", group: "Hair & Makeup", avatarFallback: "Alex Rivera", avatarColor: "#F43F5E" },
+  { id: "jh", label: "Jordan Hayes", sublabel: "PA", group: "Production", avatarFallback: "Jordan Hayes", avatarColor: "#6366F1" },
 ]
 
 // =============================================================================
@@ -72,6 +125,109 @@ export default function ComponentsDevPage() {
     }, 1500)
   }, [])
 
+  // Table state
+  const [sortBy, setSortBy] = useState<string | undefined>(undefined)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+  const handleSort = useCallback(
+    (key: string) => {
+      if (sortBy === key) {
+        setSortDirection((d) => (d === "asc" ? "desc" : "asc"))
+      } else {
+        setSortBy(key)
+        setSortDirection("asc")
+      }
+    },
+    [sortBy]
+  )
+
+  const sortedCrew = useMemo(() => {
+    if (!sortBy) return MOCK_CREW
+    return [...MOCK_CREW].sort((a, b) => {
+      const aVal = (a as unknown as Record<string, string>)[sortBy] ?? ""
+      const bVal = (b as unknown as Record<string, string>)[sortBy] ?? ""
+      const cmp = aVal.localeCompare(bVal)
+      return sortDirection === "asc" ? cmp : -cmp
+    })
+  }, [sortBy, sortDirection])
+
+  const crewColumns: Column<CrewCall>[] = useMemo(
+    () => [
+      {
+        key: "name",
+        header: "Name",
+        width: "200px",
+        sortable: true,
+        render: (row) => (
+          <div className="flex items-center gap-2">
+            <Avatar name={row.name} size="sm" color={row.departmentColor} />
+            <span className="truncate">{row.name}</span>
+          </div>
+        ),
+      },
+      {
+        key: "department",
+        header: "Department",
+        width: "160px",
+        render: (row) => (
+          <span style={{ color: row.departmentColor }}>{row.department}</span>
+        ),
+      },
+      {
+        key: "role",
+        header: "Role",
+        width: "160px",
+        render: (row) => (
+          <span className="text-[#71717A]">{row.role}</span>
+        ),
+      },
+      {
+        key: "callTime",
+        header: "Call Time",
+        width: "100px",
+        sortable: true,
+        render: (row) => (
+          <span className="font-mono">{row.callTime}</span>
+        ),
+      },
+      {
+        key: "status",
+        header: "Status",
+        width: "120px",
+        render: (row) => (
+          <Badge type="confirmation" value={row.status} />
+        ),
+      },
+    ],
+    []
+  )
+
+  const crewFooter = useMemo(() => {
+    const confirmed = MOCK_CREW.filter((c) => c.status === "confirmed").length
+    const viewed = MOCK_CREW.filter((c) => c.status === "viewed").length
+    const pending = MOCK_CREW.filter((c) => c.status === "pending").length
+    return `${MOCK_CREW.length} crew · ${confirmed} confirmed · ${viewed} viewed · ${pending} pending`
+  }, [])
+
+  // FilterTabs state
+  const [callSheetFilter, setCallSheetFilter] = useState("upcoming")
+  const [crewFilter, setCrewFilter] = useState("all")
+
+  // Dropdown state
+  const [singleCrewPick, setSingleCrewPick] = useState("")
+  const [multiCrewPick, setMultiCrewPick] = useState<string[]>(["jp", "mt"])
+
+  // TimePicker state
+  const [generalCallTime, setGeneralCallTime] = useState("")
+  const [lunchTime, setLunchTime] = useState("13:00")
+
+  // DateInput state
+  const [shootDate, setShootDate] = useState("")
+  const [dueDate, setDueDate] = useState("2026-03-15")
+
+  // InlineFeedback state
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [showError, setShowError] = useState(false)
 
   return (
     <ContentArea className="max-w-[900px]">
@@ -355,6 +511,292 @@ export default function ComponentsDevPage() {
           confirmLabel="Publish"
           confirmVariant="primary"
         />
+      </Section>
+
+      {/* ================================================================= */}
+      {/* Table */}
+      {/* ================================================================= */}
+      <Section title="Table">
+        <p className="text-[12px] text-[#71717A] mb-3">Crew call grid</p>
+        <Table<CrewCall>
+          columns={crewColumns}
+          data={sortedCrew}
+          keyField="id"
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+          showRowActions
+          footer={crewFooter}
+        />
+
+        <p className="text-[12px] text-[#71717A] mb-3 mt-6">Empty state</p>
+        <Table<CrewCall>
+          columns={crewColumns}
+          data={[]}
+          keyField="id"
+          emptyMessage="No crew calls yet. Add crew members to this call sheet."
+        />
+      </Section>
+
+      {/* ================================================================= */}
+      {/* FilterTabs */}
+      {/* ================================================================= */}
+      <Section title="FilterTabs">
+        <p className="text-[12px] text-[#71717A] mb-3">Call sheet filter</p>
+        <FilterTabs
+          tabs={CALL_SHEET_TABS}
+          activeTab={callSheetFilter}
+          onChange={setCallSheetFilter}
+        />
+        <p className="text-[13px] text-[#18181B]">
+          Active filter: <span className="font-mono">{callSheetFilter}</span>
+        </p>
+
+        <p className="text-[12px] text-[#71717A] mb-3 mt-6">Crew filter</p>
+        <FilterTabs
+          tabs={CREW_TABS}
+          activeTab={crewFilter}
+          onChange={setCrewFilter}
+        />
+        <p className="text-[13px] text-[#18181B]">
+          Active filter: <span className="font-mono">{crewFilter}</span>
+        </p>
+      </Section>
+
+      {/* ================================================================= */}
+      {/* Dropdown */}
+      {/* ================================================================= */}
+      <Section title="Dropdown">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Dropdown
+            label="Assign Crew Member"
+            options={CREW_OPTIONS}
+            value={singleCrewPick}
+            onChange={(v) => setSingleCrewPick(v as string)}
+            mode="single"
+            placeholder="Select crew member..."
+            searchPlaceholder="Search by name or role..."
+          />
+          <Dropdown
+            label="Notify Crew"
+            options={CREW_OPTIONS}
+            value={multiCrewPick}
+            onChange={(v) => setMultiCrewPick(v as string[])}
+            mode="multi"
+            placeholder="Select crew members..."
+          />
+        </div>
+      </Section>
+
+      {/* ================================================================= */}
+      {/* TimePicker */}
+      {/* ================================================================= */}
+      <Section title="TimePicker">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <TimePicker
+            label="General Call Time"
+            value={generalCallTime}
+            onChange={setGeneralCallTime}
+            placeholder="Select time..."
+          />
+          <TimePicker
+            label="Lunch Time"
+            value={lunchTime}
+            onChange={setLunchTime}
+          />
+        </div>
+      </Section>
+
+      {/* ================================================================= */}
+      {/* DateInput */}
+      {/* ================================================================= */}
+      <Section title="DateInput">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <DateInput
+            label="Shoot Date"
+            value={shootDate}
+            onChange={(e) => setShootDate(e.target.value)}
+            helperText="The scheduled filming date"
+          />
+          <DateInput
+            label="Due Date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
+        </div>
+      </Section>
+
+      {/* ================================================================= */}
+      {/* Toast */}
+      {/* ================================================================= */}
+      <Section title="Toast">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            onClick={() =>
+              toast.success("Call sheet published", {
+                description: "Confirmations coming in.",
+              })
+            }
+          >
+            Success Toast
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              toast.error("Failed to save changes", {
+                description: "Check your connection and try again.",
+              })
+            }
+          >
+            Error Toast
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              toast.info("Location updated", {
+                description: "4 downstream call times recalculated.",
+              })
+            }
+          >
+            Info Toast
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              toast.warning("Weather alert", {
+                description: "Rain forecast for tomorrow's exterior shoot.",
+              })
+            }
+          >
+            Warning Toast
+          </Button>
+          <Button
+            onClick={() =>
+              toast.success("Call sheet published", {
+                description: "Your crew has been notified.",
+                action: {
+                  label: "View call sheet",
+                  onClick: () => console.log("view call sheet"),
+                },
+              })
+            }
+          >
+            Toast with Action
+          </Button>
+        </div>
+      </Section>
+
+      {/* ================================================================= */}
+      {/* InlineFeedback */}
+      {/* ================================================================= */}
+      <Section title="InlineFeedback">
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <Button
+              variant="secondary"
+              onClick={() => setShowSuccess(true)}
+            >
+              Save Changes
+            </Button>
+            <InlineFeedback
+              type="success"
+              message="Changes saved successfully"
+              show={showSuccess}
+              onDismiss={() => setShowSuccess(false)}
+            />
+          </div>
+          <div>
+            <Button
+              variant="secondary"
+              onClick={() => setShowError(true)}
+            >
+              Trigger Error
+            </Button>
+            <InlineFeedback
+              type="error"
+              message="Failed to update — please try again"
+              show={showError}
+              onDismiss={() => setShowError(false)}
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* ================================================================= */}
+      {/* Skeleton */}
+      {/* ================================================================= */}
+      <Section title="Skeleton">
+        <p className="text-[12px] text-[#71717A] mb-3">Base variants</p>
+        <div className="flex items-center gap-4 mb-4">
+          <Skeleton width="80px" height="13px" />
+          <Skeleton width="200px" height="16px" />
+          <Skeleton width="32px" height="32px" circle />
+        </div>
+        <Skeleton width="100%" height="200px" className="mb-6" />
+
+        <p className="text-[12px] text-[#71717A] mb-3">SkeletonText</p>
+        <div className="max-w-md mb-6">
+          <SkeletonText lines={4} />
+        </div>
+
+        <p className="text-[12px] text-[#71717A] mb-3">SkeletonCard</p>
+        <div className="max-w-xs mb-6">
+          <SkeletonCard />
+        </div>
+
+        <p className="text-[12px] text-[#71717A] mb-3">SkeletonTableRow</p>
+        <div className="border border-[#E4E4E7] rounded-[4px] mb-6">
+          <SkeletonTableRow />
+          <SkeletonTableRow />
+          <SkeletonTableRow />
+        </div>
+
+        <p className="text-[12px] text-[#71717A] mb-3">Dark variant</p>
+        <div className="bg-[#0F1117] rounded-[4px] p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <Skeleton width="32px" height="32px" circle variant="dark" />
+            <Skeleton width="120px" height="13px" variant="dark" />
+          </div>
+          <SkeletonText lines={2} variant="dark" />
+        </div>
+      </Section>
+
+      {/* ================================================================= */}
+      {/* EmptyState */}
+      {/* ================================================================= */}
+      <Section title="EmptyState">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="border border-[#E4E4E7] rounded-[4px]">
+            <EmptyState
+              icon={Film}
+              headline="No productions yet"
+              description="Start by creating your first production. You'll manage your crew, schedule, and call sheets from here."
+              action={{
+                label: "Create a production",
+                onClick: () => console.log("create production"),
+              }}
+            />
+          </div>
+          <div className="border border-[#E4E4E7] rounded-[4px]">
+            <EmptyState
+              icon={ClipboardList}
+              headline="No call sheets yet"
+              description="Create a call sheet for your next shoot day and share it with your crew."
+            />
+          </div>
+          <div className="border border-[#E4E4E7] rounded-[4px]">
+            <EmptyState
+              icon={Users}
+              headline="No crew added"
+              description="Add the people working on this production. They don't need a Seira account."
+              action={{
+                label: "Add a crew member",
+                onClick: () => console.log("add crew"),
+              }}
+            />
+          </div>
+        </div>
       </Section>
     </ContentArea>
   )

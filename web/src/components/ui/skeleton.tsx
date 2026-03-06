@@ -1,51 +1,126 @@
 import { cn } from "@/lib/utils"
 
-function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+// =============================================================================
+// Skeleton
+// =============================================================================
+
+interface SkeletonProps extends React.ComponentProps<"div"> {
+  width?: string
+  height?: string
+  circle?: boolean
+  variant?: "light" | "dark"
+}
+
+function Skeleton({
+  width,
+  height,
+  circle = false,
+  variant = "light",
+  className,
+  style,
+  ...props
+}: SkeletonProps) {
   return (
     <div
       data-slot="skeleton"
-      className={cn("bg-accent animate-pulse rounded-md", className)}
+      className={cn(
+        variant === "light" ? "bg-[#E4E4E7]" : "bg-[#1A1D27]",
+        circle ? "rounded-full" : "rounded-[4px]",
+        className
+      )}
+      style={{
+        width: width ?? (className ? undefined : "100%"),
+        height: height ?? (className ? undefined : "16px"),
+        animation: "skeletonPulse 1.8s ease-in-out infinite",
+        ...style,
+      }}
       {...props}
     />
   )
 }
 
-function SkeletonText({ className, ...props }: React.ComponentProps<"div">) {
+// =============================================================================
+// SkeletonText
+// =============================================================================
+
+interface SkeletonTextProps {
+  lines?: number
+  variant?: "light" | "dark"
+  className?: string
+}
+
+function SkeletonText({
+  lines = 3,
+  variant = "light",
+  className,
+}: SkeletonTextProps) {
   return (
-    <Skeleton
-      className={cn("h-4 w-full", className)}
-      {...props}
-    />
+    <div className={cn("flex flex-col gap-2", className)}>
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton
+          key={i}
+          width={i === lines - 1 ? "60%" : "100%"}
+          height="16px"
+          variant={variant}
+        />
+      ))}
+    </div>
   )
 }
 
-interface SkeletonAvatarProps extends React.ComponentProps<"div"> {
-  size?: "sm" | "default" | "lg" | "xl"
+// =============================================================================
+// SkeletonCard
+// =============================================================================
+
+interface SkeletonCardProps {
+  variant?: "light" | "dark"
+  className?: string
 }
 
-function SkeletonAvatar({ size = "default", className, ...props }: SkeletonAvatarProps) {
-  const sizeClasses = {
-    sm: "size-6",
-    default: "size-8",
-    lg: "size-10",
-    xl: "size-12",
-  }
-
+function SkeletonCard({ variant = "light", className }: SkeletonCardProps) {
   return (
-    <Skeleton
-      className={cn("rounded-full", sizeClasses[size], className)}
-      {...props}
-    />
+    <div
+      className={cn(
+        "bg-white rounded-[4px] border border-[#E4E4E7] p-4 space-y-3",
+        className
+      )}
+    >
+      <Skeleton width="100%" height="120px" variant={variant} />
+      <Skeleton width="60%" height="16px" variant={variant} />
+      <Skeleton width="40%" height="13px" variant={variant} />
+      <Skeleton width="80%" height="13px" variant={variant} />
+    </div>
   )
 }
 
-function SkeletonButton({ className, ...props }: React.ComponentProps<"div">) {
+// =============================================================================
+// SkeletonTableRow
+// =============================================================================
+
+interface SkeletonTableRowProps {
+  variant?: "light" | "dark"
+  className?: string
+}
+
+function SkeletonTableRow({
+  variant = "light",
+  className,
+}: SkeletonTableRowProps) {
   return (
-    <Skeleton
-      className={cn("h-9 w-20 rounded-md", className)}
-      {...props}
-    />
+    <div
+      className={cn(
+        "flex items-center gap-3 h-12 px-3",
+        className
+      )}
+    >
+      <Skeleton width="24px" height="24px" circle variant={variant} />
+      <Skeleton width="120px" height="13px" variant={variant} />
+      <Skeleton width="100px" height="13px" variant={variant} />
+      <Skeleton width="60px" height="13px" variant={variant} />
+      <Skeleton width="80px" height="13px" variant={variant} />
+    </div>
   )
 }
 
-export { Skeleton, SkeletonText, SkeletonAvatar, SkeletonButton }
+export { Skeleton, SkeletonText, SkeletonCard, SkeletonTableRow }
+export type { SkeletonProps, SkeletonTextProps, SkeletonCardProps, SkeletonTableRowProps }

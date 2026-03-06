@@ -1,31 +1,78 @@
-import { type LucideIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { ArrowRight } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+// =============================================================================
+// EmptyState
+// =============================================================================
 
 interface EmptyStateProps {
-  icon?: LucideIcon
-  title: string
-  description?: string
-  action?: React.ReactNode
+  icon?: React.ElementType
+  illustration?: string
+  headline: string
+  description: string
+  action?: {
+    label: string
+    onClick: () => void
+  }
   className?: string
 }
 
-export function EmptyState({
+function EmptyState({
   icon: Icon,
-  title,
+  illustration,
+  headline,
   description,
   action,
   className,
 }: EmptyStateProps) {
   return (
-    <div className={cn('text-center py-12', className)}>
-      {Icon && (
-        <Icon className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center text-center min-h-[300px] max-w-[400px] mx-auto px-4",
+        className
       )}
-      <h3 className="font-medium text-foreground">{title}</h3>
-      {description && (
-        <p className="text-sm text-muted-foreground mt-1">{description}</p>
+    >
+      {/* Icon or illustration */}
+      {illustration ? (
+        <img
+          src={illustration}
+          alt=""
+          className="w-[120px] h-auto"
+          aria-hidden="true"
+        />
+      ) : Icon ? (
+        <Icon className="size-12 text-[#A1A1AA]" aria-hidden="true" />
+      ) : null}
+
+      {/* Headline */}
+      <h3
+        className={cn(
+          "text-[16px] font-semibold text-[#18181B]",
+          (Icon || illustration) && "mt-4"
+        )}
+      >
+        {headline}
+      </h3>
+
+      {/* Description */}
+      <p className="text-[13px] text-[#71717A] max-w-[320px] leading-relaxed mt-2">
+        {description}
+      </p>
+
+      {/* Action link */}
+      {action && (
+        <button
+          type="button"
+          onClick={action.onClick}
+          className="group flex items-center gap-1 mt-5 text-[13px] font-medium text-[#71717A] hover:text-[#18181B] transition-colors duration-150 cursor-pointer"
+        >
+          {action.label}
+          <ArrowRight className="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+        </button>
       )}
-      {action && <div className="mt-4">{action}</div>}
     </div>
   )
 }
+
+export { EmptyState }
+export type { EmptyStateProps }

@@ -17,8 +17,11 @@ function Toaster({ ...props }: ToasterProps) {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      data-slot="toaster-group"
       position="bottom-right"
       duration={4000}
+      visibleToasts={3}
+      gap={8}
       closeButton
       richColors
       icons={{
@@ -28,12 +31,28 @@ function Toaster({ ...props }: ToasterProps) {
         error: <OctagonXIcon className="size-4" />,
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
+      toastOptions={{
+        classNames: {
+          toast:
+            "!bg-white !rounded-[4px] !shadow-[0_4px_12px_rgba(0,0,0,0.1)] !border !border-[#E4E4E7] !w-[360px] !gap-3 !p-3 !px-4",
+          title: "!text-[13px] !font-medium !text-[#18181B]",
+          description: "!text-[13px] !text-[#71717A] !mt-0.5",
+          actionButton:
+            "!text-[13px] !font-medium !text-[#C4363A] !bg-transparent !hover:underline !p-0 !h-auto !mt-1.5",
+          closeButton:
+            "!text-[#A1A1AA] hover:!text-[#71717A] !border-none !bg-transparent",
+          success: "!border-l-[3px] !border-l-[#10B981]",
+          error: "!border-l-[3px] !border-l-[#E5484D]",
+          info: "!border-l-[3px] !border-l-[#3B82F6]",
+          warning: "!border-l-[3px] !border-l-[#F59E0B]",
+        },
+      }}
       style={
         {
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
+          "--border-radius": "4px",
         } as React.CSSProperties
       }
       {...props}
