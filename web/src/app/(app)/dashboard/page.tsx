@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ContentArea } from '@/components/layout/content-area'
+import { Badge } from '@/components/ui/badge'
 import { TEST_PRODUCTIONS } from '@/lib/constants/test-productions'
 
 export default function DashboardPage() {
@@ -26,18 +27,7 @@ export default function DashboardPage() {
           >
             <div className="flex items-center gap-3 mb-2">
               <h2 style={{ fontSize: 16, fontWeight: 600 }}>{prod.name}</h2>
-              <span
-                className="inline-flex items-center"
-                style={{
-                  fontSize: 12,
-                  color: prod.statusColor,
-                  backgroundColor: `${prod.statusColor}1F`,
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                }}
-              >
-                {prod.status}
-              </span>
+              <Badge type="status" value={prod.status} />
             </div>
             <p style={{ fontSize: 13, color: '#71717A' }}>5 shoot days · 2 call sheets</p>
           </Link>

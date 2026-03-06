@@ -1,70 +1,31 @@
 import * as React from "react"
 import * as AvatarPrimitive from "@radix-ui/react-avatar"
-import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip"
 
-const avatarVariants = cva(
-  "relative flex shrink-0 overflow-hidden rounded-full",
-  {
-    variants: {
-      size: {
-        sm: "size-6 text-xs",
-        default: "size-8 text-sm",
-        lg: "size-10 text-base",
-        xl: "size-12 text-lg",
-      },
-    },
-    defaultVariants: {
-      size: "default",
-    },
-  }
-)
+// =============================================================================
+// Constants
+// =============================================================================
 
-interface AvatarProps
-  extends React.ComponentProps<typeof AvatarPrimitive.Root>,
-    VariantProps<typeof avatarVariants> {}
+const AVATAR_COLORS = [
+  "#6366F1", "#3B82F6", "#10B981", "#F59E0B",
+  "#EC4899", "#8B5CF6", "#14B8A6", "#F97316",
+]
 
-function Avatar({ className, size, ...props }: AvatarProps) {
-  return (
-    <AvatarPrimitive.Root
-      data-slot="avatar"
-      data-size={size}
-      className={cn(avatarVariants({ size, className }))}
-      {...props}
-    />
-  )
-}
+const SIZE_CONFIG = {
+  sm: { diameter: 24, className: "size-6", fontSize: 10 },
+  md: { diameter: 32, className: "size-8", fontSize: 13 },
+  lg: { diameter: 48, className: "size-12", fontSize: 18 },
+} as const
 
-function AvatarImage({
-  className,
-  ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
-  return (
-    <AvatarPrimitive.Image
-      data-slot="avatar-image"
-      className={cn("aspect-square size-full object-cover", className)}
-      {...props}
-    />
-  )
-}
+// =============================================================================
+// Helpers
+// =============================================================================
 
-function AvatarFallback({
-  className,
-  ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
-  return (
-    <AvatarPrimitive.Fallback
-      data-slot="avatar-fallback"
-      className={cn(
-        "bg-muted text-muted-foreground flex size-full items-center justify-center font-medium",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
-// Helper: Get initials from name
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -75,44 +36,133 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-// Pre-styled assistant avatar
-function AvatarAssistant({
-  size,
-  className,
-}: VariantProps<typeof avatarVariants> & { className?: string }) {
-  return (
-    <Avatar size={size} className={className}>
-      <AvatarFallback className="bg-primary text-primary-foreground">
-        S
-      </AvatarFallback>
-    </Avatar>
-  )
+function hashName(name: string): string {
+  let sum = 0
+  for (let i = 0; i < name.length; i++) {
+    sum += name.charCodeAt(i)
+  }
+  return AVATAR_COLORS[sum % AVATAR_COLORS.length]
 }
 
-// Pre-styled user avatar with automatic fallback
-interface AvatarUserProps extends VariantProps<typeof avatarVariants> {
+// =============================================================================
+// Avatar
+// =============================================================================
+
+interface AvatarProps {
   src?: string | null
-  name?: string | null
+  name: string
+  size?: "sm" | "md" | "lg"
+  color?: string
   className?: string
 }
 
-function AvatarUser({ src, name, size, className }: AvatarUserProps) {
+function Avatar({
+  src,
+  name,
+  size = "md",
+  color,
+  className,
+}: AvatarProps) {
+  const config = SIZE_CONFIG[size]
+  const bgColor = color || hashName(name)
+
   return (
-    <Avatar size={size} className={className}>
-      {src && <AvatarImage src={src} alt={name ?? "User"} />}
-      <AvatarFallback>
-        {name ? getInitials(name) : "U"}
-      </AvatarFallback>
-    </Avatar>
+    <AvatarPrimitive.Root
+      data-slot="avatar"
+      className={cn(
+        "relative flex shrink-0 overflow-hidden rounded-full",
+        config.className,
+        className
+      )}
+    >
+      {src && (
+        <AvatarPrimitive.Image
+          src={src}
+          alt={name}
+          className="aspect-square size-full object-cover"
+        />
+      )}
+      <AvatarPrimitive.Fallback
+        className="flex size-full items-center justify-center rounded-full"
+        style={{ backgroundColor: bgColor }}
+      >
+        <span
+          className="font-semibold text-white leading-none select-none"
+          style={{ fontSize: config.fontSize }}
+        >
+          {getInitials(name)}
+        </span>
+      </AvatarPrimitive.Fallback>
+    </AvatarPrimitive.Root>
   )
 }
 
-export {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-  AvatarAssistant,
-  AvatarUser,
-  getInitials,
+// =============================================================================
+// AvatarGroup
+// =============================================================================
+
+interface AvatarGroupProps {
+  people: { src?: string; name: string; color?: string }[]
+  size?: "sm" | "md" | "lg"
+  max?: number
+  className?: string
 }
-export type { AvatarProps, AvatarUserProps }
+
+function AvatarGroup({
+  people,
+  size = "md",
+  max = 4,
+  className,
+}: AvatarGroupProps) {
+  const showOverflow = people.length > max
+  const visible = showOverflow ? people.slice(0, max - 1) : people
+  const remaining = people.length - visible.length
+  const overflowPeople = showOverflow ? people.slice(max - 1) : []
+
+  const config = SIZE_CONFIG[size]
+
+  return (
+    <div className={cn("flex items-center", className)}>
+      {visible.map((person, i) => (
+        <Avatar
+          key={i}
+          src={person.src}
+          name={person.name}
+          size={size}
+          color={person.color}
+          className={cn(
+            "ring-2 ring-white",
+            i > 0 && "-ml-2"
+          )}
+        />
+      ))}
+      {showOverflow && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className={cn(
+                "flex items-center justify-center rounded-full shrink-0",
+                "bg-[#71717A] text-white font-semibold select-none cursor-default",
+                "ring-2 ring-white -ml-2",
+                config.className
+              )}
+              style={{ fontSize: config.fontSize }}
+            >
+              +{remaining}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <div className="flex flex-col gap-0.5">
+              {overflowPeople.map((person, i) => (
+                <span key={i}>{person.name}</span>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  )
+}
+
+export { Avatar, AvatarGroup, getInitials }
+export type { AvatarProps, AvatarGroupProps }

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Collapsible } from 'radix-ui'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { TEST_PRODUCTIONS } from '@/lib/constants/test-productions'
 import { useSidebarState } from '@/hooks/use-sidebar-state'
 import {
@@ -130,10 +131,6 @@ function ProductionsGroup() {
                         className={active ? 'border-l-2 border-l-[#C4363A] bg-sidebar-accent text-white' : ''}
                       >
                         <Link href={`/production/${prod.id}`} className="items-start">
-                          <span
-                            className="inline-block shrink-0 rounded-full mt-1.5"
-                            style={{ width: 6, height: 6, backgroundColor: prod.statusColor }}
-                          />
                           <span className="flex flex-col min-w-0">
                             <span
                               className="truncate max-w-[180px]"
@@ -141,7 +138,7 @@ function ProductionsGroup() {
                             >
                               {prod.name}
                             </span>
-                            <span style={{ fontSize: 11, color: '#71717A' }}>{prod.status}</span>
+                            <Badge type="status" value={prod.status} size="sm" showBackground={false} />
                           </span>
                         </Link>
                       </SidebarMenuSubButton>

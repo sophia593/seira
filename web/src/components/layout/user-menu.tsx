@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { useUserStore } from '@/stores/user-store'
 import { useAuth } from '@/hooks/use-auth'
-import { AvatarUser } from '@/components/ui/avatar'
+import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -85,11 +85,6 @@ export function UserMenu({ isCollapsed = false, variant = 'default' }: UserMenuP
   const userPlan: UserPlan = (user as { plan?: UserPlan })?.plan || 'free'
   const isPro = userPlan === 'pro'
 
-  // Get user's first initial
-  const firstInitial = user?.name?.charAt(0)?.toUpperCase() ||
-                       user?.email?.charAt(0)?.toUpperCase() ||
-                       '?'
-
   // ===========================================================================
   // Handlers
   // ===========================================================================
@@ -135,20 +130,12 @@ export function UserMenu({ isCollapsed = false, variant = 'default' }: UserMenuP
           )}
         >
           <div className="relative shrink-0">
-            {isSidebar && !user.avatar_url ? (
-              <div className={cn(
-                "rounded-full bg-copper text-white flex items-center justify-center font-medium",
-                isCollapsed ? "w-9 h-9 text-sm" : "w-8 h-8 text-xs"
-              )}>
-                {firstInitial}
-              </div>
-            ) : (
-              <AvatarUser
-                src={user.avatar_url}
-                name={user.name}
-                size={isCollapsed ? 'default' : 'sm'}
-              />
-            )}
+            <Avatar
+              src={user.avatar_url}
+              name={user.name || user.email || "U"}
+              size={isCollapsed ? "md" : "sm"}
+              color="#C59C79"
+            />
             {/* Pro badge indicator (small dot on avatar) */}
             {isPro && isCollapsed && (
               <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
@@ -178,12 +165,11 @@ export function UserMenu({ isCollapsed = false, variant = 'default' }: UserMenuP
         {/* Header */}
         <DropdownMenuLabel className="font-normal">
           <div className="flex items-center gap-3">
-            {/* Initial avatar */}
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-sm font-semibold text-primary">
-                {firstInitial}
-              </span>
-            </div>
+            <Avatar
+              name={user.name || "U"}
+              size="md"
+              className="size-10"
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium truncate">

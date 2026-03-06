@@ -267,7 +267,7 @@ export default function Error({ error, reset }: ErrorProps) {
             )}
             <Button
               asChild
-              variant="outline"
+              variant="secondary"
               size="lg"
               className="lowercase gap-2"
             >

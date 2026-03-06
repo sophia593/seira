@@ -2,31 +2,21 @@
 
 import { useParams } from 'next/navigation'
 import { ContentArea } from '@/components/layout/content-area'
+import { Badge } from '@/components/ui/badge'
 import { getProductionById } from '@/lib/constants/test-productions'
 
 const CARDS = ['Upcoming Shoot Days', 'Tasks', 'Crew']
 
 export default function ProductionPage() {
   const { id } = useParams<{ id: string }>()
-  const prod = getProductionById(id) ?? { name: `Production ${id}`, status: 'Unknown', statusColor: '#71717A' }
+  const prod = getProductionById(id) ?? { name: `Production ${id}`, status: 'unknown' }
 
   return (
     <ContentArea>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <h1 style={{ fontSize: 20, fontWeight: 600 }}>{prod.name}</h1>
-        <span
-          className="inline-flex items-center rounded"
-          style={{
-            fontSize: 12,
-            color: prod.statusColor,
-            backgroundColor: `${prod.statusColor}1F`,
-            padding: '4px 8px',
-            borderRadius: 4,
-          }}
-        >
-          {prod.status}
-        </span>
+        <Badge type="status" value={prod.status} />
       </div>
 
       {/* Cards */}

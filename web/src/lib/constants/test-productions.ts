@@ -2,13 +2,12 @@ export interface Production {
   id: string
   name: string
   status: string
-  statusColor: string
 }
 
 export const TEST_PRODUCTIONS: Production[] = [
-  { id: '1', name: 'Untitled Horror Short', status: 'Pre-Production', statusColor: '#F59E0B' },
-  { id: '2', name: 'Senior Thesis Film', status: 'Production', statusColor: '#10B981' },
-  { id: '3', name: 'Nike Commercial', status: 'Development', statusColor: '#3B82F6' },
+  { id: '1', name: 'Untitled Horror Short', status: 'pre_production' },
+  { id: '2', name: 'Senior Thesis Film', status: 'production' },
+  { id: '3', name: 'Nike Commercial', status: 'development' },
 ]
 
 export function getProductionById(id: string): Production | null {
